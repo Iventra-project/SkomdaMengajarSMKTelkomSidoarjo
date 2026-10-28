@@ -1,3 +1,4 @@
+"use client"; 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { initialMembersKelompok03, initialSprintTasks, Member, SprintTask } from '../data/mockData';
 
