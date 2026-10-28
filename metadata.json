@@ -1,0 +1,7 @@
+{
+  "name": "Skomda Mengajar — SMK Telkom Sidoarjo",
+  "description": "Platform Monitoring dan Ruang Kerja Kolaboratif Program Skomda Mengajar #Impact2026 SMK Telkom Sidoarjo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

@@ -1,0 +1,259 @@
+---
+name: Skomda Mengajar Editorial System
+colors:
+  surface: '#f9f9f9'
+  surface-dim: '#dadada'
+  surface-bright: '#f9f9f9'
+  surface-container-lowest: '#ffffff'
+  surface-container-low: '#f3f3f4'
+  surface-container: '#eeeeee'
+  surface-container-high: '#e8e8e8'
+  surface-container-highest: '#e2e2e2'
+  on-surface: '#1a1c1c'
+  on-surface-variant: '#5e3f3b'
+  inverse-surface: '#2f3131'
+  inverse-on-surface: '#f0f1f1'
+  outline: '#936e69'
+  outline-variant: '#e9bcb6'
+  surface-tint: '#c0000e'
+  primary: '#b4000c'
+  on-primary: '#ffffff'
+  primary-container: '#e20113'
+  on-primary-container: '#fff3f1'
+  inverse-primary: '#ffb4aa'
+  secondary: '#5f5e5e'
+  on-secondary: '#ffffff'
+  secondary-container: '#e5e2e1'
+  on-secondary-container: '#656464'
+  tertiary: '#575858'
+  on-tertiary: '#ffffff'
+  tertiary-container: '#707070'
+  on-tertiary-container: '#f7f5f4'
+  error: '#ba1a1a'
+  on-error: '#ffffff'
+  error-container: '#ffdad6'
+  on-error-container: '#93000a'
+  primary-fixed: '#ffdad5'
+  primary-fixed-dim: '#ffb4aa'
+  on-primary-fixed: '#410001'
+  on-primary-fixed-variant: '#930008'
+  secondary-fixed: '#e5e2e1'
+  secondary-fixed-dim: '#c8c6c5'
+  on-secondary-fixed: '#1c1b1b'
+  on-secondary-fixed-variant: '#474646'
+  tertiary-fixed: '#e4e2e2'
+  tertiary-fixed-dim: '#c7c6c6'
+  on-tertiary-fixed: '#1b1c1c'
+  on-tertiary-fixed-variant: '#464747'
+  background: '#f9f9f9'
+  on-background: '#1a1c1c'
+  surface-variant: '#e2e2e2'
+typography:
+  display-hero:
+    fontFamily: Poppins
+    fontSize: 80px
+    fontWeight: '800'
+    lineHeight: 88px
+    letterSpacing: -0.04em
+  display-hero-mobile:
+    fontFamily: Poppins
+    fontSize: 44px
+    fontWeight: '800'
+    lineHeight: 48px
+    letterSpacing: -0.03em
+  display-numeral:
+    fontFamily: Poppins
+    fontSize: 96px
+    fontWeight: '300'
+    lineHeight: 96px
+    letterSpacing: -0.05em
+  display-numeral-mobile:
+    fontFamily: Poppins
+    fontSize: 60px
+    fontWeight: '300'
+    lineHeight: 60px
+    letterSpacing: -0.04em
+  headline-lg:
+    fontFamily: Poppins
+    fontSize: 48px
+    fontWeight: '800'
+    lineHeight: 56px
+    letterSpacing: -0.03em
+  headline-lg-mobile:
+    fontFamily: Poppins
+    fontSize: 32px
+    fontWeight: '800'
+    lineHeight: 38px
+    letterSpacing: -0.02em
+  headline-md:
+    fontFamily: Poppins
+    fontSize: 32px
+    fontWeight: '800'
+    lineHeight: 40px
+    letterSpacing: -0.02em
+  headline-md-mobile:
+    fontFamily: Poppins
+    fontSize: 24px
+    fontWeight: '700'
+    lineHeight: 32px
+    letterSpacing: -0.01em
+  headline-sm:
+    fontFamily: Poppins
+    fontSize: 20px
+    fontWeight: '700'
+    lineHeight: 28px
+    letterSpacing: -0.01em
+  body-lead:
+    fontFamily: Poppins
+    fontSize: 18px
+    fontWeight: '400'
+    lineHeight: 30px
+    letterSpacing: -0.01em
+  body-default:
+    fontFamily: Poppins
+    fontSize: 15px
+    fontWeight: '400'
+    lineHeight: 26px
+    letterSpacing: 0em
+  caption:
+    fontFamily: Poppins
+    fontSize: 13px
+    fontWeight: '400'
+    lineHeight: 20px
+    letterSpacing: 0.01em
+  label-prominent:
+    fontFamily: Poppins
+    fontSize: 13px
+    fontWeight: '600'
+    lineHeight: 16px
+    letterSpacing: 0.06em
+  label-badge:
+    fontFamily: Poppins
+    fontSize: 11px
+    fontWeight: '700'
+    lineHeight: 14px
+    letterSpacing: 0.08em
+  label-mono-meta:
+    fontFamily: Poppins
+    fontSize: 11px
+    fontWeight: '500'
+    lineHeight: 14px
+    letterSpacing: 0.1em
+rounded:
+  sm: 0.125rem
+  DEFAULT: 0.25rem
+  md: 0.375rem
+  lg: 0.5rem
+  xl: 0.75rem
+  full: 9999px
+spacing:
+  gutter: 2rem
+  gutter-mobile: 1rem
+  margin: 5rem
+  margin-mobile: 1.5rem
+  space-xs: 0.25rem
+  space-sm: 0.5rem
+  space-md: 1rem
+  space-lg: 1.5rem
+  space-xl: 2.5rem
+  space-2xl: 4rem
+  space-section: 7.5rem
+---
+
+## Brand & Style
+
+The design system embodies the intellectual rigor, structural clarity, and cultural authority of high-end editorial publications and Swiss modernist institutions. Built to document and celebrate educational impact, the visual tone avoids decorative artifice in favor of deliberate asymmetric grids, monumental negative space, and disciplined typographical hierarchy. 
+
+The aesthetic is strictly high-contrast minimalist editorial: stark white foundations, hairline geometric partitions, razor-sharp typography, and surgical injections of high-energy signal red. The experience evokes the feeling of an archival exhibition catalog or an architectural monograph—confident, urgent, and impeccably organized.
+
+### Core Visual Principles
+- **Editorial Architectural Grid:** Asymmetric columns, strict horizontal dividing lines, and generous vertical pacing establish structured visual weight without relying on ornamental containers.
+- **Micro-Angled Dynamic Motif:** Key meta-tags, campaign flags, and callouts utilize an intentional upward tilt (`transform: rotate(-3deg); transform-origin: center left;`) to introduce kinetic energy against the disciplined Cartesian grid.
+- **Flat Surface Logic:** Absolute zero elevation, no box shadows, and no blurred overlays. Spatial depth is achieved exclusively through hairline borders (#E8E8E8) and muted flat tint planes (#F7F7F7).
+- **Light Exclusivity:** The system exists exclusively in a stark daylight spectrum. There is no dark mode variant, preserving the crisp tactility of printed newsprint and archival paper.
+
+## Colors
+
+The palette is strictly controlled to maintain typographic authority and focused contrast. Color is applied systematically as structural framing or semantic signaling, never as decorative fills.
+
+### Palette Architecture
+- **Canvas Base (`#FFFFFF`):** Pure unadulterated white representing paper stock.
+- **Surface Muted (`#F7F7F7`):** Flat contextual tint used for structured table cells, secondary card panels, and alternating section modules.
+- **Signal Red (`#E20113`):** High-saturation brand accent. Reserved exclusively for actionable trigger states, index numbers, primary button backgrounds, live status dots, and the characteristic -3° tilted badges. Must never be used for long-form narrative body copy.
+- **Text Dominant (`#111111`):** Deep editorial carbon black for titles, headlines, quotes, and high-legibility body segments.
+- **Text Subdued (`#6B6B6B`):** Neutral gray for datelines, photo credits, category tags, indices, and structural labels.
+- **Structural Hairline (`#E8E8E8`):** Razor 1px solid dividers, grid gutters, and card boundaries.
+
+### Semantic Status Tokens
+Restricted strictly to submission states, audit trackers, and programmatic updates:
+- **Approved / Verified:** `#3DBE7A`
+- **Revision / Required Action:** `#FF8A5B`
+- **Warning / Pending Review:** `#F2B33D`
+
+## Typography
+
+The typography uses the geometric purity of Poppins across deliberate weight extremes: Light (300) for monumental archival numbering, Regular (400) for disciplined editorial body text, SemiBold (600) for UI mechanics, and ExtraBold (800) for commanding typographic statements.
+
+### Structural Typographic Rules
+- **Headline Architecture:** Always left-aligned. High tracking compression (`-0.03em` to `-0.04em`) combined with balanced, readable leading gives headlines an authoritative, poster-like impact.
+- **Oversized Numerals:** Impact metrics, chronological markers (#Impact2026), and list indices use `display-numeral` (Weight 300). The gossamer stroke thickness provides scale without overpowering the editorial prose.
+- **Meta-labels and Micro-copy:** All category tags and navigational anchors apply uppercase capitalization and open letter spacing (`0.06em` to `0.1em`).
+
+## Layout & Spacing
+
+The layout is built on an asymmetric 12-column grid referencing mid-century Swiss graphic systems. Whitespace is an active spatial element, creating breathing room and directional clarity.
+
+### Vertical & Horizontal Rhythm
+- **120px Section Cadence (`space-section`):** Top-level content segments are separated by a rigid 120px (`7.5rem`) vertical space, terminating in full-bleed 1px hairline dividers (`#E8E8E8`).
+- **Asymmetric Spans:** Narrative desktop layouts align along an 8:4 or 7:5 column distribution—weighting narrative editorial text on the wide span and archival metadata, timestamps, and stat modules on the narrow span.
+- **Canvas Margins:** Wide 80px (`5rem`) outer gutters frame the layout like a published book. On mobile screens (under 768px), outer boundaries contract to 24px (`1.5rem`), stacking columns into a single linear flow with 64px vertical section gaps.
+
+## Elevation & Depth
+
+This design system is completely flat. Physical drop shadows, colored glow halos, skeuomorphic depth, and gradient fills are strictly prohibited.
+
+### Mechanics of Visual Separation
+- **Zero-Shadow Philosophy:** `box-shadow: none` is strictly enforced across all components, flyouts, and contextual layers.
+- **Hairline Framing:** Depth and separation are achieved exclusively through structural 1px borders (`#E8E8E8`). When an interactive card or module is focused or hovered, its border transitions directly to `#111111` or `#E20113` with no spatial elevation.
+- **Surface Stepping:** Contextual grounding uses `#F7F7F7` backdrop panels inside `#FFFFFF` canvases. Modals and drawers sit above the layout using a flat solid white plane framed by an unambiguous 1px border.
+
+## Shapes
+
+The geometric framework is sharp, grounded, and architectural. Rounded geometries are limited to functional affordances and brand motifs.
+
+### Shape Geometry Rules
+- **Standard Corners:** Containers, structural input boxes, content cards, and media frames feature a subtle 4px corner radius (`roundedness: 1`), softening high-contrast hairline borders without losing architectural structure.
+- **Pill Badge Motif:** Category indicators and signature badges use fully rounded pill contours (`border-radius: 9999px`) paired with a `-3deg` tilt.
+- **Status Dots & Circular Anchors:** Section indices, bullet markers, and active presence dots use pure geometric circles (`border-radius: 50%`).
+- **Graphic Linework:** Horizontal rules, timeline runners, and section borders are strictly 1px hairlines. Dotted variants utilize crisp 1px alternating patterns without blur.
+
+## Components
+
+### Signature Angled Badge
+- **Style:** Small, high-contrast capsule badge rotated precisely 3 degrees counter-clockwise (`transform: rotate(-3deg)`).
+- **Appearance:** Solid Signal Red (`#E20113`) background with `#FFFFFF` text, or Pure White (`#FFFFFF`) background with a 1px `#111111` outline.
+- **Typography:** `label-badge` (Poppins Bold 700, 11px, uppercase, +0.08em letter spacing).
+- **Padding:** 4px vertical, 12px horizontal. `border-radius: 9999px`.
+
+### Buttons
+- **Primary:** Solid Signal Red (`#E20113`) fill, Pure White (`#FFFFFF`) text, 4px border radius. Hover state transitions to `#111111` background. 0px shadow. 
+- **Secondary / Outline:** Transparent background, 1px hairline border (`#111111`), `#111111` text. Hover state transitions to solid `#111111` with `#FFFFFF` text.
+- **Tertiary Link:** Clean typographic lockup in `#111111` with a persistent 1px underline positioned 4px below text baseline. Hover shifts underline color to `#E20113`.
+- **Dimensions:** 44px standard height, 20px horizontal padding. Typography: `label-prominent`.
+
+### Input Fields & Controls
+- **Form Inputs:** Pure `#FFFFFF` or `#F7F7F7` fill, 1px `#E8E8E8` border, 4px border radius. 14px padding. Focus state switches border to 1px `#111111` with no glow ring.
+- **Checkboxes & Radios:** 18px square (checkbox) or circle (radio), 1.5px solid `#111111` stroke. Checked state fills solid `#E20113` with a pure white 1.5px geometric tick mark.
+
+### Content Cards
+- **Structure:** Crisp white background framed by a 1px `#E8E8E8` hairline border, or borderless on `#F7F7F7` surfaces.
+- **Interactive State:** Border color shifts from `#E8E8E8` to `#111111` on hover. Cards never lift or produce drop shadows.
+- **Padding:** Generous internal padding (24px to 32px).
+- **Metadata Framing:** Each card separates header categories from content using a horizontal 1px hairline rule.
+
+### Lists & Index Tracks
+- **Editorial Index:** Minimal horizontal list items separated by 1px `#E8E8E8` borders.
+- **Layout:** Three-part row alignment: oversized numeric index (`display-numeral` light styling) on the left, title and narrative body in the center, and metadata tag with interactive arrow icon on the right.
+
+### Iconography
+- **Specifications:** Clean geometric linework using a consistent 1.5px stroke weight, sharp corners, and round terminal caps. Icons are sized at 16px, 20px, or 24px and render strictly in `#111111`, `#6B6B6B`, or `#E20113`.
