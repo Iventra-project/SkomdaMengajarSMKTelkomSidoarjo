@@ -18,11 +18,11 @@ const AppRouter: React.FC = () => {
 
   return (
     <div className="relative min-h-screen bg-[#f9f9f9] text-[#1a1c1c] flex flex-col font-sans">
-      {/* Dynamic View based on Next.js Route */}
+      {/* Dynamic View based on Route */}
       {currentPath === '/' && <HomePage />}
       {currentPath === '/login' && <LoginPage />}
-      {currentPath === '/admin' && <AdminMonitoringPage />}
-      {currentPath === '/admin/kelompok/03' && <AdminKelompokDetailPage />}
+      {(currentPath === '/admin' || currentPath === '/dashboard/admin') && <AdminMonitoringPage />}
+      {(currentPath === '/admin/kelompok/03' || currentPath === '/dashboard/admin/review') && <AdminKelompokDetailPage />}
       {currentPath === '/workspace' && <WorkspacePage />}
 
       {/* Global Interactive Modals & Route Switcher */}

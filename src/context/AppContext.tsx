@@ -2,7 +2,14 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { initialMembersKelompok03, initialSprintTasks, Member, SprintTask } from '../data/mockData';
 
-export type RoutePath = '/' | '/login' | '/admin' | '/admin/kelompok/03' | '/workspace';
+export type RoutePath =
+  | '/'
+  | '/login'
+  | '/admin'
+  | '/admin/kelompok/03'
+  | '/workspace'
+  | '/dashboard/admin'
+  | '/dashboard/admin/review';
 
 export interface User {
   name: string;
@@ -42,19 +49,43 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
       if (hash === '/login') return '/login';
-      if (hash === '/admin') return '/admin';
-      if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03') return '/admin/kelompok/03';
+      if (hash === '/admin' || hash === '/dashboard/admin') return '/admin';
+      if (
+        hash === '/admin/kelompok/03' ||
+        hash === '/admin-kelompok-03' ||
+        hash === '/dashboard/admin/review'
+      )
+        return '/admin/kelompok/03';
       if (hash === '/workspace' || hash === '/kelompok-03') return '/workspace';
     }
     return '/';
   };
 
   const [currentPath, setCurrentPath] = useState<RoutePath>(getInitialPath);
-  const [currentUser, setCurrentUser] = useState<User | null>({
-    name: 'Admin Kurikulum',
-    role: 'admin',
-    email: 'admin@telkomsda.sch.id'
+  const [currentUser, setCurrentUserState] = useState<User | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('skomda_current_user');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return null;
+        }
+      }
+    }
+    return null; // Tamu (Belum Login) by default
   });
+
+  const setCurrentUser = (user: User | null) => {
+    setCurrentUserState(user);
+    if (typeof window !== 'undefined') {
+      if (user) {
+        localStorage.setItem('skomda_current_user', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('skomda_current_user');
+      }
+    }
+  };
 
   const [members, setMembers] = useState<Member[]>(initialMembersKelompok03);
   const [sprintTasks, setSprintTasks] = useState<SprintTask[]>(initialSprintTasks);
