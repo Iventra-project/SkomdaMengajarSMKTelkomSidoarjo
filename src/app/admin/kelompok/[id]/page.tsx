@@ -948,3 +948,5 @@ export const AdminKelompokDetailPage: React.FC = () => {
     </div>
   );
 };
+
+export default AdminKelompokDetailPage;

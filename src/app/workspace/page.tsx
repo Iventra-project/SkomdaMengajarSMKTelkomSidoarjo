@@ -545,9 +545,9 @@ export const WorkspacePage: React.FC = () => {
                         <div
                           key={m.id}
                           onClick={() => toggleMemberStatus(m.id)}
-                          className={`p-3 rounded-lg border flex items-center gap-3 transition-colors cursor-pointer ${
+                          className={`p-3 rounded-xl border flex items-center gap-3 card-smooth hover:-translate-y-0.5 cursor-pointer shadow-2xs ${
                             isValid
-                              ? 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                              ? 'bg-slate-50/90 border-slate-200 hover:border-slate-300'
                               : 'bg-amber-50/40 border-amber-200 hover:border-amber-300'
                           }`}
                           title="Klik untuk ubah status verifikasi"
@@ -619,18 +619,18 @@ export const WorkspacePage: React.FC = () => {
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {photosList.map((item) => (
-                      <div key={item.id} className="flex flex-col gap-2 group">
-                        <div className="aspect-[4/3] rounded-lg border border-slate-200 overflow-hidden relative bg-slate-100">
+                      <div key={item.id} className="flex flex-col gap-2 group card-smooth">
+                        <div className="aspect-[4/3] rounded-xl border border-slate-200 overflow-hidden relative bg-slate-100 shadow-2xs">
                           <img
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover group-hover:scale-106 transition-transform duration-500"
                             alt={item.title}
                             src={item.img}
                           />
-                          <span className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur text-white px-1.5 py-0.5 rounded text-[9px] font-mono uppercase">
+                          <span className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-xs text-white px-2 py-0.5 rounded text-[9px] font-mono uppercase shadow-2xs">
                             {item.tag}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-800 font-bold truncate">{item.title}</p>
+                        <p className="text-xs text-slate-800 font-bold truncate group-hover:text-[#b4000c] transition-colors">{item.title}</p>
                         <span className="text-[10px] text-slate-400 font-mono">{item.subtext}</span>
                       </div>
                     ))}
@@ -639,9 +639,9 @@ export const WorkspacePage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowAddPhotoModal(true)}
-                      className="aspect-[4/3] rounded-lg border-2 border-dashed border-slate-300 hover:border-[#b4000c] flex flex-col items-center justify-center gap-1.5 p-3 text-center transition-colors group cursor-pointer bg-slate-50 hover:bg-red-50/20"
+                      className="aspect-[4/3] rounded-xl border-2 border-dashed border-slate-300 hover:border-[#b4000c] flex flex-col items-center justify-center gap-1.5 p-3 text-center transition-all duration-300 group cursor-pointer bg-slate-50 hover:bg-red-50/20 card-smooth hover:-translate-y-0.5"
                     >
-                      <span className="material-symbols-outlined text-[24px] text-slate-400 group-hover:text-[#b4000c]">
+                      <span className="material-symbols-outlined text-[24px] text-slate-400 group-hover:text-[#b4000c] group-hover:scale-110 transition-transform">
                         add_photo_alternate
                       </span>
                       <span className="text-xs uppercase tracking-wider text-slate-700 group-hover:text-[#b4000c] font-bold">
@@ -684,7 +684,7 @@ export const WorkspacePage: React.FC = () => {
                           .map((task) => (
                             <div
                               key={task.id}
-                              className="p-3.5 bg-white rounded-lg border border-slate-200 flex flex-col gap-2.5 shadow-2xs"
+                              className="p-3.5 bg-white rounded-xl border border-slate-200/90 flex flex-col gap-2.5 shadow-2xs card-smooth hover:-translate-y-1 hover:shadow-md"
                             >
                               <span className="text-[9px] text-[#b4000c] font-bold uppercase tracking-wider">
                                 Prioritas Tinggi
@@ -719,7 +719,7 @@ export const WorkspacePage: React.FC = () => {
                           .map((task) => (
                             <div
                               key={task.id}
-                              className="p-3.5 bg-white rounded-lg border border-slate-200 flex flex-col gap-2.5 shadow-2xs"
+                              className="p-3.5 bg-white rounded-xl border border-slate-200/90 flex flex-col gap-2.5 shadow-2xs card-smooth hover:-translate-y-1 hover:shadow-md"
                             >
                               <span className="text-[9px] text-amber-700 font-bold uppercase tracking-wider">
                                 Sedang Direview
@@ -754,7 +754,7 @@ export const WorkspacePage: React.FC = () => {
                           .map((task) => (
                             <div
                               key={task.id}
-                              className="p-3.5 bg-white rounded-lg border border-slate-200 flex flex-col gap-2.5 shadow-2xs opacity-80"
+                              className="p-3.5 bg-white rounded-xl border border-slate-200/90 flex flex-col gap-2.5 shadow-2xs opacity-85 card-smooth hover:-translate-y-0.5 hover:opacity-100"
                             >
                               <span className="text-[9px] text-emerald-700 font-bold uppercase tracking-wider">
                                 Tuntas
@@ -983,3 +983,5 @@ export const WorkspacePage: React.FC = () => {
     </div>
   );
 };
+
+export default WorkspacePage;

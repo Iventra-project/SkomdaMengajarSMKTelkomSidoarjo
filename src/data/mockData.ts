@@ -623,7 +623,7 @@ export const showcaseProjects: ShowcaseProject[] = [
     desc: 'Desain kampanye visual ramah lingkungan dan sanitasi sekolah dengan prinsip DKV.',
     fullDesc: 'Pelatihan desain komunikasi visual terpadu menggunakan Canva Education, mengajarkan teori warna, kontras tipografi, dan hierarki visual untuk kampanye hemat plastik dan pemilahan sampah di lingkungan sekolah.',
     school: 'SMPN 1 Buduran',
-    image: 'https://images.unsplash.com/photo-1572945281869-847250e70498?w=600&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1542744094-3a31f272c490?w=600&auto=format&fit=crop&q=80',
     tools: ['Canva Edu', 'Figma Basics', 'Pinterest'],
     duration: '2 Pertemuan (6 JP)',
     studentsTrained: 52

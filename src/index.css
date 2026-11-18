@@ -61,19 +61,112 @@ body {
   background: #94a3b8;
 }
 
-/* Subtle architectural patterns */
+/* Subtle architectural patterns & ambient glows */
 .bg-grid-slate {
-  background-image: radial-gradient(rgba(148, 163, 184, 0.2) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(148, 163, 184, 0.16) 1.2px, transparent 1.2px);
   background-size: 24px 24px;
 }
 
 .bg-dot-red {
-  background-image: radial-gradient(rgba(226, 1, 19, 0.1) 1.2px, transparent 1.2px);
-  background-size: 20px 20px;
+  background-image: radial-gradient(rgba(215, 20, 31, 0.12) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
 }
 
-/* Smooth card transitions */
-.transition-editorial {
-  transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
+.bg-mesh-glow {
+  background: radial-gradient(circle at 10% 10%, rgba(215, 20, 31, 0.06) 0%, transparent 45%),
+              radial-gradient(circle at 90% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 45%),
+              radial-gradient(circle at 50% 90%, rgba(245, 158, 11, 0.04) 0%, transparent 50%),
+              radial-gradient(circle at 80% 85%, rgba(215, 20, 31, 0.04) 0%, transparent 40%);
+}
+
+.bg-section-accent {
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.8) 0%, rgba(255, 241, 242, 0.3) 50%, rgba(248, 250, 252, 0.8) 100%);
+}
+
+.bg-hero-glow {
+  background: radial-gradient(circle at 20% 25%, rgba(215, 20, 31, 0.08) 0%, transparent 50%),
+              radial-gradient(circle at 80% 30%, rgba(14, 165, 233, 0.05) 0%, transparent 45%),
+              radial-gradient(circle at 50% 90%, rgba(244, 63, 94, 0.04) 0%, transparent 50%);
+}
+
+/* Card hover & micro-interactions */
+.card-hover-modern {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+}
+
+.card-hover-modern:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px -15px rgba(11, 27, 58, 0.12), 0 0 1px 1px rgba(215, 20, 31, 0.12);
+}
+
+.card-smooth {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+}
+
+.card-smooth:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 32px -10px rgba(11, 27, 58, 0.1), 0 2px 8px -2px rgba(215, 20, 31, 0.08);
+  border-color: rgba(215, 20, 31, 0.25);
+}
+
+/* Button hover glow */
+.btn-primary-glow {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+}
+
+.btn-primary-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -4px rgba(215, 20, 31, 0.4), 0 4px 12px -2px rgba(215, 20, 31, 0.2);
+}
+
+.btn-primary-glow:active {
+  transform: translateY(0px) scale(0.98);
+}
+
+.btn-secondary-smooth {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-secondary-smooth:hover {
+  background-color: rgba(241, 245, 249, 0.9);
+  transform: translateY(-1px);
+}
+
+.btn-secondary-smooth:active {
+  transform: translateY(0px) scale(0.98);
+}
+
+@keyframes floatGentle {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(0.5deg); }
+}
+
+.animate-float-gentle {
+  animation: floatGentle 5s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.08); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 4s ease-in-out infinite;
+}
+
+@keyframes shimmerEffect {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-badge {
+  background: linear-gradient(90deg, rgba(215, 20, 31, 0.08) 0%, rgba(215, 20, 31, 0.18) 50%, rgba(215, 20, 31, 0.08) 100%);
+  background-size: 200% 100%;
+  animation: shimmerEffect 3s infinite linear;
 }
 

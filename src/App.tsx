@@ -21,8 +21,7 @@ const AppRouter: React.FC = () => {
       {/* Dynamic View based on Route */}
       {currentPath === '/' && <HomePage />}
       {currentPath === '/login' && <LoginPage />}
-      {(currentPath === '/admin' || currentPath === '/dashboard/admin') && <AdminMonitoringPage />}
-      {(currentPath === '/admin/kelompok/03' || currentPath === '/dashboard/admin/review') && <AdminKelompokDetailPage />}
+      {(currentPath === '/admin' || currentPath === '/dashboard/admin' || currentPath.startsWith('/admin/kelompok/')) && <AdminMonitoringPage />}
       {currentPath === '/workspace' && <WorkspacePage />}
 
       {/* Global Interactive Modals & Route Switcher */}
