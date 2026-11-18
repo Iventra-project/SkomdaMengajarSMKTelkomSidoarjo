@@ -2,7 +2,14 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Group, groupsData, initialMembersKelompok03, initialSprintTasks, Member, SprintTask } from '../data/mockData';
 
-export type RoutePath = '/' | '/login' | '/admin' | '/admin/kelompok/03' | '/workspace';
+export type RoutePath =
+  | '/'
+  | '/login'
+  | '/admin'
+  | '/admin/kelompok/03'
+  | '/workspace'
+  | '/dashboard/admin'
+  | '/dashboard/admin/review';
 
 export type UserRole = 'admin' | 'user';
 

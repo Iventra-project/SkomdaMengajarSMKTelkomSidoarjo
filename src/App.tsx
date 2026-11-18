@@ -16,7 +16,11 @@ import { RouteSwitcherBar } from './components/RouteSwitcherBar';
 const AppRouter: React.FC = () => {
   const { currentPath, currentUser, isAuthReady, navigate, showToast } = useApp();
 
-  const isAdminRoute = currentPath === '/admin' || currentPath === '/admin/kelompok/03';
+  const isAdminRoute =
+    currentPath === '/admin' ||
+    currentPath === '/admin/kelompok/03' ||
+    currentPath === '/dashboard/admin' ||
+    currentPath === '/dashboard/admin/review';
   const isUserRoute = currentPath === '/workspace';
   const isProtectedRoute = isAdminRoute || isUserRoute;
 
@@ -52,7 +56,10 @@ const AppRouter: React.FC = () => {
       {/* Dynamic View based on Route & Role Guard */}
       {currentPath === '/' && <HomePage />}
       {currentPath === '/login' && <LoginPage />}
-      {canRenderCurrentRoute && currentPath === '/admin' && <AdminMonitoringPage />}
+      {canRenderCurrentRoute &&
+        (currentPath === '/admin' ||
+          currentPath === '/dashboard/admin' ||
+          currentPath === '/dashboard/admin/review') && <AdminMonitoringPage />}
       {canRenderCurrentRoute && currentPath === '/admin/kelompok/03' && <AdminKelompokDetailPage />}
       {canRenderCurrentRoute && currentPath === '/workspace' && <WorkspacePage />}
 
