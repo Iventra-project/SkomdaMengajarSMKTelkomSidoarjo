@@ -5,6 +5,9 @@ import { useApp } from '../../context/AppContext';
 export const WorkspacePage: React.FC = () => {
   const {
     navigate,
+    currentUser,
+    activeGroup,
+    logout,
     members,
     toggleMemberStatus,
     sprintTasks,
@@ -16,6 +19,14 @@ export const WorkspacePage: React.FC = () => {
     setIsBannerModalOpen,
     showToast
   } = useApp();
+
+  const userDisplayName = currentUser?.name || activeGroup.leaderName;
+  const userInitials = userDisplayName
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0] || '')
+    .join('')
+    .toUpperCase();
 
   const [reminderSent, setReminderSent] = useState(false);
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
@@ -94,18 +105,20 @@ export const WorkspacePage: React.FC = () => {
           <div className="p-3.5 mx-3 mt-3.5 bg-slate-50 rounded-xl border border-slate-200">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-[#b4000c] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                03
+                {activeGroup.number}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs uppercase font-extrabold text-slate-900 truncate">Kelompok 03</p>
-                <p className="text-[11px] text-slate-500 truncate">SMPN 1 Buduran</p>
+                <p className="text-xs uppercase font-extrabold text-slate-900 truncate">
+                  Kelompok {activeGroup.number}
+                </p>
+                <p className="text-[11px] text-slate-500 truncate">{activeGroup.schoolName}</p>
               </div>
             </div>
             <div className="mt-2.5 pt-2 border-t border-slate-200 flex items-center justify-between">
               <span className="text-[10px] text-slate-400 font-mono uppercase">Status:</span>
               <span className="inline-flex items-center gap-1 text-[10px] text-[#b4000c] font-bold uppercase">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#b4000c] animate-pulse"></span>
-                Fase Aktif
+                {activeGroup.statusLabel}
               </span>
             </div>
           </div>
@@ -160,7 +173,7 @@ export const WorkspacePage: React.FC = () => {
             </div>
 
             <button
-              onClick={() => showToast('Membuka Ruang Diskusi Kelompok 03', 'info')}
+              onClick={() => showToast(`Membuka Ruang Diskusi Kelompok ${activeGroup.number}`, 'info')}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors text-xs uppercase tracking-wider font-semibold text-left cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px] text-slate-400">workspaces</span>
@@ -182,14 +195,6 @@ export const WorkspacePage: React.FC = () => {
                 {members.length}
               </span>
             </button>
-
-            <button
-              onClick={() => navigate('/admin')}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors text-xs uppercase tracking-wider font-semibold text-left cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px] text-slate-400">monitoring</span>
-              <span>Lihat Panel Admin</span>
-            </button>
           </nav>
         </div>
 
@@ -198,18 +203,15 @@ export const WorkspacePage: React.FC = () => {
           <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-full bg-[#b4000c] flex items-center justify-center text-white text-xs font-bold shrink-0">
-                NP
+                {userInitials}
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-slate-900 font-bold truncate">Nabila Putri</p>
-                <p className="text-[10px] text-slate-400 truncate">Ketua Kelompok 03</p>
+                <p className="text-xs text-slate-900 font-bold truncate">{userDisplayName}</p>
+                <p className="text-[10px] text-slate-400 truncate">Kelompok {activeGroup.number}</p>
               </div>
             </div>
             <button
-              onClick={() => {
-                navigate('/login');
-                showToast('Keluar dari sesi ketua', 'info');
-              }}
+              onClick={() => void logout()}
               className="p-1.5 rounded hover:bg-slate-200 text-slate-400 hover:text-[#b4000c] transition-colors shrink-0 cursor-pointer"
               title="Keluar"
             >
@@ -293,9 +295,9 @@ export const WorkspacePage: React.FC = () => {
                     </div>
 
                     <p className="text-sm md:text-base text-slate-600 font-medium">
-                      Kelompok 3 • SMPN 1 Buduran{' '}
+                      Kelompok {activeGroup.number} • {activeGroup.schoolName}{' '}
                       <span className="mx-2 text-slate-300">/</span>
-                      <span className="text-slate-500 text-xs">Pembimbing: Dra. Sri Wahyuni, M.Pd</span>
+                      <span className="text-slate-500 text-xs">Pembimbing: {activeGroup.mentorName}</span>
                     </p>
                   </div>
                 </div>
@@ -436,7 +438,7 @@ export const WorkspacePage: React.FC = () => {
                       >
                         <div className="w-full flex items-center justify-between text-[8px] font-bold">
                           <span className="text-[#b4000c]">#SKOMDA</span>
-                          <span className="text-slate-400">VOL.03</span>
+                          <span className="text-slate-400">VOL.{activeGroup.number}</span>
                         </div>
 
                         <div className="text-center space-y-1 my-auto">
@@ -444,14 +446,14 @@ export const WorkspacePage: React.FC = () => {
                             <span className="material-symbols-outlined text-[24px]">school</span>
                           </div>
                           <p className="text-[10px] text-slate-900 uppercase font-extrabold leading-tight">
-                            SMPN 1 BUDURAN
+                            {activeGroup.schoolName}
                           </p>
-                          <p className="text-[8px] text-slate-500">Workshop Literasi AI</p>
+                          <p className="text-[8px] text-slate-500">{activeGroup.featuredModule}</p>
                         </div>
 
                         <div className="w-full pt-2 border-t border-slate-200 text-center">
                           <span className="text-[7px] text-slate-400 uppercase tracking-widest font-mono">
-                            KELOMPOK 03 • 2026
+                            KELOMPOK {activeGroup.number} • 2026
                           </span>
                         </div>
 

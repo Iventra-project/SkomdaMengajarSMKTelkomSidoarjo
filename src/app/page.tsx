@@ -4,10 +4,10 @@ import { useApp } from '../context/AppContext';
 import { groupsData, showcaseProjects } from '../data/mockData';
 
 export const HomePage: React.FC = () => {
-  const { navigate, showToast } = useApp();
+  const { navigate, showToast, openGroupWorkspace } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'ready' | 'leader'>('all');
-  const [selectedStep, setSelectedStep] = useState<number>(4);
+  const [selectedStep, setSelectedStep] = useState<number>(1);
 
   const filteredGroups = groupsData.filter((group) => {
     const matchesSearch =
@@ -19,7 +19,7 @@ export const HomePage: React.FC = () => {
     if (selectedFilter === 'ready') return group.status === 'ontrack' || group.status === 'review';
     if (selectedFilter === 'leader') return !group.leaderName.includes('Belum');
     return true;
-  });
+  }).sort((a, b) => a.number.localeCompare(b.number));
 
   return (
     <div className="w-full bg-[#ffffff] text-[#1a1c1c] antialiased min-h-screen flex flex-col">
@@ -233,126 +233,139 @@ export const HomePage: React.FC = () => {
         </section>
 
         {/* ================= SECTION 01: ALUR SKOMDA MENGAJAR ================= */}
-        <section className="w-full bg-white py-20 border-b border-slate-200 mt-16" id="alur">
+        <section className="w-full bg-white py-20 mt-12" id="alur">
           <div className="max-w-7xl mx-auto px-6 md:px-12">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-8 border-b border-slate-200">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#e20113]">01 / PERJALANAN</span>
-                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mt-1">Alur Skomda Mengajar</h2>
-                <p className="text-sm text-slate-600 max-w-2xl mt-1">
-                  Tahapan terstruktur dari pembentukan tim hingga evaluasi luaran nyata. Klik setiap tahap untuk membuka aksi dan kontrol progres.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#e20113] animate-pulse"></span>
-                <span>Tahap Berjalan: Minggu ke-4</span>
-              </div>
+            <div className="max-w-xl">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                01 / PERJALANAN
+              </span>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mt-2">
+                Alur Skomda Mengajar
+              </h2>
+              <p className="text-sm text-slate-500 mt-2.5 leading-relaxed">
+                Tahapan terstruktur dari pembentukan tim hingga evaluasi luaran nyata di sekolah mitra.
+              </p>
             </div>
 
-            {/* 6-Node Horizontal Interactive Serpentine Track */}
-            <div className="w-full relative py-12 overflow-x-auto select-none">
-              <div className="min-w-[960px] grid grid-cols-6 gap-6 relative z-10 items-center px-4">
-                {/* Step 1 */}
-                <div
-                  onClick={() => setSelectedStep(1)}
-                  className={`flex flex-col items-center text-center cursor-pointer group transition-transform ${
-                    selectedStep === 1 ? 'scale-105' : ''
-                  }`}
+            {/* 6-Node Wavy Serpentine Track */}
+            <div className="w-full relative pt-14 pb-6 overflow-x-auto select-none">
+              <div className="min-w-[920px] relative px-4">
+                {/* Dashed Wave Connector SVG */}
+                <svg
+                  className="absolute inset-x-4 top-0 w-[calc(100%-2rem)] h-[120px] pointer-events-none z-0"
+                  viewBox="0 0 1000 120"
+                  preserveAspectRatio="none"
                 >
-                  <div className="w-16 h-16 rounded-full bg-[#e20113] text-white flex flex-col items-center justify-center mb-2 shadow-sm group-hover:ring-4 group-hover:ring-red-100 transition-all">
-                    <span className="text-xs font-light">01</span>
-                    <span className="material-symbols-outlined text-[18px]">check</span>
-                  </div>
-                  <span className="text-xs font-bold text-slate-900">Bentuk Kelompok</span>
-                  <span className="text-[11px] text-[#e20113] font-semibold mt-0.5">Selesai • 12 Jan</span>
-                </div>
+                  <path
+                    d="M 83 34 C 166 34, 166 74, 250 74 C 333 74, 333 34, 417 34 C 500 34, 500 74, 583 74 C 667 74, 667 34, 750 34 C 833 34, 833 74, 917 74"
+                    fill="none"
+                    stroke="#475569"
+                    strokeWidth="1.6"
+                    strokeDasharray="4 5"
+                  />
+                </svg>
 
-                {/* Step 2 */}
-                <div
-                  onClick={() => setSelectedStep(2)}
-                  className={`flex flex-col items-center text-center cursor-pointer group transition-transform ${
-                    selectedStep === 2 ? 'scale-105' : ''
-                  }`}
-                >
-                  <div className="w-16 h-16 rounded-full bg-[#e20113] text-white flex flex-col items-center justify-center mb-2 shadow-sm group-hover:ring-4 group-hover:ring-red-100 transition-all">
-                    <span className="text-xs font-light">02</span>
-                    <span className="material-symbols-outlined text-[18px]">check</span>
-                  </div>
-                  <span className="text-xs font-bold text-slate-900">Pilih Ketua</span>
-                  <span className="text-[11px] text-[#e20113] font-semibold mt-0.5">Selesai • 15 Jan</span>
-                </div>
+                <div className="grid grid-cols-6 gap-4 relative z-10 items-start">
+                  {[
+                    {
+                      step: 1,
+                      num: '01',
+                      icon: 'group_add',
+                      title: 'Bentuk kelompok',
+                      subtitle: 'Penentuan anggota tim',
+                      shiftDown: false,
+                    },
+                    {
+                      step: 2,
+                      num: '02',
+                      icon: 'person_check',
+                      title: 'Pilih ketua',
+                      subtitle: 'Koordinator lapangan',
+                      shiftDown: true,
+                    },
+                    {
+                      step: 3,
+                      num: '03',
+                      icon: 'menu_book',
+                      title: 'Susun materi',
+                      subtitle: 'Modul & silabus ajar',
+                      shiftDown: false,
+                    },
+                    {
+                      step: 4,
+                      num: '04',
+                      icon: 'palette',
+                      title: 'Siapkan desain',
+                      subtitle: 'Media visual & slide',
+                      shiftDown: true,
+                    },
+                    {
+                      step: 5,
+                      num: '05',
+                      icon: 'school',
+                      title: 'Mengajar di SMP',
+                      subtitle: 'Sesi kelas interaktif',
+                      shiftDown: false,
+                    },
+                    {
+                      step: 6,
+                      num: '06',
+                      icon: 'check_circle',
+                      title: 'Laporan & feedback',
+                      subtitle: 'Refleksi & publikasi',
+                      shiftDown: true,
+                      isFinish: true,
+                    },
+                  ].map((item) => {
+                    const isActive = selectedStep === item.step;
+                    return (
+                      <div
+                        key={item.step}
+                        onClick={() => {
+                          setSelectedStep(item.step);
+                          if (item.step === 4) {
+                            navigate('/workspace');
+                          }
+                        }}
+                        className={`flex flex-col items-center text-center cursor-pointer group relative ${
+                          item.shiftDown ? 'mt-10' : 'mt-0'
+                        }`}
+                      >
+                        {item.isFinish && (
+                          <span className="absolute -top-6 right-1/2 translate-x-9 bg-[#e20113] text-white text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-xs transform -rotate-6 shadow-xs">
+                            FINISH
+                          </span>
+                        )}
 
-                {/* Step 3 */}
-                <div
-                  onClick={() => setSelectedStep(3)}
-                  className={`flex flex-col items-center text-center cursor-pointer group transition-transform ${
-                    selectedStep === 3 ? 'scale-105' : ''
-                  }`}
-                >
-                  <div className="w-16 h-16 rounded-full bg-[#e20113] text-white flex flex-col items-center justify-center mb-2 shadow-sm group-hover:ring-4 group-hover:ring-red-100 transition-all">
-                    <span className="text-xs font-light">03</span>
-                    <span className="material-symbols-outlined text-[18px]">check</span>
-                  </div>
-                  <span className="text-xs font-bold text-slate-900">Susun Materi</span>
-                  <span className="text-[11px] text-[#e20113] font-semibold mt-0.5">Selesai • 28 Jan</span>
-                </div>
+                        <div
+                          className={`w-[68px] h-[68px] rounded-2xl flex flex-col items-center justify-center mb-3.5 transition-all ${
+                            isActive
+                              ? 'bg-[#e20113] text-white shadow-lg shadow-red-500/20 border border-[#e20113]'
+                              : 'bg-white text-slate-800 border border-slate-200/90 shadow-xs group-hover:border-slate-300'
+                          }`}
+                        >
+                          <span
+                            className={`text-[10px] font-semibold leading-none mb-1 ${
+                              isActive ? 'text-white/90' : 'text-slate-400'
+                            }`}
+                          >
+                            {item.num}
+                          </span>
+                          <span
+                            className={`material-symbols-outlined text-[20px] leading-none ${
+                              isActive ? 'text-white' : 'text-slate-800'
+                            }`}
+                          >
+                            {item.icon}
+                          </span>
+                        </div>
 
-                {/* Step 4: Active */}
-                <div
-                  onClick={() => {
-                    setSelectedStep(4);
-                    navigate('/workspace');
-                  }}
-                  className="flex flex-col items-center text-center cursor-pointer group relative scale-105"
-                >
-                  <div className="absolute -top-3.5 bg-[#e20113] text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase -rotate-2">
-                    Tahap Aktif
-                  </div>
-                  <div className="w-16 h-16 rounded-full bg-[#e20113] text-white ring-4 ring-red-200 flex flex-col items-center justify-center mb-2 shadow-md">
-                    <span className="text-xs font-extrabold">04</span>
-                    <span className="material-symbols-outlined text-[18px]">design_services</span>
-                  </div>
-                  <span className="text-xs font-bold text-[#e20113] underline underline-offset-4">
-                    Siapkan Desain
-                  </span>
-                  <span className="text-[11px] text-slate-500 font-semibold mt-0.5">Batas: 15 Feb</span>
+                        <span className="text-xs font-extrabold text-slate-900">{item.title}</span>
+                        <span className="text-[11px] text-slate-400 mt-0.5">{item.subtitle}</span>
+                      </div>
+                    );
+                  })}
                 </div>
-
-                {/* Step 5 */}
-                <div
-                  onClick={() => setSelectedStep(5)}
-                  className="flex flex-col items-center text-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
-                >
-                  <div className="w-16 h-16 rounded-full bg-slate-50 border border-slate-200 flex flex-col items-center justify-center mb-2 text-slate-400">
-                    <span className="text-xs">05</span>
-                    <span className="material-symbols-outlined text-[18px]">lock</span>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-600">Mengajar di SMP</span>
-                  <span className="text-[11px] text-slate-400 mt-0.5">Mulai: 18 Feb</span>
-                </div>
-
-                {/* Step 6 */}
-                <div
-                  onClick={() => setSelectedStep(6)}
-                  className="flex flex-col items-center text-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
-                >
-                  <div className="w-16 h-16 rounded-full bg-slate-50 border border-slate-200 flex flex-col items-center justify-center mb-2 text-slate-400">
-                    <span className="text-xs">06</span>
-                    <span className="material-symbols-outlined text-[18px]">flag</span>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-600">Laporan & Feedback</span>
-                  <span className="text-[11px] text-slate-400 mt-0.5">Batas: 28 Feb</span>
-                </div>
-              </div>
-
-              <div className="w-full flex justify-center mt-8">
-                <button
-                  onClick={() => navigate('/workspace')}
-                  className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#e20113] hover:text-slate-900 transition-colors cursor-pointer bg-red-50 hover:bg-red-100 px-4 py-2 rounded-full border border-red-200"
-                >
-                  <span className="w-2 h-2 rounded-full bg-[#e20113] animate-ping"></span>
-                  <span>Buka Lembar Kerja Tahap Aktif (04 Siapkan Desain) →</span>
-                </button>
               </div>
             </div>
           </div>
@@ -361,90 +374,66 @@ export const HomePage: React.FC = () => {
         {/* ================= SECTION 02: PEMBAGIAN KELOMPOK ================= */}
         <section className="w-full bg-[#f9f9f9] py-20 border-b border-slate-200" id="kelompok">
           <div className="max-w-7xl mx-auto px-6 md:px-12">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-slate-200">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8">
               <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#e20113]">02 / ORGANISASI TIM</span>
-                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
-                  Pembagian Kelompok Mengajar
+                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  02 / ORGANISASI TIM
+                </span>
+                <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mt-2">
+                  Pembagian Kelompok
                 </h2>
-                <p className="text-sm text-slate-600 max-w-2xl mt-1">
-                  Daftar 24 kelompok SMK Telkom Sidoarjo yang ditempatkan di sekolah rujukan se-Kabupaten Sidoarjo.
-                </p>
               </div>
 
               {/* Search & Filter Bar */}
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <div className="relative">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cari SMP atau nama ketua..."
-                    className="h-10 pl-9 pr-4 text-xs bg-white border border-slate-300 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#e20113] w-64 shadow-xs"
+                    placeholder="Cari SMP atau anggota.."
+                    className="h-10 pl-9 pr-4 text-xs bg-white border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#e20113] w-56 shadow-2xs"
                   />
                   <span className="material-symbols-outlined absolute left-2.5 top-2.5 text-slate-400 text-[18px]">
                     search
                   </span>
                 </div>
 
-                <div className="flex items-center border border-slate-200 rounded-lg p-0.5 bg-white shadow-xs">
-                  <button
-                    onClick={() => setSelectedFilter('all')}
-                    className={`px-3 py-1.5 text-xs font-bold uppercase rounded-md transition-colors cursor-pointer ${
-                      selectedFilter === 'all'
-                        ? 'bg-[#e20113] text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Semua
-                  </button>
-                  <button
-                    onClick={() => setSelectedFilter('ready')}
-                    className={`px-3 py-1.5 text-xs font-bold uppercase rounded-md transition-colors cursor-pointer ${
-                      selectedFilter === 'ready'
-                        ? 'bg-[#e20113] text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Siap Ajar
-                  </button>
-                  <button
-                    onClick={() => setSelectedFilter('leader')}
-                    className={`px-3 py-1.5 text-xs font-bold uppercase rounded-md transition-colors cursor-pointer ${
-                      selectedFilter === 'leader'
-                        ? 'bg-[#e20113] text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Ketua Ada
-                  </button>
-                </div>
+                <button
+                  onClick={() => setSelectedFilter('all')}
+                  className={`h-10 px-4 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                    selectedFilter === 'all'
+                      ? 'bg-[#e20113] text-white shadow-xs'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  Semua
+                </button>
+                <button
+                  onClick={() => setSelectedFilter('leader')}
+                  className={`h-10 px-4 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                    selectedFilter === 'leader'
+                      ? 'bg-[#e20113] text-white shadow-xs'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  Ketua sudah ada
+                </button>
               </div>
             </div>
 
             {/* Groups Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-8">
-              {filteredGroups.map((group) => {
-                const isSelectedGroup03 = group.number === '03';
-                return (
-                  <div
-                    key={group.id}
-                    className={`bg-white rounded-xl p-6 border transition-all flex flex-col justify-between shadow-xs hover:border-slate-400 ${
-                      isSelectedGroup03 ? 'border-2 border-[#b4000c] ring-2 ring-red-50' : 'border-slate-200'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                        <div className="flex items-center gap-2">
-                          <span className="bg-[#b4000c] text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
-                            Kelompok {group.number}
-                          </span>
-                          {isSelectedGroup03 && (
-                            <span className="bg-red-50 text-[#b4000c] text-[10px] font-extrabold px-1.5 py-0.2 rounded border border-red-200">
-                              Regu Utama
-                            </span>
-                          )}
-                        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+              {filteredGroups.map((group) => (
+                <div
+                  key={group.id}
+                  className="group bg-white rounded-2xl p-6 border border-slate-200/90 transition-all flex flex-col justify-between shadow-xs hover:shadow-md hover:border-slate-300"
+                >
+                  <div>
+                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                      <span className="bg-[#e20113] text-white text-[10px] font-extrabold tracking-wider px-2.5 py-1 uppercase inline-block transform -rotate-2 group-hover:rotate-0 transition-transform shadow-2xs">
+                        KELOMPOK {group.number}
+                      </span>
                         <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 font-semibold">
                           <span
                             className={`w-2 h-2 rounded-full ${
@@ -491,23 +480,15 @@ export const HomePage: React.FC = () => {
                     <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
                       <span className="text-[11px] text-slate-400 font-medium">Target: {group.targetDate}</span>
                       <button
-                        onClick={() => {
-                          if (group.number === '03') {
-                            navigate('/admin/kelompok/03');
-                          } else {
-                            navigate('/admin');
-                            showToast(`Membuka ringkasan pengawasan Kelompok ${group.number}`, 'info');
-                          }
-                        }}
+                        onClick={() => openGroupWorkspace(group.number)}
                         className="text-xs font-bold text-[#b4000c] hover:underline inline-flex items-center gap-1 cursor-pointer"
                       >
-                        <span>Lihat Detail</span>
+                        <span>Buka Workspace</span>
                         <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                       </button>
                     </div>
                   </div>
-                );
-              })}
+              ))}
             </div>
           </div>
         </section>
