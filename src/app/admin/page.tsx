@@ -28,9 +28,28 @@ import {
   Filter,
   Sparkles,
   FileSpreadsheet,
+  Calendar,
+  AlertTriangle,
+  ArrowRight,
+  ShieldCheck,
+  Award,
+  Layers,
+  GraduationCap,
+  ChevronLeft,
+  LayoutGrid,
+  MoreHorizontal,
+  Bell,
+  Moon,
+  Sun,
+  HelpCircle,
+  CheckCheck,
+  PhoneCall,
+  Share2,
+  FileCheck2,
+  UserPlus,
 } from 'lucide-react';
 
-// ─── TYPES & INTERFACES ───────────────────────────────────────────────────────
+// ─── DATA MODELS ──────────────────────────────────────────────────────────────
 export interface MemberItem {
   id: string;
   nis: string;
@@ -64,33 +83,38 @@ export interface GroupItem {
   schoolName: string;
   district: string;
   leaderName: string;
+  leaderPhone: string;
   hasLeader: boolean;
   currentStage: string;
   currentStageIndex: number; // 1..6
   completedStages: number;
   approvedItemsCount: number;
   totalItemsCount: number;
-  urgentStatus: 'review' | 'overdue' | 'revisi' | 'approved' | 'waiting';
-  urgentStatusLabel: string;
+  statusKey: 'review' | 'overdue' | 'safe' | 'unassigned';
+  statusLabel: string;
   lateDays?: number;
   members: MemberItem[];
   deliverables: DeliverableItem[];
   feedbackList: FeedbackItem[];
 }
 
-export interface ActionQueueItem {
+export interface ReviewQueueItem {
   id: string;
   groupId: string;
   groupNumber: string;
   schoolName: string;
   itemName: string;
-  status: 'review' | 'overdue' | 'revisi';
+  status: 'review' | 'overdue' | 'revision';
   statusLabel: string;
   ageText: string;
   isLate?: boolean;
   lateDays?: number;
   reminderText?: string;
   deliverableId: string;
+  version: string;
+  fileSize: string;
+  fileName: string;
+  studentNotes?: string;
 }
 
 export const SIX_STAGES = [
@@ -102,7 +126,7 @@ export const SIX_STAGES = [
   'Tahap 6: Terima feedback',
 ];
 
-// Initial 24 Groups Roster (Authentic Sidoarjo SMP Schools & Students)
+// Initial 24 Groups Roster (Authentic SMP schools across Sidoarjo)
 const INITIAL_24_GROUPS: GroupItem[] = [
   {
     id: '03',
@@ -110,19 +134,20 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 1 Buduran',
     district: 'Buduran',
     leaderName: 'Nabila Putri Ramadhani',
+    leaderPhone: '+62 812-3456-7890',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 3,
     totalItemsCount: 5,
-    urgentStatus: 'review',
-    urgentStatusLabel: 'Menunggu review',
+    statusKey: 'review',
+    statusLabel: 'Menunggu Review',
     members: [
-      { id: 'm-301', nis: '2024.11.0301', name: 'Nabila Putri Ramadhani', role: 'Ketua kelompok' },
-      { id: 'm-302', nis: '2024.11.0302', name: 'Ahmad Rizky Pratama', role: 'Notulen & koordinasi' },
-      { id: 'm-303', nis: '2024.11.0303', name: 'Rafi Fadillah', role: 'Desain grafis' },
-      { id: 'm-304', nis: '2024.11.0304', name: 'Dinda Salsabila', role: 'Koordinator materi' },
+      { id: 'm-301', nis: '2024.11.0301', name: 'Nabila Putri Ramadhani', role: 'Ketua' },
+      { id: 'm-302', nis: '2024.11.0302', name: 'Ahmad Rizky Pratama', role: 'Notulen' },
+      { id: 'm-303', nis: '2024.11.0303', name: 'Rafi Fadillah', role: 'Desain' },
+      { id: 'm-304', nis: '2024.11.0304', name: 'Dinda Salsabila', role: 'Materi' },
       { id: 'm-305', nis: '2024.11.0305', name: 'M. Arya Bima', role: 'Dokumentasi' },
       { id: 'm-306', nis: '2024.11.0306', name: 'Siti Aisyah', role: 'Logistik' },
       { id: 'm-307', nis: '2024.11.0307', name: 'Bagas Pratama', role: 'Pengajar lab' },
@@ -130,7 +155,7 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     deliverables: [
       { id: 'd-1', title: 'RPP / Modul Ajar', fileName: 'RPP_Informatika_SMPN1Buduran.pdf', fileSize: '1.4 MB', updatedAt: 'Kemarin, 14:20', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
       { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: 'Slide_Materi_Canva_v1.pptx', fileSize: '8.2 MB', updatedAt: '12 Feb, 10:15', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-3', title: 'Desain X-Banner', fileName: 'X-Banner_SMPN1Buduran_v2.pdf', fileSize: '14.8 MB', updatedAt: '45 menit lalu', status: 'review', statusLabel: 'Menunggu review', version: 'v2 (Terbaru)' },
+      { id: 'd-3', title: 'Desain X-Banner', fileName: 'X-Banner_SMPN1Buduran_v2.pdf', fileSize: '14.8 MB', updatedAt: '45 menit lalu', status: 'review', statusLabel: 'Menunggu review', version: 'v2' },
       { id: 'd-4', title: 'Desain Feed Instagram', fileName: 'Feed_Carousel_Teaser.png', fileSize: '3.6 MB', updatedAt: 'Kemarin, 19:40', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
       { id: 'd-5', title: 'Laporan Akhir (Ekspor PDF)', fileName: 'Draf_Laporan_Akhir.pdf', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
     ],
@@ -146,32 +171,31 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 1 Waru',
     district: 'Waru',
     leaderName: 'Dimas Bagus Wicaksono',
+    leaderPhone: '+62 813-8899-1122',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 3,
     totalItemsCount: 5,
-    urgentStatus: 'review',
-    urgentStatusLabel: 'Menunggu review',
+    statusKey: 'review',
+    statusLabel: 'Menunggu Review',
     members: [
-      { id: 'm-201', nis: '2024.11.0201', name: 'Dimas Bagus Wicaksono', role: 'Ketua kelompok' },
-      { id: 'm-202', nis: '2024.11.0202', name: 'Arum Sekar Wangi', role: 'Materi Scratch' },
-      { id: 'm-203', nis: '2024.11.0203', name: 'Candra Wijaya', role: 'Desain modul' },
-      { id: 'm-204', nis: '2024.11.0204', name: 'Dwi Prasetyo', role: 'Notulen & koordinasi' },
+      { id: 'm-201', nis: '2024.11.0201', name: 'Dimas Bagus Wicaksono', role: 'Ketua' },
+      { id: 'm-202', nis: '2024.11.0202', name: 'Arum Sekar Wangi', role: 'Materi' },
+      { id: 'm-203', nis: '2024.11.0203', name: 'Candra Wijaya', role: 'Desain' },
+      { id: 'm-204', nis: '2024.11.0204', name: 'Dwi Prasetyo', role: 'Notulen' },
       { id: 'm-205', nis: '2024.11.0205', name: 'Fitriani Lestari', role: 'Dokumentasi' },
       { id: 'm-206', nis: '2024.11.0206', name: 'Galih Rakasiwi', role: 'Pengajar lab' },
     ],
     deliverables: [
-      { id: 'd-1', title: 'RPP / Modul Ajar', fileName: 'RPP_pertemuan_2_dan_modul_Scratch.pdf', fileSize: '2.1 MB', updatedAt: '2 jam lalu', status: 'review', statusLabel: 'Menunggu review', version: 'v2 (Terbaru)' },
+      { id: 'd-1', title: 'RPP / Modul Ajar', fileName: 'RPP_pertemuan_2_dan_modul_Scratch.pdf', fileSize: '2.1 MB', updatedAt: '2 jam lalu', status: 'review', statusLabel: 'Menunggu review', version: 'v2' },
       { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: 'Slide_Scratch_Game.pptx', fileSize: '6.4 MB', updatedAt: 'Kemarin', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
       { id: 'd-3', title: 'Desain X-Banner', fileName: 'Banner_SMPN1Waru.pdf', fileSize: '12.0 MB', updatedAt: 'Kemarin', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
       { id: 'd-4', title: 'Desain Feed Instagram', fileName: 'Feed_SMPN1Waru.png', fileSize: '2.8 MB', updatedAt: '12 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
       { id: 'd-5', title: 'Laporan Akhir (Ekspor PDF)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
     ],
-    feedbackList: [
-      { id: 'f-21', author: 'Budi Santoso, S.Pd', role: 'Guru Pamong SMP', rating: 5, date: '15 Feb 2026', comment: 'Modul terstruktur dan siswa dibimbing satu per satu.' },
-    ],
+    feedbackList: [],
   },
   {
     id: '06',
@@ -179,25 +203,26 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 1 Tulangan',
     district: 'Tulangan',
     leaderName: 'Bagus Pratama Putra',
+    leaderPhone: '+62 821-4455-6677',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 3,
     totalItemsCount: 5,
-    urgentStatus: 'review',
-    urgentStatusLabel: 'Menunggu review',
+    statusKey: 'review',
+    statusLabel: 'Menunggu Review',
     members: [
-      { id: 'm-601', nis: '2024.11.0601', name: 'Bagus Pratama Putra', role: 'Ketua kelompok' },
-      { id: 'm-602', nis: '2024.11.0602', name: 'Citra Dewi', role: 'Desain grafis' },
-      { id: 'm-603', nis: '2024.11.0603', name: 'Farhan Ali', role: 'Koordinator materi' },
+      { id: 'm-601', nis: '2024.11.0601', name: 'Bagus Pratama Putra', role: 'Ketua' },
+      { id: 'm-602', nis: '2024.11.0602', name: 'Citra Dewi', role: 'Desain' },
+      { id: 'm-603', nis: '2024.11.0603', name: 'Farhan Ali', role: 'Materi' },
       { id: 'm-604', nis: '2024.11.0604', name: 'Gita Safitri', role: 'Dokumentasi' },
       { id: 'm-605', nis: '2024.11.0605', name: 'Hafiz Maulana', role: 'Pengajar lab' },
       { id: 'm-606', nis: '2024.11.0606', name: 'Ilham Kusuma', role: 'Logistik' },
     ],
     deliverables: [
       { id: 'd-1', title: 'RPP / Modul Ajar', fileName: 'RPP_Literasi_Digital.pdf', fileSize: '1.8 MB', updatedAt: '13 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: 'Draf_infografis_materi.pptx', fileSize: '7.5 MB', updatedAt: '3 jam lalu', status: 'review', statusLabel: 'Menunggu review', version: 'v2 (Terbaru)' },
+      { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: 'Draf_infografis_materi.pptx', fileSize: '7.5 MB', updatedAt: '3 jam lalu', status: 'review', statusLabel: 'Menunggu review', version: 'v2' },
       { id: 'd-3', title: 'Desain X-Banner', fileName: 'Banner_Tulangan.pdf', fileSize: '11.5 MB', updatedAt: '12 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
       { id: 'd-4', title: 'Desain Feed Instagram', fileName: 'Feed_Tulangan.png', fileSize: '3.1 MB', updatedAt: '11 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
       { id: 'd-5', title: 'Laporan Akhir (Ekspor PDF)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
@@ -210,25 +235,26 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 2 Taman',
     district: 'Taman',
     leaderName: 'Kevin Alamsyah',
+    leaderPhone: '+62 857-3322-1100',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 3,
     totalItemsCount: 5,
-    urgentStatus: 'review',
-    urgentStatusLabel: 'Menunggu review',
+    statusKey: 'review',
+    statusLabel: 'Menunggu Review',
     members: [
-      { id: 'm-1201', nis: '2024.11.1201', name: 'Kevin Alamsyah', role: 'Ketua kelompok' },
-      { id: 'm-1202', nis: '2024.11.1202', name: 'Laila Zahra', role: 'Koordinator materi' },
-      { id: 'm-1203', nis: '2024.11.1203', name: 'Muhammad Fikri', role: 'Desain grafis' },
+      { id: 'm-1201', nis: '2024.11.1201', name: 'Kevin Alamsyah', role: 'Ketua' },
+      { id: 'm-1202', nis: '2024.11.1202', name: 'Laila Zahra', role: 'Materi' },
+      { id: 'm-1203', nis: '2024.11.1203', name: 'Muhammad Fikri', role: 'Desain' },
       { id: 'm-1204', nis: '2024.11.1204', name: 'Nadya Amanda', role: 'Dokumentasi' },
       { id: 'm-1205', nis: '2024.11.1205', name: 'Oki Pratama', role: 'Pengajar lab' },
       { id: 'm-1206', nis: '2024.11.1206', name: 'Putri Ayu', role: 'Logistik' },
     ],
     deliverables: [
       { id: 'd-1', title: 'RPP / Modul Ajar', fileName: 'RPP_Taman_WebDasar.pdf', fileSize: '1.9 MB', updatedAt: '13 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: 'Slide_presentasi_Canva.pdf', fileSize: '9.3 MB', updatedAt: '4 jam lalu', status: 'review', statusLabel: 'Menunggu review', version: 'v2 (Terbaru)' },
+      { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: 'Slide_presentasi_Canva.pdf', fileSize: '9.3 MB', updatedAt: '4 jam lalu', status: 'review', statusLabel: 'Menunggu review', version: 'v2' },
       { id: 'd-3', title: 'Desain X-Banner', fileName: 'X_Banner_Taman.pdf', fileSize: '13.2 MB', updatedAt: 'Kemarin', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
       { id: 'd-4', title: 'Desain Feed Instagram', fileName: 'Feed_Taman.png', fileSize: '2.5 MB', updatedAt: 'Kemarin', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
       { id: 'd-5', title: 'Laporan Akhir (Ekspor PDF)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
@@ -241,30 +267,25 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMP Telkom Sidoarjo',
     district: 'Sidoarjo',
     leaderName: 'Fahri Ramadhan',
+    leaderPhone: '+62 819-7788-9900',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 2,
     totalItemsCount: 5,
-    urgentStatus: 'overdue',
-    urgentStatusLabel: 'Terlambat 2 hari',
+    statusKey: 'overdue',
+    statusLabel: 'Terlambat 2 Hari',
     lateDays: 2,
     members: [
-      { id: 'm-701', nis: '2024.11.0701', name: 'Fahri Ramadhan', role: 'Ketua kelompok' },
-      { id: 'm-702', nis: '2024.11.0702', name: 'Gading Marten', role: 'Desain grafis' },
-      { id: 'm-703', nis: '2024.11.0703', name: 'Hana Safira', role: 'Notulen & koordinasi' },
+      { id: 'm-701', nis: '2024.11.0701', name: 'Fahri Ramadhan', role: 'Ketua' },
+      { id: 'm-702', nis: '2024.11.0702', name: 'Gading Marten', role: 'Desain' },
+      { id: 'm-703', nis: '2024.11.0703', name: 'Hana Safira', role: 'Notulen' },
       { id: 'm-704', nis: '2024.11.0704', name: 'Indra Bekti', role: 'Pengajar lab' },
       { id: 'm-705', nis: '2024.11.0705', name: 'Jihan Audy', role: 'Logistik' },
       { id: 'm-706', nis: '2024.11.0706', name: 'Kurnia Meiga', role: 'Dokumentasi' },
     ],
-    deliverables: [
-      { id: 'd-1', title: 'RPP / Modul Ajar', fileName: 'RPP_Telkom_SDA.pdf', fileSize: '2.0 MB', updatedAt: '10 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: 'Slide_Telkom.pptx', fileSize: '5.6 MB', updatedAt: '11 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-3', title: 'Desain X-Banner', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-4', title: 'Desain Feed Instagram', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-5', title: 'Laporan Akhir (Ekspor PDF)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-    ],
+    deliverables: [],
     feedbackList: [],
   },
   {
@@ -273,30 +294,22 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 2 Krian',
     district: 'Krian',
     leaderName: 'Siti Nurhaliza',
+    leaderPhone: '+62 822-3344-5566',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 2,
     totalItemsCount: 5,
-    urgentStatus: 'overdue',
-    urgentStatusLabel: 'Terlambat 1 hari',
+    statusKey: 'overdue',
+    statusLabel: 'Terlambat 1 Hari',
     lateDays: 1,
     members: [
-      { id: 'm-401', nis: '2024.11.0401', name: 'Siti Nurhaliza', role: 'Ketua kelompok' },
-      { id: 'm-402', nis: '2024.11.0402', name: 'Bambang Tri', role: 'Koordinator materi' },
-      { id: 'm-403', nis: '2024.11.0403', name: 'Cindy Claudia', role: 'Desain grafis' },
-      { id: 'm-404', nis: '2024.11.0404', name: 'Doni Salman', role: 'Pengajar lab' },
-      { id: 'm-405', nis: '2024.11.0405', name: 'Eka Kurnia', role: 'Dokumentasi' },
-      { id: 'm-406', nis: '2024.11.0406', name: 'Fani Oktavia', role: 'Logistik' },
+      { id: 'm-401', nis: '2024.11.0401', name: 'Siti Nurhaliza', role: 'Ketua' },
+      { id: 'm-402', nis: '2024.11.0402', name: 'Bambang Tri', role: 'Materi' },
+      { id: 'm-403', nis: '2024.11.0403', name: 'Cindy Claudia', role: 'Desain' },
     ],
-    deliverables: [
-      { id: 'd-1', title: 'RPP / Modul Ajar', fileName: 'RPP_Krian_v1.pdf', fileSize: '1.6 MB', updatedAt: '9 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: 'Slide_Krian.pptx', fileSize: '4.8 MB', updatedAt: '10 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-3', title: 'Desain X-Banner', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-4', title: 'Desain Feed Instagram', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-5', title: 'Laporan Akhir (Ekspor PDF)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-    ],
+    deliverables: [],
     feedbackList: [],
   },
   {
@@ -305,30 +318,18 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 1 Taman',
     district: 'Taman',
     leaderName: 'Rian Hidayat',
+    leaderPhone: '+62 856-1122-3344',
     hasLeader: true,
     currentStage: 'Tahap 2: Rancang materi',
     currentStageIndex: 2,
     completedStages: 1,
     approvedItemsCount: 1,
     totalItemsCount: 5,
-    urgentStatus: 'overdue',
-    urgentStatusLabel: 'Terlambat 3 hari',
+    statusKey: 'overdue',
+    statusLabel: 'Terlambat 3 Hari',
     lateDays: 3,
-    members: [
-      { id: 'm-901', nis: '2024.11.0901', name: 'Rian Hidayat', role: 'Ketua kelompok' },
-      { id: 'm-902', nis: '2024.11.0902', name: 'Salsa Bila', role: 'Notulen & koordinasi' },
-      { id: 'm-903', nis: '2024.11.0903', name: 'Taufik Hidayat', role: 'Koordinator materi' },
-      { id: 'm-904', nis: '2024.11.0904', name: 'Umi Kalsum', role: 'Desain grafis' },
-      { id: 'm-905', nis: '2024.11.0905', name: 'Vino Bastian', role: 'Pengajar lab' },
-      { id: 'm-906', nis: '2024.11.0906', name: 'Winda Sari', role: 'Dokumentasi' },
-    ],
-    deliverables: [
-      { id: 'd-1', title: 'RPP / Modul Ajar', fileName: 'RPP_Taman1.pdf', fileSize: '1.4 MB', updatedAt: '8 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-3', title: 'Desain X-Banner', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-4', title: 'Desain Feed Instagram', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-5', title: 'Laporan Akhir (Ekspor PDF)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-    ],
+    members: [{ id: 'm-901', nis: '2024.11.0901', name: 'Rian Hidayat', role: 'Ketua' }],
+    deliverables: [],
     feedbackList: [],
   },
   {
@@ -337,61 +338,36 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 2 Candi',
     district: 'Candi',
     leaderName: 'Dewi Maharani',
+    leaderPhone: '+62 878-5566-7788',
     hasLeader: true,
     currentStage: 'Tahap 2: Rancang materi',
     currentStageIndex: 2,
     completedStages: 1,
     approvedItemsCount: 2,
     totalItemsCount: 5,
-    urgentStatus: 'revisi',
-    urgentStatusLabel: 'Perlu revisi',
-    members: [
-      { id: 'm-501', nis: '2024.11.0501', name: 'Dewi Maharani', role: 'Ketua kelompok' },
-      { id: 'm-502', nis: '2024.11.0502', name: 'Gilang Dirga', role: 'Koordinator materi' },
-      { id: 'm-503', nis: '2024.11.0503', name: 'Helena Putri', role: 'Desain grafis' },
-      { id: 'm-504', nis: '2024.11.0504', name: 'Irfan Hakim', role: 'Notulen & koordinasi' },
-      { id: 'm-505', nis: '2024.11.0505', name: 'Jovita Karen', role: 'Pengajar lab' },
-      { id: 'm-506', nis: '2024.11.0506', name: 'Krisna Mukti', role: 'Dokumentasi' },
-    ],
-    deliverables: [
-      { id: 'd-1', title: 'RPP / Modul Ajar', fileName: 'RPP_Candi_Revisi1.pdf', fileSize: '2.3 MB', updatedAt: 'Kemarin', status: 'revision', statusLabel: 'Perlu revisi', version: 'v1' },
-      { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: 'Slide_Candi.pptx', fileSize: '5.1 MB', updatedAt: '12 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-3', title: 'Desain X-Banner', fileName: 'Banner_Candi.pdf', fileSize: '10.2 MB', updatedAt: '13 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-4', title: 'Desain Feed Instagram', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-5', title: 'Laporan Akhir (Ekspor PDF)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-    ],
+    statusKey: 'overdue',
+    statusLabel: 'Perlu Revisi',
+    members: [{ id: 'm-501', nis: '2024.11.0501', name: 'Dewi Maharani', role: 'Ketua' }],
+    deliverables: [],
     feedbackList: [],
   },
-  // Approved groups 01, 08, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22
   {
     id: '01',
     number: '01',
     schoolName: 'SMPN 1 Sidoarjo',
     district: 'Sidoarjo',
     leaderName: 'Rafli Akbar Pratama',
+    leaderPhone: '+62 811-2233-4455',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [
-      { id: 'm-101', nis: '2024.11.0101', name: 'Rafli Akbar Pratama', role: 'Ketua kelompok' },
-      { id: 'm-102', nis: '2024.11.0102', name: 'Anisa Rahmawati', role: 'Notulen & koordinasi' },
-      { id: 'm-103', nis: '2024.11.0103', name: 'Bagas Aditya', role: 'Desain grafis' },
-      { id: 'm-104', nis: '2024.11.0104', name: 'Cahya Lestari', role: 'Koordinator materi' },
-      { id: 'm-105', nis: '2024.11.0105', name: 'Diki Wahyudi', role: 'Pengajar lab' },
-      { id: 'm-106', nis: '2024.11.0106', name: 'Elsa Febriani', role: 'Dokumentasi' },
-    ],
-    deliverables: [
-      { id: 'd-1', title: 'RPP / Modul Ajar', fileName: 'RPP_SMPN1SDA.pdf', fileSize: '1.9 MB', updatedAt: '12 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: 'Slide_SMPN1SDA.pptx', fileSize: '6.4 MB', updatedAt: '12 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-3', title: 'Desain X-Banner', fileName: 'X_Banner_SMPN1SDA.pdf', fileSize: '11.8 MB', updatedAt: '13 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-4', title: 'Desain Feed Instagram', fileName: 'Feed_SMPN1SDA.png', fileSize: '2.9 MB', updatedAt: '13 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-5', title: 'Laporan Akhir (Ekspor PDF)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-    ],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-101', nis: '2024.11.0101', name: 'Rafli Akbar Pratama', role: 'Ketua' }],
+    deliverables: [],
     feedbackList: [],
   },
   {
@@ -400,29 +376,17 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 2 Sukodono',
     district: 'Sukodono',
     leaderName: 'Putri Ayu Wandira',
+    leaderPhone: '+62 813-7766-5544',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [
-      { id: 'm-801', nis: '2024.11.0801', name: 'Putri Ayu Wandira', role: 'Ketua kelompok' },
-      { id: 'm-802', nis: '2024.11.0802', name: 'Rangga Sasana', role: 'Koordinator materi' },
-      { id: 'm-803', nis: '2024.11.0803', name: 'Shinta Dewi', role: 'Desain grafis' },
-      { id: 'm-804', nis: '2024.11.0804', name: 'Teddy Syah', role: 'Pengajar lab' },
-      { id: 'm-805', nis: '2024.11.0805', name: 'Utami Rahayu', role: 'Dokumentasi' },
-      { id: 'm-806', nis: '2024.11.0806', name: 'Vicky Nitinegoro', role: 'Logistik' },
-    ],
-    deliverables: [
-      { id: 'd-1', title: 'RPP / Modul Ajar', fileName: 'RPP_Sukodono.pdf', fileSize: '1.7 MB', updatedAt: '11 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: 'Slide_Sukodono.pptx', fileSize: '5.2 MB', updatedAt: '12 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-3', title: 'Desain X-Banner', fileName: 'Banner_Sukodono.pdf', fileSize: '12.4 MB', updatedAt: '12 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-4', title: 'Desain Feed Instagram', fileName: 'Feed_Sukodono.png', fileSize: '3.0 MB', updatedAt: '13 Feb', status: 'approved', statusLabel: 'Disetujui', version: 'v1' },
-      { id: 'd-5', title: 'Laporan Akhir (Ekspor PDF)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-    ],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-801', nis: '2024.11.0801', name: 'Putri Ayu Wandira', role: 'Ketua' }],
+    deliverables: [],
     feedbackList: [],
   },
   {
@@ -431,15 +395,16 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMP Hang Tuah 5',
     district: 'Candi',
     leaderName: 'Kevin Sanjaya',
+    leaderPhone: '+62 852-9988-7766',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [{ id: 'm-1001', nis: '2024.11.1001', name: 'Kevin Sanjaya', role: 'Ketua kelompok' }],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-1001', nis: '2024.11.1001', name: 'Kevin Sanjaya', role: 'Ketua' }],
     deliverables: [],
     feedbackList: [],
   },
@@ -449,15 +414,16 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 3 Porong',
     district: 'Porong',
     leaderName: 'Zidan Maulana',
+    leaderPhone: '+62 823-1144-7788',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [{ id: 'm-1101', nis: '2024.11.1101', name: 'Zidan Maulana', role: 'Ketua kelompok' }],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-1101', nis: '2024.11.1101', name: 'Zidan Maulana', role: 'Ketua' }],
     deliverables: [],
     feedbackList: [],
   },
@@ -467,15 +433,16 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMP Proklamasi Porong',
     district: 'Porong',
     leaderName: 'Aulia Rahman',
+    leaderPhone: '+62 895-3344-5566',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [{ id: 'm-1301', nis: '2024.11.1301', name: 'Aulia Rahman', role: 'Ketua kelompok' }],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-1301', nis: '2024.11.1301', name: 'Aulia Rahman', role: 'Ketua' }],
     deliverables: [],
     feedbackList: [],
   },
@@ -485,15 +452,16 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 1 Sedati',
     district: 'Sedati',
     leaderName: 'Anisa Rahmawati',
+    leaderPhone: '+62 812-7788-2233',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [{ id: 'm-1401', nis: '2024.11.1401', name: 'Anisa Rahmawati', role: 'Ketua kelompok' }],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-1401', nis: '2024.11.1401', name: 'Anisa Rahmawati', role: 'Ketua' }],
     deliverables: [],
     feedbackList: [],
   },
@@ -503,15 +471,16 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 2 Gedangan',
     district: 'Gedangan',
     leaderName: 'Rizal Fauzi',
+    leaderPhone: '+62 813-4455-9900',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [{ id: 'm-1501', nis: '2024.11.1501', name: 'Rizal Fauzi', role: 'Ketua kelompok' }],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-1501', nis: '2024.11.1501', name: 'Rizal Fauzi', role: 'Ketua' }],
     deliverables: [],
     feedbackList: [],
   },
@@ -521,15 +490,16 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMP PGRI 1 Buduran',
     district: 'Buduran',
     leaderName: 'Doni Firmansyah',
+    leaderPhone: '+62 858-6677-8899',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [{ id: 'm-1601', nis: '2024.11.1601', name: 'Doni Firmansyah', role: 'Ketua kelompok' }],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-1601', nis: '2024.11.1601', name: 'Doni Firmansyah', role: 'Ketua' }],
     deliverables: [],
     feedbackList: [],
   },
@@ -539,15 +509,16 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 1 Krembung',
     district: 'Krembung',
     leaderName: 'Fandi Ahmad',
+    leaderPhone: '+62 812-9900-1122',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [{ id: 'm-1701', nis: '2024.11.1701', name: 'Fandi Ahmad', role: 'Ketua kelompok' }],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-1701', nis: '2024.11.1701', name: 'Fandi Ahmad', role: 'Ketua' }],
     deliverables: [],
     feedbackList: [],
   },
@@ -557,15 +528,16 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 2 Porong',
     district: 'Porong',
     leaderName: 'Hendra Setiawan',
+    leaderPhone: '+62 821-3344-8899',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [{ id: 'm-1801', nis: '2024.11.1801', name: 'Hendra Setiawan', role: 'Ketua kelompok' }],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-1801', nis: '2024.11.1801', name: 'Hendra Setiawan', role: 'Ketua' }],
     deliverables: [],
     feedbackList: [],
   },
@@ -575,15 +547,16 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 1 Tarik',
     district: 'Tarik',
     leaderName: 'Indra Djati',
+    leaderPhone: '+62 857-4433-2211',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [{ id: 'm-1901', nis: '2024.11.1901', name: 'Indra Djati', role: 'Ketua kelompok' }],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-1901', nis: '2024.11.1901', name: 'Indra Djati', role: 'Ketua' }],
     deliverables: [],
     feedbackList: [],
   },
@@ -593,15 +566,16 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 2 Prambon',
     district: 'Prambon',
     leaderName: 'Joko Anwar',
+    leaderPhone: '+62 813-2211-9988',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [{ id: 'm-2001', nis: '2024.11.2001', name: 'Joko Anwar', role: 'Ketua kelompok' }],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-2001', nis: '2024.11.2001', name: 'Joko Anwar', role: 'Ketua' }],
     deliverables: [],
     feedbackList: [],
   },
@@ -611,15 +585,16 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMP Muhammadiyah 1',
     district: 'Sidoarjo',
     leaderName: 'Kiki Narendra',
+    leaderPhone: '+62 878-1122-4455',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [{ id: 'm-2101', nis: '2024.11.2101', name: 'Kiki Narendra', role: 'Ketua kelompok' }],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-2101', nis: '2024.11.2101', name: 'Kiki Narendra', role: 'Ketua' }],
     deliverables: [],
     feedbackList: [],
   },
@@ -629,48 +604,43 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMP YPM 1 Taman',
     district: 'Taman',
     leaderName: 'Lukman Sardi',
+    leaderPhone: '+62 812-4466-8800',
     hasLeader: true,
     currentStage: 'Tahap 3: Buat desain',
     currentStageIndex: 3,
     completedStages: 2,
     approvedItemsCount: 4,
     totalItemsCount: 5,
-    urgentStatus: 'approved',
-    urgentStatusLabel: 'Disetujui',
-    members: [{ id: 'm-2201', nis: '2024.11.2201', name: 'Lukman Sardi', role: 'Ketua kelompok' }],
+    statusKey: 'safe',
+    statusLabel: 'Disetujui',
+    members: [{ id: 'm-2201', nis: '2024.11.2201', name: 'Lukman Sardi', role: 'Ketua' }],
     deliverables: [],
     feedbackList: [],
   },
-  // Two groups without leader
   {
     id: '23',
     number: '23',
     schoolName: 'SMPN 2 Sedati',
     district: 'Sedati',
     leaderName: '',
+    leaderPhone: '—',
     hasLeader: false,
     currentStage: 'Tahap 1: Atur peran',
     currentStageIndex: 1,
     completedStages: 0,
     approvedItemsCount: 0,
     totalItemsCount: 5,
-    urgentStatus: 'waiting',
-    urgentStatusLabel: 'Belum dikumpulkan',
+    statusKey: 'unassigned',
+    statusLabel: 'Belum Ada Ketua',
     members: [
       { id: 'm-2301', nis: '2024.11.2301', name: 'Ahmad Fauzi', role: 'Anggota' },
-      { id: 'm-2302', nis: '2024.11.2302', name: 'Bella Saphira', role: 'Anggota' },
-      { id: 'm-2303', nis: '2024.11.2303', name: 'Cahyo Utomo', role: 'Anggota' },
-      { id: 'm-2304', nis: '2024.11.2304', name: 'Dian Sastro', role: 'Anggota' },
-      { id: 'm-2305', nis: '2024.11.2305', name: 'Eko Patrio', role: 'Anggota' },
-      { id: 'm-2306', nis: '2024.11.2306', name: 'Febri Haryadi', role: 'Anggota' },
+      { id: 'm-2302', nis: '2024.11.2302', name: 'Bella Safitri', role: 'Anggota' },
+      { id: 'm-2303', nis: '2024.11.2303', name: 'Danu Pratama', role: 'Anggota' },
+      { id: 'm-2304', nis: '2024.11.2304', name: 'Eka Nuraini', role: 'Anggota' },
+      { id: 'm-2305', nis: '2024.11.2305', name: 'Fikri Haikal', role: 'Anggota' },
+      { id: 'm-2306', nis: '2024.11.2306', name: 'Gani Maulana', role: 'Anggota' },
     ],
-    deliverables: [
-      { id: 'd-1', title: 'RPP / Modul Ajar', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-3', title: 'Desain X-Banner', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-4', title: 'Desain Feed Instagram', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-5', title: 'Laporan Akhir (Ekspor PDF)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-    ],
+    deliverables: [],
     feedbackList: [],
   },
   {
@@ -679,37 +649,32 @@ const INITIAL_24_GROUPS: GroupItem[] = [
     schoolName: 'SMPN 4 Sidoarjo',
     district: 'Sidoarjo',
     leaderName: '',
+    leaderPhone: '—',
     hasLeader: false,
     currentStage: 'Tahap 1: Atur peran',
     currentStageIndex: 1,
     completedStages: 0,
     approvedItemsCount: 0,
     totalItemsCount: 5,
-    urgentStatus: 'waiting',
-    urgentStatusLabel: 'Belum dikumpulkan',
+    statusKey: 'unassigned',
+    statusLabel: 'Belum Ada Ketua',
     members: [
       { id: 'm-2401', nis: '2024.11.2401', name: 'Salsa Bila Ramadhani', role: 'Anggota' },
-      { id: 'm-2402', nis: '2024.11.2402', name: 'Gunawan Dwi', role: 'Anggota' },
-      { id: 'm-2403', nis: '2024.11.2403', name: 'Hesti Purwadinata', role: 'Anggota' },
-      { id: 'm-2404', nis: '2024.11.2404', name: 'Iwan Fals', role: 'Anggota' },
-      { id: 'm-2405', nis: '2024.11.2405', name: 'Julia Perez', role: 'Anggota' },
-      { id: 'm-2406', nis: '2024.11.2406', name: 'Katon Bagaskara', role: 'Anggota' },
+      { id: 'm-2402', nis: '2024.11.2402', name: 'Bima Satria', role: 'Anggota' },
+      { id: 'm-2403', nis: '2024.11.2403', name: 'Cahya Ramadhan', role: 'Anggota' },
+      { id: 'm-2404', nis: '2024.11.2404', name: 'Dian Permata', role: 'Anggota' },
+      { id: 'm-2405', nis: '2024.11.2405', name: 'Erwin Prasetya', role: 'Anggota' },
+      { id: 'm-2406', nis: '2024.11.2406', name: 'Fitra Ramadhan', role: 'Anggota' },
     ],
-    deliverables: [
-      { id: 'd-1', title: 'RPP / Modul Ajar', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-2', title: 'Slide Presentasi (PPT)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-3', title: 'Desain X-Banner', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-4', title: 'Desain Feed Instagram', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-      { id: 'd-5', title: 'Laporan Akhir (Ekspor PDF)', fileName: '—', fileSize: '—', updatedAt: 'Belum diunggah', status: 'pending', statusLabel: 'Belum dikumpulkan', version: '—' },
-    ],
+    deliverables: [],
     feedbackList: [],
   },
 ];
 
-// Initial Action Queue Items
-const INITIAL_WAITING_ADMIN: ActionQueueItem[] = [
+// Initial 4 Review Queue items
+const INITIAL_REVIEW_QUEUE: ReviewQueueItem[] = [
   {
-    id: 'act-1',
+    id: 'rq-1',
     groupId: '03',
     groupNumber: 'Kelompok 03',
     schoolName: 'SMPN 1 Buduran',
@@ -718,9 +683,14 @@ const INITIAL_WAITING_ADMIN: ActionQueueItem[] = [
     statusLabel: 'Menunggu review',
     ageText: 'diajukan 45 menit lalu',
     deliverableId: 'd-3',
+    version: 'v2',
+    fileSize: '14.8 MB',
+    fileName: 'X-Banner_SMPN1Buduran_v2.pdf',
+    studentNotes:
+      'Kami sudah memperbaiki logo SMK Telkom Sidoarjo di pojok kanan atas, mengubah ukuran tagline sesuai panduan, dan menambahkan QR code pendaftaran siswa SMP.',
   },
   {
-    id: 'act-2',
+    id: 'rq-2',
     groupId: '02',
     groupNumber: 'Kelompok 02',
     schoolName: 'SMPN 1 Waru',
@@ -729,9 +699,14 @@ const INITIAL_WAITING_ADMIN: ActionQueueItem[] = [
     statusLabel: 'Menunggu review',
     ageText: 'diajukan 2 jam lalu',
     deliverableId: 'd-1',
+    version: 'v2',
+    fileSize: '2.1 MB',
+    fileName: 'RPP_pertemuan_2_dan_modul_Scratch.pdf',
+    studentNotes:
+      'Sudah disesuaikan dengan kurikulum informatika SMP kelas 8, alokasi waktu praktik 2 JP di laboratorium komputer.',
   },
   {
-    id: 'act-3',
+    id: 'rq-3',
     groupId: '06',
     groupNumber: 'Kelompok 06',
     schoolName: 'SMPN 1 Tulangan',
@@ -740,9 +715,14 @@ const INITIAL_WAITING_ADMIN: ActionQueueItem[] = [
     statusLabel: 'Menunggu review',
     ageText: 'diajukan 3 jam lalu',
     deliverableId: 'd-2',
+    version: 'v2',
+    fileSize: '7.5 MB',
+    fileName: 'Draf_infografis_materi.pptx',
+    studentNotes:
+      'Desain infografis keamanan digital untuk dibagikan saat sesi interaktif di kelas.',
   },
   {
-    id: 'act-4',
+    id: 'rq-4',
     groupId: '12',
     groupNumber: 'Kelompok 12',
     schoolName: 'SMPN 2 Taman',
@@ -751,337 +731,230 @@ const INITIAL_WAITING_ADMIN: ActionQueueItem[] = [
     statusLabel: 'Menunggu review',
     ageText: 'diajukan 4 jam lalu',
     deliverableId: 'd-2',
+    version: 'v2',
+    fileSize: '9.3 MB',
+    fileName: 'Slide_presentasi_Canva.pdf',
+    studentNotes:
+      'Slide materi pengenalan Web Dasar HTML/CSS dengan analogi rumah dan dekorasi agar mudah dipahami adik-adik SMP.',
   },
 ];
 
-const INITIAL_WAITING_GROUP: ActionQueueItem[] = [
-  {
-    id: 'act-5',
-    groupId: '07',
-    groupNumber: 'Kelompok 07',
-    schoolName: 'SMP Telkom Sidoarjo',
-    itemName: 'Desain X-Banner',
-    status: 'overdue',
-    statusLabel: 'Terlambat 2 hari',
-    ageText: 'terlambat 2 hari',
-    isLate: true,
-    lateDays: 2,
-    deliverableId: 'd-3',
-    reminderText: 'Halo Fahri (Ketua Kelompok 07)! Desain X-Banner 60x160cm Anda terlambat 2 hari dari tenggat 15 Feb. Mohon segera diunggah hari ini ke portal Skomda Mengajar.',
-  },
-  {
-    id: 'act-6',
-    groupId: '04',
-    groupNumber: 'Kelompok 04',
-    schoolName: 'SMPN 2 Krian',
-    itemName: 'Draf modul pembelajaran',
-    status: 'overdue',
-    statusLabel: 'Terlambat 1 hari',
-    ageText: 'terlambat 1 hari',
-    isLate: true,
-    lateDays: 1,
-    deliverableId: 'd-1',
-    reminderText: 'Halo Siti (Ketua Kelompok 04)! Draf modul pembelajaran Anda telah melewati tenggat 1 hari. Mohon finalisasi draf dan ajukan verifikasi guru pembimbing.',
-  },
-  {
-    id: 'act-7',
-    groupId: '09',
-    groupNumber: 'Kelompok 09',
-    schoolName: 'SMPN 1 Taman',
-    itemName: 'Slide presentasi materi',
-    status: 'overdue',
-    statusLabel: 'Terlambat 3 hari',
-    ageText: 'terlambat 3 hari',
-    isLate: true,
-    lateDays: 3,
-    deliverableId: 'd-2',
-    reminderText: 'Halo Rian (Ketua Kelompok 09)! Slide presentasi materi masih belum diunggah (terlambat 3 hari). Segera koordinasi dengan anggota regu Anda.',
-  },
-  {
-    id: 'act-8',
-    groupId: '05',
-    groupNumber: 'Kelompok 05',
-    schoolName: 'SMPN 2 Candi',
-    itemName: 'Revisi RPP Tatap Muka',
-    status: 'revisi',
-    statusLabel: 'Perlu revisi',
-    ageText: 'revisi belum diunggah ulang',
-    deliverableId: 'd-1',
-    reminderText: 'Halo Dewi (Ketua Kelompok 05)! Catatan revisi RPP tatap muka dari guru pembimbing belum direspons. Silakan perbaiki alokasi waktu JP dan unggah ulang.',
-  },
-];
+export function AdminMonitoringPage() {
+  const { navigate, showToast } = useApp();
 
-export const AdminMonitoringPage: React.FC = () => {
-  const { navigate, showToast, currentPath } = useApp();
-
-  // ─── MASTER STATE ─────────────────────────────────────────────────────────
+  // ─── STATE MANAGEMENT ───────────────────────────────────────────────────────
   const [groups, setGroups] = useState<GroupItem[]>(INITIAL_24_GROUPS);
-  const [waitingAdmin, setWaitingAdmin] = useState<ActionQueueItem[]>(INITIAL_WAITING_ADMIN);
-  const [waitingGroup, setWaitingGroup] = useState<ActionQueueItem[]>(INITIAL_WAITING_GROUP);
+  const [reviewQueue, setReviewQueue] = useState<ReviewQueueItem[]>(INITIAL_REVIEW_QUEUE);
 
-  // View Navigation State: null = View 1 (Main Dashboard), string = View 4 (Group Detail for that groupId)
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(() => {
-    if (currentPath && currentPath.startsWith('/admin/kelompok/')) {
-      const parts = currentPath.split('/');
-      return parts[parts.length - 1] || null;
-    }
-    return null;
-  });
+  // Active navigation in floating sidebar
+  const [activeNav, setActiveNav] = useState<
+    'kelompok' | 'fokus' | 'review' | 'persiapan' | 'feedback' | 'laporan' | 'pengaturan' | 'bantuan'
+  >('kelompok');
 
-  // Action Queue Filter Tab: 'admin' (Menunggu Anda) vs 'kelompok' (Menunggu kelompok)
-  const [actionTab, setActionTab] = useState<'admin' | 'kelompok'>('admin');
-  const [copiedReminderId, setCopiedReminderId] = useState<string | null>(null);
+  // Sub-navigation underline tab
+  const [activeUnderlineTab, setActiveUnderlineTab] = useState<
+    'semua' | 'review' | 'terlambat' | 'unassigned'
+  >('semua');
 
-  // Master Table Search & Filter
+  // Search & Filter Pill State
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterPill, setFilterPill] = useState<'all' | 'attention' | 'done'>('all');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
 
-  // VIEW 2: Setup Modal State
+  // Pagination state (8 groups per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  // Selected Group for Detailed Workspace View
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [groupWorkspaceSubTab, setGroupWorkspaceSubTab] = useState<'members' | 'deliverables' | 'feedback'>('members');
+
+  // Slide-over Review Drawer (Sheet)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [activeReviewItem, setActiveReviewItem] = useState<ReviewQueueItem | null>(null);
+  const [drawerNotes, setDrawerNotes] = useState('');
+
+  // Setup & Assign Leader Modal (Dialog)
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
-  const [setupModalTab, setSetupModalTab] = useState<'leader' | 'import'>('leader');
-  const [leaderFilter, setLeaderFilter] = useState<'unassigned' | 'all'>('unassigned');
+  const [setupModalTab, setSetupModalTab] = useState<'assign' | 'import'>('assign');
   const [selectedLeaderMap, setSelectedLeaderMap] = useState<Record<string, string>>({
     '23': 'Ahmad Fauzi',
     '24': 'Salsa Bila Ramadhani',
   });
   const [isImporting, setIsImporting] = useState(false);
-  const [importSuccess, setImportSuccess] = useState(false);
-  const [createdCredentials, setCreatedCredentials] = useState<{ group: string; user: string; pass: string } | null>(null);
 
-  // VIEW 3: Quick Review Drawer/Modal State
-  const [isReviewOpen, setIsReviewOpen] = useState(false);
-  const [reviewItem, setReviewItem] = useState<{
-    groupId: string;
-    groupNumber: string;
-    schoolName: string;
-    itemName: string;
-    fileName: string;
-    fileSize: string;
-    version: string;
-    deliverableId: string;
-  } | null>(null);
-  const [reviewVersion, setReviewVersion] = useState<'v2' | 'v1'>('v2');
-  const [reviewNotes, setReviewNotes] = useState('');
-  const [checkImageRes, setCheckImageRes] = useState(true);
-  const [checkBranding, setCheckBranding] = useState(true);
-  const [checkLayout, setCheckLayout] = useState(true);
+  // Popovers (Calendar & Notifications)
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
-  // VIEW 4: Group Detail Active Sub-Tab
-  const [groupDetailTab, setGroupDetailTab] = useState<'members' | 'deliverables' | 'feedback'>('members');
-  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
-  const [newStudentName, setNewStudentName] = useState('');
-  const [newStudentNIS, setNewStudentNIS] = useState('');
-  const [newStudentRole, setNewStudentRole] = useState('Anggota');
-  const [moveStudentTarget, setMoveStudentTarget] = useState<string | null>(null);
-  const [moveTargetGroup, setMoveTargetGroup] = useState('01');
-  const [newFeedbackComment, setNewFeedbackComment] = useState('');
-  const [newFeedbackRating, setNewFeedbackRating] = useState(5);
-  const [newFeedbackAuthor, setNewFeedbackAuthor] = useState('');
-
-  // ─── DERIVED VALUES ───────────────────────────────────────────────────────
-  const groupsWithLeaderCount = useMemo(() => {
-    return groups.filter((g) => g.hasLeader).length;
-  }, [groups]);
-
-  const isPersiapanUnfinished = groupsWithLeaderCount < groups.length;
-
-  // Filtered Master Table Rows
+  // ─── DERIVED FILTERING & PAGINATION ─────────────────────────────────────────
   const filteredGroups = useMemo(() => {
-    return groups.filter((g) => {
-      // Search match
-      const query = searchQuery.toLowerCase().trim();
-      const matchSearch =
-        !query ||
-        g.number.toLowerCase().includes(query) ||
-        g.schoolName.toLowerCase().includes(query) ||
-        g.district.toLowerCase().includes(query) ||
-        (g.leaderName && g.leaderName.toLowerCase().includes(query));
+    return groups.filter((grp) => {
+      // 1. Underline tab filter
+      if (activeUnderlineTab === 'review' && grp.statusKey !== 'review') return false;
+      if (activeUnderlineTab === 'terlambat' && grp.statusKey !== 'overdue') return false;
+      if (activeUnderlineTab === 'unassigned' && grp.hasLeader) return false;
 
-      if (!matchSearch) return false;
+      // 2. Status dropdown filter
+      if (selectedStatusFilter !== 'all') {
+        if (selectedStatusFilter === 'review' && grp.statusKey !== 'review') return false;
+        if (selectedStatusFilter === 'overdue' && grp.statusKey !== 'overdue') return false;
+        if (selectedStatusFilter === 'safe' && grp.statusKey !== 'safe') return false;
+        if (selectedStatusFilter === 'unassigned' && grp.hasLeader) return false;
+      }
 
-      // Filter pill match
-      if (filterPill === 'attention') {
-        return g.urgentStatus === 'overdue' || g.urgentStatus === 'revisi' || !g.hasLeader;
+      // 3. Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const match =
+          grp.number.toLowerCase().includes(q) ||
+          grp.schoolName.toLowerCase().includes(q) ||
+          grp.district.toLowerCase().includes(q) ||
+          (grp.leaderName && grp.leaderName.toLowerCase().includes(q)) ||
+          grp.leaderPhone.toLowerCase().includes(q);
+        if (!match) return false;
       }
-      if (filterPill === 'done') {
-        return g.urgentStatus === 'approved' || g.approvedItemsCount >= 4;
-      }
+
       return true;
     });
-  }, [groups, searchQuery, filterPill]);
+  }, [groups, activeUnderlineTab, selectedStatusFilter, searchQuery]);
 
-  // Selected Group for View 4
-  const activeGroup = useMemo(() => {
+  // Pagination calculation
+  const totalPages = Math.max(1, Math.ceil(filteredGroups.length / itemsPerPage));
+  const paginatedGroups = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredGroups.slice(start, start + itemsPerPage);
+  }, [filteredGroups, currentPage]);
+
+  // Selected Group details
+  const activeDetailGroup = useMemo(() => {
     if (!selectedGroupId) return null;
-    return groups.find((g) => g.id === selectedGroupId) || groups[0];
+    return groups.find((g) => g.id === selectedGroupId) || null;
   }, [groups, selectedGroupId]);
 
-  // ─── HANDLERS ─────────────────────────────────────────────────────────────
+  // ─── ACTION HANDLERS ────────────────────────────────────────────────────────
 
-  // Open View 3 (Review Modal)
-  const handleOpenReview = (item: ActionQueueItem) => {
-    const grp = groups.find((g) => g.id === item.groupId);
-    const del = grp?.deliverables.find((d) => d.id === item.deliverableId) || {
-      fileName: `${item.itemName.replace(/\s+/g, '_')}.pdf`,
-      fileSize: '12.4 MB',
-      version: 'v2 (Terbaru)',
-    };
-
-    setReviewItem({
-      groupId: item.groupId,
-      groupNumber: item.groupNumber,
-      schoolName: item.schoolName,
-      itemName: item.itemName,
-      fileName: del.fileName,
-      fileSize: del.fileSize,
-      version: del.version,
-      deliverableId: item.deliverableId,
-    });
-    setReviewVersion('v2');
-    setReviewNotes('');
-    setCheckImageRes(true);
-    setCheckBranding(true);
-    setCheckLayout(true);
-    setIsReviewOpen(true);
+  // Open Drawer for Review
+  const handleOpenReview = (item: ReviewQueueItem) => {
+    setActiveReviewItem(item);
+    setDrawerNotes('');
+    setIsDrawerOpen(true);
   };
 
-  // Approve Deliverable (Setujui Berkas)
-  const handleApproveSubmission = () => {
-    if (!reviewItem) return;
+  // Open Drawer from Group Row
+  const handleOpenReviewFromGroup = (grp: GroupItem) => {
+    const queueMatch = reviewQueue.find((q) => q.groupId === grp.id);
+    if (queueMatch) {
+      handleOpenReview(queueMatch);
+    } else {
+      // Find first deliverable in review or draft
+      const targetDel = grp.deliverables.find((d) => d.status === 'review') || grp.deliverables[0];
+      const mockItem: ReviewQueueItem = {
+        id: `rq-${grp.id}`,
+        groupId: grp.id,
+        groupNumber: `Kelompok ${grp.number}`,
+        schoolName: grp.schoolName,
+        itemName: targetDel ? targetDel.title : 'Berkas Tahap 3',
+        status: 'review',
+        statusLabel: 'Menunggu review',
+        ageText: 'Baru saja dibuka',
+        deliverableId: targetDel ? targetDel.id : 'd-custom',
+        version: targetDel ? targetDel.version : 'v1',
+        fileSize: targetDel ? targetDel.fileSize : '3.4 MB',
+        fileName: targetDel ? targetDel.fileName : `Berkas_${grp.schoolName.replace(/\s+/g, '_')}.pdf`,
+        studentNotes: 'Siswa telah melengkapi format berkas mengajar untuk ditinjau pembimbing.',
+      };
+      handleOpenReview(mockItem);
+    }
+  };
 
-    // 1. Update Group deliverables & counters
+  // Approve Deliverable in Drawer
+  const handleApproveDrawer = () => {
+    if (!activeReviewItem) return;
+
     setGroups((prev) =>
       prev.map((grp) => {
-        if (grp.id === reviewItem.groupId) {
+        if (grp.id === activeReviewItem.groupId) {
           const nextCount = Math.min(5, grp.approvedItemsCount + 1);
-          const nextDeliverables = grp.deliverables.map((d) =>
-            d.id === reviewItem.deliverableId
-              ? { ...d, status: 'approved' as const, statusLabel: 'Disetujui', updatedAt: 'Baru saja disetujui' }
-              : d
-          );
           return {
             ...grp,
             approvedItemsCount: nextCount,
-            urgentStatus: 'approved' as const,
-            urgentStatusLabel: 'Disetujui',
-            deliverables: nextDeliverables,
+            statusKey: 'safe' as const,
+            statusLabel: 'Disetujui',
+            deliverables: grp.deliverables.map((d) =>
+              d.id === activeReviewItem.deliverableId
+                ? { ...d, status: 'approved' as const, statusLabel: 'Disetujui', updatedAt: 'Baru saja disetujui' }
+                : d
+            ),
           };
         }
         return grp;
       })
     );
 
-    // 2. Remove from waitingAdmin queue
-    setWaitingAdmin((prev) => prev.filter((it) => !(it.groupId === reviewItem.groupId && it.deliverableId === reviewItem.deliverableId)));
-
-    showToast(`Berkas "${reviewItem.itemName}" Kelompok ${reviewItem.groupNumber} berhasil disetujui!`, 'success');
-    setIsReviewOpen(false);
+    setReviewQueue((prev) => prev.filter((it) => it.id !== activeReviewItem.id));
+    setIsDrawerOpen(false);
+    showToast(`Berkas ${activeReviewItem.itemName} (${activeReviewItem.groupNumber}) berhasil disetujui!`, 'success');
   };
 
-  // Request Revision (Minta Revisi)
-  const handleRequestRevision = () => {
-    if (!reviewItem) return;
-    const note = reviewNotes.trim() || 'Perlu perbaikan tata letak dan penyesuaian logo sesuai pedoman kurikulum.';
+  // Request Revision in Drawer
+  const handleRequestRevisionDrawer = () => {
+    if (!activeReviewItem) return;
+    const note = drawerNotes.trim() || 'Perbaiki tata letak dan sesuaikan dengan format pedoman kurikulum SMK.';
 
-    // 1. Update Group status
     setGroups((prev) =>
       prev.map((grp) => {
-        if (grp.id === reviewItem.groupId) {
-          const nextDeliverables = grp.deliverables.map((d) =>
-            d.id === reviewItem.deliverableId
-              ? { ...d, status: 'revision' as const, statusLabel: 'Perlu revisi', updatedAt: 'Diminta revisi hari ini' }
-              : d
-          );
+        if (grp.id === activeReviewItem.groupId) {
           return {
             ...grp,
-            urgentStatus: 'revisi' as const,
-            urgentStatusLabel: 'Perlu revisi',
-            deliverables: nextDeliverables,
+            statusKey: 'overdue' as const,
+            statusLabel: 'Perlu Revisi',
+            deliverables: grp.deliverables.map((d) =>
+              d.id === activeReviewItem.deliverableId
+                ? { ...d, status: 'revision' as const, statusLabel: 'Perlu revisi', updatedAt: 'Diminta revisi' }
+                : d
+            ),
           };
         }
         return grp;
       })
     );
 
-    // 2. Remove from waitingAdmin, add to waitingGroup
-    setWaitingAdmin((prev) => prev.filter((it) => !(it.groupId === reviewItem.groupId && it.deliverableId === reviewItem.deliverableId)));
-    setWaitingGroup((prev) => [
-      ...prev,
-      {
-        id: `act-rev-${Date.now()}`,
-        groupId: reviewItem.groupId,
-        groupNumber: reviewItem.groupNumber,
-        schoolName: reviewItem.schoolName,
-        itemName: reviewItem.itemName,
-        status: 'revisi' as const,
-        statusLabel: 'Perlu revisi',
-        ageText: 'revisi belum diunggah ulang',
-        deliverableId: reviewItem.deliverableId,
-        reminderText: `Catatan pembimbing: "${note}". Mohon segera perbaiki berkas ${reviewItem.itemName} dan unggah ulang.`,
-      },
-    ]);
-
-    showToast(`Catatan revisi telah dikirimkan ke ${reviewItem.groupNumber}.`, 'info');
-    setIsReviewOpen(false);
+    setReviewQueue((prev) => prev.filter((it) => it.id !== activeReviewItem.id));
+    setIsDrawerOpen(false);
+    showToast(`Catatan revisi telah dikirim ke ${activeReviewItem.groupNumber}.`, 'info');
   };
 
-  // Copy Reminder to Clipboard
-  const handleCopyReminder = (item: ActionQueueItem) => {
-    const text =
-      item.reminderText ||
-      `Halo ${item.groupNumber} (${item.schoolName})! Berkas ${item.itemName} Anda memerlukan perhatian segera. Silakan akses portal Skomda Mengajar untuk pembaruan.`;
-
-    navigator.clipboard?.writeText(text);
-    setCopiedReminderId(item.id);
-    showToast('Teks pengingat otomatis disalin ke clipboard!', 'success');
-    setTimeout(() => setCopiedReminderId(null), 3000);
-  };
-
-  // Activate / Assign Leader in View 2
-  const handleActivateLeader = (groupId: string) => {
-    const chosenStudent = selectedLeaderMap[groupId] || 'Ahmad Fauzi';
+  // Assign Leader in Setup Modal
+  const handleAssignLeader = (groupId: string) => {
+    const leaderName = selectedLeaderMap[groupId];
+    if (!leaderName) return;
 
     setGroups((prev) =>
       prev.map((grp) => {
         if (grp.id === groupId) {
           const updatedMembers = grp.members.map((m) =>
-            m.name === chosenStudent ? { ...m, role: 'Ketua kelompok' } : m.role === 'Ketua kelompok' ? { ...m, role: 'Anggota' } : m
+            m.name === leaderName ? { ...m, role: 'Ketua' } : m.role === 'Ketua' ? { ...m, role: 'Anggota' } : m
           );
           return {
             ...grp,
             hasLeader: true,
-            leaderName: chosenStudent,
+            leaderName: leaderName,
+            leaderPhone: '+62 812-7700-8811',
+            statusKey: 'safe' as const,
+            statusLabel: 'Disetujui',
             members: updatedMembers,
-            urgentStatus: 'approved' as const,
-            urgentStatusLabel: 'Disetujui',
           };
         }
         return grp;
       })
     );
 
-    const email = `${chosenStudent.toLowerCase().replace(/\s+/g, '.')}@smktelkom-sda.sch.id`;
-    setCreatedCredentials({
-      group: `Kelompok ${groupId}`,
-      user: email,
-      pass: 'Skomda2026!#' + groupId,
-    });
-
-    showToast(`Ketua ${chosenStudent} berhasil ditetapkan untuk Kelompok ${groupId}!`, 'success');
+    showToast(`Ketua ${leaderName} berhasil ditetapkan untuk Kelompok ${groupId}!`, 'success');
   };
 
-  // Simulate Bulk CSV Import in View 2
-  const handleRunImport = () => {
-    setIsImporting(true);
-    setTimeout(() => {
-      setIsImporting(false);
-      setImportSuccess(true);
-      showToast('180 Siswa & 24 Sekolah Mitra berhasil disinkronkan dari CSV!', 'success');
-    }, 1200);
-  };
-
-  // View 4: Change Stage Override
-  const handleStageOverride = (groupId: string, newStage: string) => {
+  // Override Group Stage
+  const handleOverrideStage = (groupId: string, newStage: string) => {
     const idx = SIX_STAGES.indexOf(newStage) + 1;
     setGroups((prev) =>
       prev.map((grp) =>
@@ -1095,1364 +968,1234 @@ export const AdminMonitoringPage: React.FC = () => {
           : grp
       )
     );
-    showToast(`Tahap kerja Kelompok ${groupId} disesuaikan ke "${newStage}".`, 'info');
+    showToast(`Tahap kerja kelompok disesuaikan ke "${newStage}".`, 'info');
   };
 
-  // View 4: Change Member Role
-  const handleChangeRole = (groupId: string, memberId: string, newRole: string) => {
+  // Change Student Role
+  const handleChangeMemberRole = (groupId: string, memberId: string, newRole: string) => {
     setGroups((prev) =>
       prev.map((grp) => {
         if (grp.id === groupId) {
-          let newLeaderName = grp.leaderName;
-          const updated = grp.members.map((m) => {
+          let updatedLeader = grp.leaderName;
+          const updatedMembers = grp.members.map((m) => {
             if (m.id === memberId) {
-              if (newRole === 'Ketua kelompok') {
-                newLeaderName = m.name;
-              }
+              if (newRole === 'Ketua') updatedLeader = m.name;
               return { ...m, role: newRole };
             }
-            if (newRole === 'Ketua kelompok' && m.role === 'Ketua kelompok') {
+            if (newRole === 'Ketua' && m.role === 'Ketua') {
               return { ...m, role: 'Anggota' };
             }
             return m;
           });
           return {
             ...grp,
-            leaderName: newLeaderName,
-            hasLeader: Boolean(newLeaderName),
-            members: updated,
+            leaderName: updatedLeader,
+            hasLeader: Boolean(updatedLeader),
+            members: updatedMembers,
           };
         }
         return grp;
       })
     );
-    showToast('Peran siswa berhasil diperbarui.', 'success');
+    showToast('Peran anggota berhasil diperbarui.', 'success');
   };
 
-  // View 4: Add New Student
-  const handleAddStudent = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeGroup || !newStudentName.trim()) return;
-
-    const newMember: MemberItem = {
-      id: `m-new-${Date.now()}`,
-      nis: newStudentNIS.trim() || `2024.11.${activeGroup.number}${activeGroup.members.length + 1}`,
-      name: newStudentName.trim(),
-      role: newStudentRole,
-    };
-
-    setGroups((prev) =>
-      prev.map((grp) => (grp.id === activeGroup.id ? { ...grp, members: [...grp.members, newMember] } : grp))
-    );
-
-    setNewStudentName('');
-    setNewStudentNIS('');
-    setIsAddStudentOpen(false);
-    showToast(`Siswa "${newMember.name}" berhasil ditambahkan ke regu.`, 'success');
-  };
-
-  // View 4: Move Student to Another Group
-  const handleMoveStudent = (studentId: string, targetGroupId: string) => {
-    if (!activeGroup) return;
-    const targetStudent = activeGroup.members.find((m) => m.id === studentId);
-    if (!targetStudent) return;
-
+  // Toggle Deliverable Status directly in group detail
+  const handleToggleDeliverableStatus = (groupId: string, deliverableId: string) => {
     setGroups((prev) =>
       prev.map((grp) => {
-        if (grp.id === activeGroup.id) {
-          return { ...grp, members: grp.members.filter((m) => m.id !== studentId) };
-        }
-        if (grp.id === targetGroupId) {
-          return { ...grp, members: [...grp.members, { ...targetStudent, role: 'Anggota' }] };
+        if (grp.id === groupId) {
+          const updatedDel = grp.deliverables.map((del) => {
+            if (del.id === deliverableId) {
+              const nextStatus = del.status === 'approved' ? 'revision' : 'approved';
+              return {
+                ...del,
+                status: nextStatus as any,
+                statusLabel: nextStatus === 'approved' ? 'Disetujui' : 'Perlu Revisi',
+                updatedAt: 'Baru saja diubah',
+              };
+            }
+            return del;
+          });
+          const approvedCount = updatedDel.filter((d) => d.status === 'approved').length;
+          return {
+            ...grp,
+            approvedItemsCount: approvedCount,
+            deliverables: updatedDel,
+          };
         }
         return grp;
       })
     );
-
-    setMoveStudentTarget(null);
-    showToast(`Siswa "${targetStudent.name}" dipindahkan ke Kelompok ${targetGroupId}.`, 'info');
+    showToast('Status berkas berhasil diubah.', 'info');
   };
 
-  // View 4: Submit New External Feedback
-  const handleAddFeedback = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeGroup || !newFeedbackComment.trim()) return;
+  return (
+    <div className="w-full min-h-screen bg-[#EAEAEA] text-slate-900 font-sans antialiased selection:bg-[#E50914] selection:text-white p-4 sm:p-6 lg:p-8 relative overflow-x-hidden">
+      {/* Ambient background glow highlights */}
+      <div className="fixed inset-0 pointer-events-none opacity-40 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(229,9,20,0.06),rgba(255,255,255,0))]" />
+      <div className="fixed bottom-0 right-0 w-[500px] h-[500px] pointer-events-none opacity-25 bg-[radial-gradient(circle,rgba(229,9,20,0.05),transparent_70%)]" />
 
-    const newFb: FeedbackItem = {
-      id: `fb-${Date.now()}`,
-      author: newFeedbackAuthor.trim() || 'Guru Pendamping SMP',
-      role: 'Guru Pamong SMP',
-      rating: newFeedbackRating,
-      date: 'Hari ini',
-      comment: newFeedbackComment.trim(),
-    };
-
-    setGroups((prev) =>
-      prev.map((grp) => (grp.id === activeGroup.id ? { ...grp, feedbackList: [newFb, ...grp.feedbackList] } : grp))
-    );
-
-    setNewFeedbackComment('');
-    setNewFeedbackAuthor('');
-    showToast('Feedback dari pihak SMP berhasil dicatat!', 'success');
-  };
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // RENDER: VIEW 4 (GROUP DETAIL & CUSTOMIZATION WORKSPACE)
-  // ════════════════════════════════════════════════════════════════════════════
-  if (selectedGroupId && activeGroup) {
-    return (
-      <div className="w-full min-h-screen bg-[#F7F5F2] text-[#21201E] font-['Poppins'] antialiased selection:bg-[#E20113] selection:text-white pb-20">
-        {/* Top Header */}
-        <header className="w-full bg-white border-b border-[#E6E2DE] sticky top-0 z-30 shadow-2xs">
-          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  setSelectedGroupId(null);
-                  navigate('/admin');
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] border border-[#21201E] text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Kembali ke Pantau kelompok</span>
-              </button>
-              <span className="text-slate-300">/</span>
-              <span className="text-xs font-bold text-slate-800">
-                Kelompok {activeGroup.number} — {activeGroup.schoolName}
-              </span>
+      {/* Main 2-Column Shell Matching Starline Reference UI */}
+      <div className="max-w-[1560px] mx-auto flex flex-col lg:flex-row gap-6 relative z-10">
+        {/* ══════════════════════════════════════════════════════════════════════════
+            LEFT SIDEBAR: STACK OF INDIVIDUAL FLOATING PILLS (NOT A SOLID BOX!)
+        ══════════════════════════════════════════════════════════════════════════ */}
+        <aside className="w-full lg:w-[230px] shrink-0 flex flex-col gap-2.5">
+          {/* Top Brand Logo & Title */}
+          <div className="flex items-center gap-2.5 px-3 py-2 mb-1">
+            <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-base shadow-sm">
+              ★
             </div>
-
-            {/* Stage Override Selector */}
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-[#6B6560] font-medium hidden sm:inline">
-                Sesuaikan Tahap Kelompok:
-              </span>
-              <div className="relative">
-                <select
-                  value={activeGroup.currentStage}
-                  onChange={(e) => handleStageOverride(activeGroup.id, e.target.value)}
-                  className="h-9 pl-3 pr-8 text-xs font-semibold bg-white border border-[#21201E] rounded-[4px] text-[#21201E] focus:outline-none cursor-pointer appearance-none shadow-2xs"
-                >
-                  {SIX_STAGES.map((stg) => (
-                    <option key={stg} value={stg}>
-                      {stg}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-3 text-[#21201E] pointer-events-none" />
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Workspace Body */}
-        <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-          {/* Group Overview Banner Card */}
-          <div className="bg-white border border-[#E6E2DE] rounded-[4px] p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xs">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-[3px] bg-[#E20113] text-white text-[10px] font-extrabold uppercase tracking-wider">
-                  Kelompok {activeGroup.number}
-                </span>
-                <span className="text-xs font-semibold text-slate-600">Kec. {activeGroup.district}</span>
-                <span className="text-slate-300">•</span>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-[4px] ${
-                    activeGroup.urgentStatus === 'approved'
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      : activeGroup.urgentStatus === 'review'
-                      ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                      : activeGroup.urgentStatus === 'overdue'
-                      ? 'bg-red-50 text-red-800 border border-red-200'
-                      : 'bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  {activeGroup.urgentStatusLabel}
-                </span>
-              </div>
-              <h1 className="text-2xl font-extrabold text-[#21201E] tracking-tight">
-                {activeGroup.schoolName}
-              </h1>
-              <p className="text-xs text-[#6B6560]">
-                Ketua Regu:{' '}
-                <strong className="text-[#21201E]">
-                  {activeGroup.hasLeader ? activeGroup.leaderName : 'Belum Ditentukan'}
-                </strong>{' '}
-                • Total Anggota: <strong className="text-[#21201E]">{activeGroup.members.length} Siswa</strong>
-              </p>
-            </div>
-
-            <div className="flex items-center gap-6 border-t md:border-t-0 md:border-l border-[#E6E2DE] pt-4 md:pt-0 md:pl-6">
-              <div>
-                <span className="text-[11px] text-[#6B6560] block font-medium">Status Item</span>
-                <span className="text-xl font-extrabold text-[#21201E] mt-0.5 block">
-                  {activeGroup.approvedItemsCount} dari {activeGroup.totalItemsCount}
-                </span>
-                <span className="text-[10px] text-emerald-600 font-semibold">Telah Disetujui</span>
-              </div>
-
-              <div>
-                <span className="text-[11px] text-[#6B6560] block font-medium">Tahap Berjalan</span>
-                <span className="text-sm font-bold text-[#E20113] mt-0.5 block">
-                  Tahap 0{activeGroup.currentStageIndex}
-                </span>
-                <span className="text-[10px] text-[#6B6560]">Tenggat 15 Feb</span>
-              </div>
+            <div className="leading-tight">
+              <span className="text-base font-extrabold tracking-tight text-slate-900 block">Skomda</span>
+              <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase block">#Impact2026</span>
             </div>
           </div>
 
-          {/* 3 Interactive Sub-Tabs */}
-          <div className="flex items-center border-b border-[#E6E2DE] gap-6 text-xs font-semibold">
+          {/* Vertical Stack of Floating Pills */}
+          <nav className="flex flex-col gap-2">
+            {/* Dashboard / Fokus Hari Ini */}
             <button
-              onClick={() => setGroupDetailTab('members')}
-              className={`pb-3 transition-colors cursor-pointer flex items-center gap-2 ${
-                groupDetailTab === 'members'
-                  ? 'border-b-2 border-[#21201E] text-[#21201E]'
-                  : 'text-[#6B6560] hover:text-[#21201E]'
+              onClick={() => {
+                setActiveNav('fokus');
+                setSelectedGroupId(null);
+                setActiveUnderlineTab('review');
+              }}
+              className={`rounded-full px-5 py-3 text-xs font-semibold flex items-center justify-between transition-all cursor-pointer shadow-2xs ${
+                activeNav === 'fokus'
+                  ? 'bg-slate-900 text-white shadow-md'
+                  : 'bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200/50 backdrop-blur-xs'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <LayoutGrid className="w-4 h-4" />
+                <span>Dashboard</span>
+              </div>
+              {reviewQueue.length > 0 && (
+                <span className="w-4 h-4 rounded-full bg-[#E50914] text-white text-[9px] font-bold flex items-center justify-center">
+                  {reviewQueue.length}
+                </span>
+              )}
+            </button>
+
+            {/* Kelompok (ACTIVE RED PILL in Skomda Brand) */}
+            <button
+              onClick={() => {
+                setActiveNav('kelompok');
+                setSelectedGroupId(null);
+                setActiveUnderlineTab('semua');
+              }}
+              className={`rounded-full px-5 py-3 text-xs font-bold flex items-center gap-3 transition-all cursor-pointer ${
+                activeNav === 'kelompok'
+                  ? 'bg-[#E50914] text-white shadow-md shadow-red-600/30'
+                  : 'bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200/50 shadow-2xs'
               }`}
             >
               <Users className="w-4 h-4" />
-              <span>1. Anggota & Peran ({activeGroup.members.length})</span>
+              <span>Kelompok</span>
             </button>
 
+            {/* Review Berkas */}
             <button
-              onClick={() => setGroupDetailTab('deliverables')}
-              className={`pb-3 transition-colors cursor-pointer flex items-center gap-2 ${
-                groupDetailTab === 'deliverables'
-                  ? 'border-b-2 border-[#21201E] text-[#21201E]'
-                  : 'text-[#6B6560] hover:text-[#21201E]'
+              onClick={() => {
+                setActiveNav('review');
+                setSelectedGroupId(null);
+                setActiveUnderlineTab('review');
+                if (reviewQueue.length > 0) {
+                  handleOpenReview(reviewQueue[0]);
+                } else {
+                  showToast('Semua antrean review telah selesai disetujui!', 'info');
+                }
+              }}
+              className={`rounded-full px-5 py-3 text-xs font-semibold flex items-center justify-between transition-all cursor-pointer shadow-2xs ${
+                activeNav === 'review'
+                  ? 'bg-slate-900 text-white shadow-md'
+                  : 'bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200/50'
               }`}
             >
-              <FileText className="w-4 h-4" />
-              <span>2. 5 Item Wajib & Berkas ({activeGroup.approvedItemsCount}/5)</span>
+              <div className="flex items-center gap-3">
+                <FileCheck2 className="w-4 h-4" />
+                <span>Review Berkas</span>
+              </div>
+              <span className="text-[10px] bg-red-100 text-[#E50914] font-bold px-1.5 py-0.2 rounded-full">
+                4
+              </span>
             </button>
 
+            {/* Persiapan & Ketua */}
             <button
-              onClick={() => setGroupDetailTab('feedback')}
-              className={`pb-3 transition-colors cursor-pointer flex items-center gap-2 ${
-                groupDetailTab === 'feedback'
-                  ? 'border-b-2 border-[#21201E] text-[#21201E]'
-                  : 'text-[#6B6560] hover:text-[#21201E]'
+              onClick={() => {
+                setActiveNav('persiapan');
+                setIsSetupModalOpen(true);
+              }}
+              className={`rounded-full px-5 py-3 text-xs font-semibold flex items-center justify-between transition-all cursor-pointer shadow-2xs ${
+                activeNav === 'persiapan'
+                  ? 'bg-slate-900 text-white shadow-md'
+                  : 'bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200/50'
               }`}
             >
-              <QrCode className="w-4 h-4" />
-              <span>3. QR Code & Feedback SMP</span>
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Persiapan & Ketua</span>
+              </div>
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+            </button>
+
+            {/* Feedback SMP */}
+            <button
+              onClick={() => {
+                setActiveNav('feedback');
+                setSelectedGroupId('03');
+                setGroupWorkspaceSubTab('feedback');
+              }}
+              className={`rounded-full px-5 py-3 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer shadow-2xs ${
+                activeNav === 'feedback'
+                  ? 'bg-slate-900 text-white shadow-md'
+                  : 'bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200/50'
+              }`}
+            >
+              <Star className="w-4 h-4" />
+              <span>Feedback SMP</span>
+            </button>
+
+            {/* Laporan & Ekspor */}
+            <button
+              onClick={() => {
+                showToast('Menyiapkan rekapitulasi data 24 kelompok untuk diekspor ke Excel...', 'info');
+              }}
+              className="rounded-full px-5 py-3 text-xs font-semibold flex items-center gap-3 bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200/50 shadow-2xs transition-all cursor-pointer"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Laporan & Ekspor</span>
+            </button>
+
+            {/* Pengaturan */}
+            <button
+              onClick={() => {
+                showToast('Halaman pengaturan sistem pembimbing.', 'info');
+              }}
+              className="rounded-full px-5 py-3 text-xs font-semibold flex items-center gap-3 bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200/50 shadow-2xs transition-all cursor-pointer mt-4"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              <span>Pengaturan</span>
+            </button>
+
+            {/* Bantuan */}
+            <button
+              onClick={() => {
+                showToast('Pusat bantuan & panduan SOP Skomda Mengajar.', 'info');
+              }}
+              className="rounded-full px-5 py-3 text-xs font-semibold flex items-center gap-3 bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200/50 shadow-2xs transition-all cursor-pointer"
+            >
+              <HelpCircle className="w-4 h-4" />
+              <span>Bantuan</span>
+            </button>
+          </nav>
+
+          {/* Quick Return to Public Site */}
+          <div className="mt-auto pt-6 px-2">
+            <button
+              onClick={() => navigate('/')}
+              className="text-[11px] font-medium text-slate-400 hover:text-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Kembali ke Beranda Utama</span>
             </button>
           </div>
+        </aside>
 
-          {/* ─── TAB 1: ANGGOTA & PERAN ─── */}
-          {groupDetailTab === 'members' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-[#21201E]">Kustomisasi Peran & Roster Siswa</h3>
-                  <p className="text-xs text-[#6B6560]">
-                    Ubah peran siswa, tetapkan ketua regu baru, atau tambahkan siswa ke dalam kelompok ini.
-                  </p>
-                </div>
+        {/* ══════════════════════════════════════════════════════════════════════════
+            RIGHT COLUMN: MAIN CONTENT AREA
+        ══════════════════════════════════════════════════════════════════════════ */}
+        <main className="flex-1 min-w-0 flex flex-col gap-5">
+          {/* TOP HEADER BAR: GREETING ON LEFT, FLOATING PILL TOOLBAR ON RIGHT */}
+          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
+            {/* Left Greeting */}
+            <div>
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                <span>Welcome, Pak Indra</span>
+                <span className="text-xl">👋</span>
+              </h1>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Pantau progres 24 kelompok & validasi berkas mengajar hari ini.
+              </p>
+            </div>
+
+            {/* Right Floating White Pill Toolbar */}
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-white px-4 py-2 shadow-xs border border-slate-200/70 flex items-center gap-3.5 backdrop-blur-sm">
+                {/* Search Quick Action */}
                 <button
-                  onClick={() => setIsAddStudentOpen(true)}
-                  className="px-3.5 py-1.5 bg-[#21201E] hover:bg-slate-800 text-white rounded-[4px] text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                  onClick={() => {
+                    const el = document.getElementById('tableSearchInput');
+                    el?.focus();
+                  }}
+                  className="text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                  title="Cari"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Tambah Siswa</span>
+                  <Search className="w-4 h-4" />
                 </button>
-              </div>
 
-              <div className="bg-white border border-[#E6E2DE] rounded-[4px] overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-[#E6E2DE] text-[#6B6560] font-medium bg-[#F7F5F2]/40">
-                      <th className="py-2.5 px-4 font-medium w-12">No</th>
-                      <th className="py-2.5 px-4 font-medium">NIS Siswa</th>
-                      <th className="py-2.5 px-4 font-medium">Nama Lengkap Siswa</th>
-                      <th className="py-2.5 px-4 font-medium">Peran / Tugas Regu</th>
-                      <th className="py-2.5 px-4 font-medium text-right">Aksi Manajemen</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E6E2DE]">
-                    {activeGroup.members.map((mbr, idx) => (
-                      <tr key={mbr.id} className="hover:bg-[#F7F5F2]/40 transition-colors">
-                        <td className="py-3 px-4 text-[#6B6560] font-mono">{idx + 1}</td>
-                        <td className="py-3 px-4 font-mono text-[#6B6560]">{mbr.nis}</td>
-                        <td className="py-3 px-4 font-bold text-[#21201E]">
-                          {mbr.name}
-                          {mbr.role === 'Ketua kelompok' && (
-                            <span className="ml-2 px-1.5 py-0.5 rounded-[2px] bg-[#E20113] text-white text-[9px] font-extrabold uppercase">
-                              Ketua
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <select
-                            value={mbr.role}
-                            onChange={(e) => handleChangeRole(activeGroup.id, mbr.id, e.target.value)}
-                            className="h-8 px-2.5 text-xs bg-white border border-[#E6E2DE] rounded-[4px] text-[#21201E] focus:outline-none focus:border-[#21201E] cursor-pointer"
-                          >
-                            <option value="Ketua kelompok">Ketua kelompok</option>
-                            <option value="Notulen & koordinasi">Notulen & koordinasi</option>
-                            <option value="Desain grafis">Desain grafis</option>
-                            <option value="Koordinator materi">Koordinator materi</option>
-                            <option value="Dokumentasi">Dokumentasi</option>
-                            <option value="Pengajar lab">Pengajar lab</option>
-                            <option value="Logistik">Logistik</option>
-                            <option value="Anggota">Anggota</option>
-                          </select>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {mbr.role !== 'Ketua kelompok' && (
-                              <button
-                                onClick={() => handleChangeRole(activeGroup.id, mbr.id, 'Ketua kelompok')}
-                                className="px-2 py-1 text-[11px] font-semibold text-[#E20113] border border-red-200 hover:bg-red-50 rounded-[4px] cursor-pointer"
-                              >
-                                Jadikan Ketua
-                              </button>
-                            )}
-                            <button
-                              onClick={() => setMoveStudentTarget(mbr.id)}
-                              className="px-2 py-1 text-[11px] font-semibold text-[#6B6560] border border-[#E6E2DE] hover:bg-slate-50 rounded-[4px] cursor-pointer"
-                            >
-                              Pindah Kelompok
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+                {/* Dark / Light Toggle */}
+                <button
+                  onClick={() => {
+                    showToast('Mode tema terang aktif.', 'info');
+                  }}
+                  className="text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                  title="Mode Tampilan"
+                >
+                  <Moon className="w-4 h-4" />
+                </button>
 
-          {/* ─── TAB 2: 5 ITEM WAJIB & BERKAS ─── */}
-          {groupDetailTab === 'deliverables' && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-bold text-[#21201E]">Daftar 5 Artefak Wajib Kurikulum</h3>
-                <p className="text-xs text-[#6B6560]">
-                  Setiap kelompok wajib menyelesaikan kelima berkas ini untuk verifikasi kelulusan program Skomda Mengajar.
-                </p>
-              </div>
-
-              <div className="bg-white border border-[#E6E2DE] rounded-[4px] overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-[#E6E2DE] text-[#6B6560] font-medium bg-[#F7F5F2]/40">
-                      <th className="py-2.5 px-4 font-medium">Artefak Wajib</th>
-                      <th className="py-2.5 px-4 font-medium">Nama Berkas & Ukuran</th>
-                      <th className="py-2.5 px-4 font-medium">Terakhir Diperbarui</th>
-                      <th className="py-2.5 px-4 font-medium">Status Verifikasi</th>
-                      <th className="py-2.5 px-4 font-medium text-right">Tindakan Pembimbing</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E6E2DE]">
-                    {activeGroup.deliverables.map((del) => (
-                      <tr key={del.id} className="hover:bg-[#F7F5F2]/40 transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-[#21201E]">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-slate-400" />
-                            <span>{del.title}</span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-[11px] text-[#6B6560]">
-                          <div>{del.fileName}</div>
-                          <span className="text-[10px] text-slate-400">{del.fileSize}</span>
-                        </td>
-                        <td className="py-3.5 px-4 text-[#6B6560]">{del.updatedAt}</td>
-                        <td className="py-3.5 px-4">
-                          <span
-                            className={`px-2 py-0.5 rounded-[4px] text-[11px] font-semibold ${
-                              del.status === 'approved'
-                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                                : del.status === 'review'
-                                ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                                : del.status === 'revision'
-                                ? 'bg-red-50 text-red-800 border border-red-200'
-                                : 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            {del.statusLabel}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {del.status !== 'pending' && (
-                              <button
-                                onClick={() => {
-                                  setReviewItem({
-                                    groupId: activeGroup.id,
-                                    groupNumber: `Kelompok ${activeGroup.number}`,
-                                    schoolName: activeGroup.schoolName,
-                                    itemName: del.title,
-                                    fileName: del.fileName,
-                                    fileSize: del.fileSize,
-                                    version: del.version,
-                                    deliverableId: del.id,
-                                  });
-                                  setIsReviewOpen(true);
-                                }}
-                                className="px-3 py-1 rounded-[4px] border border-[#21201E] text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer inline-flex items-center gap-1"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                <span>Lihat / Review</span>
-                              </button>
-                            )}
-
-                            {del.status === 'approved' ? (
-                              <button
-                                onClick={() => {
-                                  setGroups((prev) =>
-                                    prev.map((g) =>
-                                      g.id === activeGroup.id
-                                        ? {
-                                            ...g,
-                                            deliverables: g.deliverables.map((d) =>
-                                              d.id === del.id ? { ...d, status: 'revision', statusLabel: 'Perlu revisi' } : d
-                                            ),
-                                          }
-                                        : g
-                                    )
-                                  );
-                                  showToast(`Status "${del.title}" diubah menjadi Perlu Revisi.`, 'info');
-                                }}
-                                className="px-2 py-1 text-[11px] text-[#6B6560] hover:text-[#E20113] cursor-pointer"
-                              >
-                                Batal Disetujui
-                              </button>
-                            ) : del.status !== 'pending' ? (
-                              <button
-                                onClick={() => {
-                                  setGroups((prev) =>
-                                    prev.map((g) =>
-                                      g.id === activeGroup.id
-                                        ? {
-                                            ...g,
-                                            deliverables: g.deliverables.map((d) =>
-                                              d.id === del.id ? { ...d, status: 'approved', statusLabel: 'Disetujui' } : d
-                                            ),
-                                          }
-                                        : g
-                                    )
-                                  );
-                                  showToast(`Status "${del.title}" disetujui langsung.`, 'success');
-                                }}
-                                className="px-2 py-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 rounded-[4px] cursor-pointer"
-                              >
-                                Setujui Langsung
-                              </button>
-                            ) : null}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ─── TAB 3: QR CODE & FEEDBACK SMP ─── */}
-          {groupDetailTab === 'feedback' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left Card: QR Code Evaluasi */}
-              <div className="lg:col-span-5 bg-white border border-[#E6E2DE] rounded-[4px] p-6 space-y-4">
-                <div className="flex items-center gap-2">
-                  <QrCode className="w-5 h-5 text-[#E20113]" />
-                  <h4 className="text-sm font-bold text-[#21201E]">QR Code Evaluasi SMP</h4>
-                </div>
-                <p className="text-xs text-[#6B6560] leading-relaxed">
-                  Guru Pamong & siswa di {activeGroup.schoolName} dapat memindai QR code ini tanpa login untuk memberikan penilaian langsung.
-                </p>
-
-                {/* Styled SVG QR Code */}
-                <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-center">
-                  <div className="w-44 h-44 bg-white p-3 rounded-lg border border-slate-300 shadow-xs flex items-center justify-center relative">
-                    <svg viewBox="0 0 100 100" className="w-full h-full text-[#21201E]">
-                      {/* Corner 1 */}
-                      <rect x="5" y="5" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="4" />
-                      <rect x="11" y="11" width="14" height="14" fill="currentColor" />
-                      {/* Corner 2 */}
-                      <rect x="69" y="5" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="4" />
-                      <rect x="75" y="11" width="14" height="14" fill="currentColor" />
-                      {/* Corner 3 */}
-                      <rect x="5" y="69" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="4" />
-                      <rect x="11" y="75" width="14" height="14" fill="currentColor" />
-                      {/* Random Matrix Pattern */}
-                      <rect x="36" y="8" width="6" height="6" fill="currentColor" />
-                      <rect x="46" y="14" width="8" height="6" fill="currentColor" />
-                      <rect x="58" y="8" width="6" height="8" fill="currentColor" />
-                      <rect x="36" y="24" width="10" height="6" fill="currentColor" />
-                      <rect x="50" y="24" width="14" height="6" fill="currentColor" />
-                      <rect x="8" y="36" width="6" height="10" fill="currentColor" />
-                      <rect x="18" y="44" width="8" height="6" fill="currentColor" />
-                      <rect x="8" y="56" width="12" height="6" fill="currentColor" />
-                      <rect x="36" y="36" width="28" height="28" fill="#E20113" rx="4" />
-                      <text x="50" y="54" fill="white" fontSize="9" fontWeight="bold" textAnchor="middle">
-                        SMK
-                      </text>
-                      <rect x="68" y="36" width="8" height="14" fill="currentColor" />
-                      <rect x="80" y="42" width="12" height="8" fill="currentColor" />
-                      <rect x="72" y="54" width="16" height="6" fill="currentColor" />
-                      <rect x="36" y="70" width="12" height="6" fill="currentColor" />
-                      <rect x="52" y="76" width="8" height="14" fill="currentColor" />
-                      <rect x="64" y="70" width="10" height="8" fill="currentColor" />
-                      <rect x="78" y="74" width="14" height="16" fill="currentColor" />
-                    </svg>
-                  </div>
-                  <span className="text-[10px] font-mono font-bold text-slate-500 mt-3">
-                    ID: SKD-2026-KEL{activeGroup.number}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 pt-2">
+                {/* Notifications Bell with Counter Badge */}
+                <div className="relative">
                   <button
-                    onClick={() => {
-                      navigator.clipboard?.writeText(`https://skomda.id/eval/kelompok-${activeGroup.number}`);
-                      showToast('Tautan feedback berhasil disalin ke clipboard!', 'success');
-                    }}
-                    className="flex-1 py-2 bg-white border border-[#21201E] rounded-[4px] text-xs font-semibold hover:bg-slate-50 transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                    onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                    className="text-slate-500 hover:text-slate-900 transition-colors cursor-pointer relative"
+                    title="Notifikasi"
                   >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Salin Link Feedback</span>
+                    <Bell className="w-4 h-4" />
+                    {reviewQueue.length > 0 && (
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#E50914] text-white text-[8px] font-bold flex items-center justify-center">
+                        {reviewQueue.length}
+                      </span>
+                    )}
                   </button>
-                  <button
-                    onClick={() => showToast('QR Code siap cetak diunduh (PNG)', 'success')}
-                    className="py-2 px-3 border border-slate-300 rounded-[4px] hover:bg-slate-50 transition-colors cursor-pointer"
-                    title="Unduh file QR Code"
-                  >
-                    <Download className="w-3.5 h-3.5 text-slate-700" />
-                  </button>
-                </div>
-              </div>
 
-              {/* Right Card: Live Feedback Roster & Summary */}
-              <div className="lg:col-span-7 space-y-4">
-                <div className="bg-white border border-[#E6E2DE] rounded-[4px] p-6 space-y-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E6E2DE]">
-                    <div>
-                      <h4 className="text-sm font-bold text-[#21201E]">Ringkasan Evaluasi Mitra</h4>
-                      <p className="text-xs text-[#6B6560]">Tercatat secara langsung dari form SMP</p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-[#F2B33D]">
-                          <Star className="w-4 h-4 fill-current" />
-                          <span className="text-lg font-extrabold text-[#21201E]">4.8</span>
-                          <span className="text-xs text-slate-400">/ 5.0</span>
-                        </div>
-                        <span className="text-[10px] text-[#6B6560]">Dari 18 Responden</span>
+                  {/* Notification Popover */}
+                  {isNotificationOpen && (
+                    <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 z-50">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <span className="text-xs font-bold text-slate-900">Notifikasi Masuk (4)</span>
+                        <button
+                          onClick={() => setIsNotificationOpen(false)}
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="mt-2 space-y-2 max-h-60 overflow-y-auto">
+                        {reviewQueue.map((item) => (
+                          <div
+                            key={item.id}
+                            onClick={() => {
+                              setIsNotificationOpen(false);
+                              handleOpenReview(item);
+                            }}
+                            className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer text-left"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-900">{item.groupNumber}</span>
+                              <span className="text-[10px] text-amber-600 font-semibold">Review</span>
+                            </div>
+                            <p className="text-[11px] text-slate-600 truncate mt-0.5">{item.itemName}</p>
+                            <span className="text-[10px] text-slate-400 block mt-1">{item.ageText}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
+                  )}
+                </div>
 
-                  {/* Feedback Comments Stream */}
-                  <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
-                    {activeGroup.feedbackList.length === 0 ? (
-                      <p className="text-xs text-[#6B6560] py-4 text-center italic">
-                        Belum ada tanggapan masuk untuk kelompok ini. Sebarkan tautan QR di atas.
-                      </p>
-                    ) : (
-                      activeGroup.feedbackList.map((fb) => (
-                        <div key={fb.id} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-[#21201E]">{fb.author}</span>
-                            <div className="flex items-center text-[#F2B33D] gap-0.5">
-                              {Array.from({ length: fb.rating }).map((_, i) => (
-                                <Star key={i} className="w-3 h-3 fill-current" />
-                              ))}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                            <span>{fb.role}</span>
-                            <span>•</span>
-                            <span>{fb.date}</span>
-                          </div>
-                          <p className="text-xs text-slate-700 leading-relaxed italic">"{fb.comment}"</p>
+                {/* Deadline Calendar */}
+                <div className="relative">
+                  <button
+                    onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                    className="text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                    title="Jadwal Tenggat"
+                  >
+                    <Calendar className="w-4 h-4" />
+                  </button>
+
+                  {/* Calendar Popover */}
+                  {isCalendarOpen && (
+                    <div className="absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 z-50">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <span className="text-xs font-bold text-slate-900">Jadwal Skomda Mengajar</span>
+                        <button
+                          onClick={() => setIsCalendarOpen(false)}
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="mt-2.5 space-y-2 text-xs">
+                        <div className="p-2 rounded-lg bg-red-50 border border-red-200 text-red-900">
+                          <span className="font-bold block">Tahap 3: Buat Desain</span>
+                          <span className="text-[10px] text-red-700">Tenggat: 15 Februari 2026</span>
                         </div>
-                      ))
+                        <div className="p-2 rounded-lg bg-slate-50 text-slate-700">
+                          <span className="font-semibold block">Tahap 4: Pelaksanaan di SMP</span>
+                          <span className="text-[10px] text-slate-400">18 - 25 Februari 2026</span>
+                        </div>
+                        <div className="p-2 rounded-lg bg-slate-50 text-slate-700">
+                          <span className="font-semibold block">Tahap 5: Kumpulkan Laporan</span>
+                          <span className="text-[10px] text-slate-400">28 Februari 2026</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Avatar with Online Indicator */}
+                <div className="relative pl-1 border-l border-slate-200">
+                  <div className="w-7 h-7 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center">
+                    PI
+                  </div>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white absolute bottom-0 right-0" />
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* SUB-NAVIGATION UNDERLINE TABS (MATCHING REFERENCE UI) */}
+          <nav className="flex items-center gap-6 border-b border-slate-300/70 pb-1 text-xs font-semibold text-slate-500 overflow-x-auto scrollbar-none">
+            <button
+              onClick={() => {
+                setActiveUnderlineTab('semua');
+                setSelectedGroupId(null);
+                setCurrentPage(1);
+              }}
+              className={`pb-2.5 transition-all cursor-pointer whitespace-nowrap ${
+                activeUnderlineTab === 'semua' && !selectedGroupId
+                  ? 'border-b-2 border-slate-900 text-slate-900 font-bold -mb-[5px]'
+                  : 'hover:text-slate-900'
+              }`}
+            >
+              Semua Kelompok ({groups.length})
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveUnderlineTab('review');
+                setSelectedGroupId(null);
+                setCurrentPage(1);
+              }}
+              className={`pb-2.5 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                activeUnderlineTab === 'review' && !selectedGroupId
+                  ? 'border-b-2 border-[#E50914] text-[#E50914] font-bold -mb-[5px]'
+                  : 'hover:text-slate-900'
+              }`}
+            >
+              <span>Menunggu Review</span>
+              <span className="w-4 h-4 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold flex items-center justify-center">
+                {reviewQueue.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveUnderlineTab('terlambat');
+                setSelectedGroupId(null);
+                setCurrentPage(1);
+              }}
+              className={`pb-2.5 transition-all cursor-pointer whitespace-nowrap ${
+                activeUnderlineTab === 'terlambat' && !selectedGroupId
+                  ? 'border-b-2 border-red-600 text-red-600 font-bold -mb-[5px]'
+                  : 'hover:text-slate-900'
+              }`}
+            >
+              Terlambat / Revisi (4)
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveUnderlineTab('unassigned');
+                setSelectedGroupId(null);
+                setCurrentPage(1);
+              }}
+              className={`pb-2.5 transition-all cursor-pointer whitespace-nowrap ${
+                activeUnderlineTab === 'unassigned' && !selectedGroupId
+                  ? 'border-b-2 border-slate-900 text-slate-900 font-bold -mb-[5px]'
+                  : 'hover:text-slate-900'
+              }`}
+            >
+              Belum Ada Ketua (2)
+            </button>
+          </nav>
+
+          {/* ══════════════════════════════════════════════════════════════════════════
+              VIEW CONTENT: EITHER DATA TABLE OR DETAILED GROUP WORKSPACE
+          ══════════════════════════════════════════════════════════════════════════ */}
+          {!selectedGroupId ? (
+            <>
+              {/* ACTION & SEARCH PILL BAR (FLOATING BUTTONS ABOVE TABLE) */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                {/* Left: Add New Order + (In our case: + Tandai Ketua / Impor) */}
+                <button
+                  onClick={() => setIsSetupModalOpen(true)}
+                  className="rounded-full bg-white hover:bg-slate-50 border border-slate-200/80 px-4 py-2 text-xs font-semibold text-slate-800 shadow-xs flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.01] w-fit"
+                >
+                  <span>+ Tandai Ketua / Impor</span>
+                </button>
+
+                {/* Right: Search Pill & Status Dropdown */}
+                <div className="flex items-center gap-2.5">
+                  {/* Search Pill Input */}
+                  <div className="rounded-full bg-white border border-slate-200/80 px-3.5 py-1.5 text-xs shadow-xs flex items-center gap-2 w-full sm:w-64 focus-within:ring-2 focus-within:ring-red-500/20">
+                    <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <input
+                      id="tableSearchInput"
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      placeholder="Cari kelompok, SMP, ketua..."
+                      className="w-full bg-transparent border-none outline-none text-slate-800 placeholder:text-slate-400 text-xs"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                     )}
                   </div>
 
-                  {/* Form to simulate incoming feedback */}
-                  <form onSubmit={handleAddFeedback} className="pt-4 border-t border-[#E6E2DE] space-y-3">
-                    <span className="text-xs font-bold text-[#21201E] block">
-                      Catat Evaluasi Luring (Input Pembimbing):
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                      <input
-                        type="text"
-                        value={newFeedbackAuthor}
-                        onChange={(e) => setNewFeedbackAuthor(e.target.value)}
-                        placeholder="Nama Guru Pamong / Penilai"
-                        className="sm:col-span-8 h-8 px-3 text-xs bg-white border border-[#E6E2DE] rounded-[4px] text-[#21201E] focus:outline-none"
-                      />
-                      <select
-                        value={newFeedbackRating}
-                        onChange={(e) => setNewFeedbackRating(Number(e.target.value))}
-                        className="sm:col-span-4 h-8 px-2 text-xs bg-white border border-[#E6E2DE] rounded-[4px] text-[#21201E] focus:outline-none"
-                      >
-                        <option value={5}>5 Bintang (Sempurna)</option>
-                        <option value={4}>4 Bintang (Sangat Baik)</option>
-                        <option value={3}>3 Bintang (Cukup)</option>
-                      </select>
-                    </div>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newFeedbackComment}
-                        onChange={(e) => setNewFeedbackComment(e.target.value)}
-                        placeholder="Ketik ringkasan evaluasi lisan..."
-                        className="flex-1 h-8 px-3 text-xs bg-white border border-[#E6E2DE] rounded-[4px] text-[#21201E] focus:outline-none"
-                      />
-                      <button
-                        type="submit"
-                        className="px-3 h-8 bg-[#21201E] text-white rounded-[4px] text-xs font-semibold cursor-pointer inline-flex items-center gap-1"
-                      >
-                        <Send className="w-3 h-3" />
-                        <span>Kirim</span>
-                      </button>
-                    </div>
-                  </form>
+                  {/* Status Dropdown Pill */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+                      className="rounded-full bg-white border border-slate-200/80 px-4 py-2 text-xs font-medium text-slate-700 shadow-xs flex items-center gap-2 cursor-pointer hover:bg-slate-50"
+                    >
+                      <span>
+                        {selectedStatusFilter === 'all'
+                          ? 'Status ∨'
+                          : selectedStatusFilter === 'review'
+                          ? 'Menunggu Review'
+                          : selectedStatusFilter === 'overdue'
+                          ? 'Terlambat / Revisi'
+                          : selectedStatusFilter === 'safe'
+                          ? 'Disetujui'
+                          : 'Belum Ada Ketua'}
+                      </span>
+                    </button>
+
+                    {isStatusDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-lg border border-slate-200 py-1.5 z-40">
+                        {[
+                          { id: 'all', label: 'Semua Status' },
+                          { id: 'review', label: 'Menunggu Review' },
+                          { id: 'overdue', label: 'Terlambat / Perlu Revisi' },
+                          { id: 'safe', label: 'Disetujui' },
+                          { id: 'unassigned', label: 'Belum Ada Ketua' },
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            onClick={() => {
+                              setSelectedStatusFilter(opt.id);
+                              setIsStatusDropdownOpen(false);
+                              setCurrentPage(1);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-xs transition-colors ${
+                              selectedStatusFilter === opt.id
+                                ? 'bg-red-50 text-[#E50914] font-bold'
+                                : 'text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+
+              {/* ══════════════════════════════════════════════════════════════════════════
+                  MAIN DATA TABLE CARD: LARGE ROUNDED CONTAINER (rounded-[28px])
+              ══════════════════════════════════════════════════════════════════════════ */}
+              <div className="rounded-[28px] bg-white p-5 sm:p-6 shadow-sm border border-slate-200/60 overflow-hidden">
+                {/* Table Header Pill Bar */}
+                <div className="rounded-full bg-slate-100/90 text-[11px] font-semibold text-slate-500 py-3 px-6 grid grid-cols-12 items-center tracking-wider mb-2">
+                  <div className="col-span-2">ID KELOMPOK</div>
+                  <div className="col-span-2">SMP TUJUAN</div>
+                  <div className="col-span-2">KETUA KELOMPOK</div>
+                  <div className="col-span-2">TAHAP & PROGRES</div>
+                  <div className="col-span-2">KONTAK KETUA</div>
+                  <div className="col-span-1 text-center sm:text-left">STATUS</div>
+                  <div className="col-span-1 text-right">AKSI</div>
+                </div>
+
+                {/* Table Rows Body */}
+                <div className="divide-y divide-slate-100">
+                  {paginatedGroups.length === 0 ? (
+                    <div className="py-12 text-center">
+                      <p className="text-sm font-semibold text-slate-700">Tidak ada kelompok yang cocok</p>
+                      <p className="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian atau filter status.</p>
+                      <button
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSelectedStatusFilter('all');
+                          setActiveUnderlineTab('semua');
+                        }}
+                        className="mt-3 px-4 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 cursor-pointer"
+                      >
+                        Reset Filter
+                      </button>
+                    </div>
+                  ) : (
+                    paginatedGroups.map((grp) => {
+                      const isReview = grp.statusKey === 'review';
+                      const isOverdue = grp.statusKey === 'overdue';
+                      const isUnassigned = !grp.hasLeader;
+
+                      return (
+                        <div
+                          key={grp.id}
+                          onClick={() => setSelectedGroupId(grp.id)}
+                          className="py-3.5 px-6 grid grid-cols-12 items-center rounded-2xl hover:bg-slate-50/80 transition-all cursor-pointer group text-xs"
+                        >
+                          {/* Col 1: ID Kelompok */}
+                          <div className="col-span-2 font-bold text-slate-900 flex items-center gap-2">
+                            <span>KEL-{grp.number}</span>
+                          </div>
+
+                          {/* Col 2: SMP Tujuan */}
+                          <div className="col-span-2 pr-2">
+                            <span className="font-semibold text-slate-900 block truncate">{grp.schoolName}</span>
+                            <span className="text-[10px] text-slate-400 block">{grp.district}</span>
+                          </div>
+
+                          {/* Col 3: Ketua Kelompok */}
+                          <div className="col-span-2 pr-2">
+                            {grp.hasLeader ? (
+                              <span className="font-medium text-slate-800 block truncate">{grp.leaderName}</span>
+                            ) : (
+                              <span className="font-semibold text-amber-600 block text-[11px]">
+                                — Belum ditentukan
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Col 4: Tahap & Progres */}
+                          <div className="col-span-2 pr-2">
+                            <span className="text-[11px] font-medium text-slate-700 block truncate">
+                              {grp.currentStage}
+                            </span>
+                            {/* 5-bar progress dots */}
+                            <div className="flex items-center gap-1 mt-1">
+                              {[1, 2, 3, 4, 5].map((step) => (
+                                <div
+                                  key={step}
+                                  className={`h-1.5 rounded-full transition-all ${
+                                    step <= grp.approvedItemsCount
+                                      ? 'w-3.5 bg-emerald-500'
+                                      : step === grp.currentStageIndex
+                                      ? 'w-3.5 bg-slate-400'
+                                      : 'w-2 bg-slate-200'
+                                  }`}
+                                  title={`Langkah ${step}`}
+                                />
+                              ))}
+                              <span className="text-[10px] text-slate-400 ml-1">
+                                {grp.approvedItemsCount}/5
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Col 5: Kontak Ketua */}
+                          <div className="col-span-2 font-mono text-[11px] text-slate-600">
+                            {grp.leaderPhone}
+                          </div>
+
+                          {/* Col 6: Status (Clean borderless colored text matching reference!) */}
+                          <div className="col-span-1">
+                            {isReview ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenReviewFromGroup(grp);
+                                }}
+                                className="font-semibold text-amber-600 hover:text-amber-700 hover:underline cursor-pointer text-left block"
+                                title="Klik untuk membuka slide review"
+                              >
+                                Menunggu Review
+                              </button>
+                            ) : isOverdue ? (
+                              <span className="font-semibold text-[#E50914] block">
+                                {grp.statusLabel}
+                              </span>
+                            ) : isUnassigned ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setIsSetupModalOpen(true);
+                                }}
+                                className="font-semibold text-slate-500 hover:text-slate-800 hover:underline cursor-pointer block text-left"
+                              >
+                                Belum Ada Ketua
+                              </button>
+                            ) : (
+                              <span className="font-semibold text-emerald-600 block">
+                                Disetujui
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Col 7: Aksi (...) */}
+                          <div className="col-span-1 text-right">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedGroupId(grp.id);
+                              }}
+                              className="w-7 h-7 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 inline-flex items-center justify-center transition-colors cursor-pointer"
+                              title="Kelola Kelompok"
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* ══════════════════════════════════════════════════════════════════════════
+                  BOTTOM FLOATING PAGINATION PILL BAR (MATCHING REFERENCE UI)
+              ══════════════════════════════════════════════════════════════════════════ */}
+              <div className="flex items-center justify-center pt-2 pb-6">
+                <div className="rounded-full bg-white/90 backdrop-blur-md px-4 py-2 shadow-xs border border-slate-200/80 flex items-center gap-2 text-xs font-medium text-slate-600">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="w-7 h-7 rounded-full hover:bg-slate-100 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    ‹
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
+                        currentPage === pageNum
+                          ? 'bg-[#E50914] text-white shadow-xs'
+                          : 'hover:bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="w-7 h-7 rounded-full hover:bg-slate-100 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            /* ══════════════════════════════════════════════════════════════════════════
+                DETAILED GROUP WORKSPACE VIEW (WHEN A ROW IS CLICKED)
+            ══════════════════════════════════════════════════════════════════════════ */
+            activeDetailGroup && (
+              <div className="rounded-[28px] bg-white p-6 sm:p-8 shadow-sm border border-slate-200/70 space-y-6">
+                {/* Header with Back Button */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setSelectedGroupId(null)}
+                      className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                      title="Kembali"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </button>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-[#E50914]">
+                          Kelompok {activeDetailGroup.number}
+                        </span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-xs text-slate-500 font-medium">
+                          {activeDetailGroup.district}
+                        </span>
+                      </div>
+                      <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                        {activeDetailGroup.schoolName}
+                      </h2>
+                    </div>
+                  </div>
+
+                  {/* Stage Override Selector */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 font-medium hidden sm:inline">Tahap Aktif:</span>
+                    <select
+                      value={activeDetailGroup.currentStage}
+                      onChange={(e) => handleOverrideStage(activeDetailGroup.id, e.target.value)}
+                      className="rounded-full bg-slate-100 border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-800 outline-none cursor-pointer"
+                    >
+                      {SIX_STAGES.map((stg) => (
+                        <option key={stg} value={stg}>
+                          {stg}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Group Workspace Sub-tabs */}
+                <div className="flex items-center gap-2 p-1 bg-slate-100/80 rounded-full w-fit">
+                  <button
+                    onClick={() => setGroupWorkspaceSubTab('members')}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                      groupWorkspaceSubTab === 'members'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    Anggota & Peran ({activeDetailGroup.members.length})
+                  </button>
+
+                  <button
+                    onClick={() => setGroupWorkspaceSubTab('deliverables')}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                      groupWorkspaceSubTab === 'deliverables'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    5 Berkas Wajib ({activeDetailGroup.approvedItemsCount}/5)
+                  </button>
+
+                  <button
+                    onClick={() => setGroupWorkspaceSubTab('feedback')}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                      groupWorkspaceSubTab === 'feedback'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    QR Code & Feedback SMP
+                  </button>
+                </div>
+
+                {/* Sub-tab 1: Anggota & Peran */}
+                {groupWorkspaceSubTab === 'members' && (
+                  <div className="space-y-4">
+                    <p className="text-xs text-slate-500">
+                      Anda dapat mengubah peran masing-masing siswa jika diperlukan penyesuaian tim di lapangan.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {activeDetailGroup.members.map((mbr) => (
+                        <div
+                          key={mbr.id}
+                          className="p-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/60 flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center">
+                              {mbr.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="text-xs font-bold text-slate-900 block">{mbr.name}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">NIS {mbr.nis}</span>
+                            </div>
+                          </div>
+
+                          <select
+                            value={mbr.role}
+                            onChange={(e) =>
+                              handleChangeMemberRole(activeDetailGroup.id, mbr.id, e.target.value)
+                            }
+                            className={`text-xs font-bold px-2.5 py-1 rounded-full outline-none cursor-pointer border ${
+                              mbr.role === 'Ketua'
+                                ? 'bg-red-50 text-[#E50914] border-red-200'
+                                : 'bg-white text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            <option value="Ketua">Ketua</option>
+                            <option value="Notulen">Notulen</option>
+                            <option value="Desain">Desain</option>
+                            <option value="Materi">Materi</option>
+                            <option value="Dokumentasi">Dokumentasi</option>
+                            <option value="Logistik">Logistik</option>
+                            <option value="Pengajar lab">Pengajar lab</option>
+                            <option value="Anggota">Anggota</option>
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sub-tab 2: 5 Berkas Wajib */}
+                {groupWorkspaceSubTab === 'deliverables' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-slate-500">
+                      Daftar 5 berkas wajib program Skomda Mengajar 2026. Klik berkas untuk validasi atau unduh.
+                    </p>
+                    <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
+                      {activeDetailGroup.deliverables.length === 0 ? (
+                        <div className="p-8 text-center text-xs text-slate-400">
+                          Belum ada berkas yang diunggah oleh kelompok ini.
+                        </div>
+                      ) : (
+                        activeDetailGroup.deliverables.map((del) => (
+                          <div
+                            key={del.id}
+                            className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+                                <FileText className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <span className="text-xs font-bold text-slate-900 block">{del.title}</span>
+                                <span className="text-[11px] text-slate-400">
+                                  {del.fileName} • {del.fileSize} • {del.updatedAt}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+                                  del.status === 'approved'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : del.status === 'review'
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                    : del.status === 'revision'
+                                    ? 'bg-red-50 text-red-700 border border-red-200'
+                                    : 'bg-slate-100 text-slate-600'
+                                }`}
+                              >
+                                {del.statusLabel}
+                              </span>
+
+                              <button
+                                onClick={() => handleToggleDeliverableStatus(activeDetailGroup.id, del.id)}
+                                className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                              >
+                                {del.status === 'approved' ? 'Ubah ke Revisi' : 'Setujui Langsung'}
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sub-tab 3: QR Code & Feedback SMP */}
+                {groupWorkspaceSubTab === 'feedback' && (
+                  <div className="space-y-6">
+                    {/* QR Code Card */}
+                    <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white flex flex-col sm:flex-row items-center gap-6">
+                      <div className="w-28 h-28 bg-white rounded-xl p-2 flex items-center justify-center shrink-0">
+                        <QrCode className="w-24 h-24 text-slate-900" />
+                      </div>
+                      <div className="space-y-2 text-center sm:text-left">
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-red-600 text-white px-2 py-0.5 rounded-full inline-block">
+                          QR Penilaian SMP
+                        </span>
+                        <h3 className="text-base font-bold">
+                          Scan Formulir Feedback {activeDetailGroup.schoolName}
+                        </h3>
+                        <p className="text-xs text-slate-300 max-w-lg">
+                          Guru Pamong dan siswa SMP dapat memindai QR code ini di hari pelaksanaan untuk memberikan evaluasi performa mengajar siswa SMK Telkom.
+                        </p>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard?.writeText(
+                              `https://skomda-mengajar.sch.id/feedback/kelompok-${activeDetailGroup.number}`
+                            );
+                            showToast('Tautan feedback berhasil disalin ke clipboard!', 'success');
+                          }}
+                          className="px-4 py-1.5 rounded-full bg-white text-slate-900 text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Salin Tautan Feedback</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Feedback List */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                        Ulasan Diterima ({activeDetailGroup.feedbackList.length})
+                      </h4>
+                      {activeDetailGroup.feedbackList.length === 0 ? (
+                        <div className="p-6 rounded-2xl border border-slate-200 text-center text-xs text-slate-400">
+                          Belum ada feedback dari sekolah mitra untuk kelompok ini.
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {activeDetailGroup.feedbackList.map((fb) => (
+                            <div
+                              key={fb.id}
+                              className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-2"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-slate-900">{fb.author}</span>
+                                <span className="text-[10px] bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded-full">
+                                  {fb.role}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-600 italic">"{fb.comment}"</p>
+                              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                                <div className="flex items-center gap-1 text-amber-500">
+                                  {Array.from({ length: fb.rating }).map((_, i) => (
+                                    <Star key={i} className="w-3 h-3 fill-amber-500" />
+                                  ))}
+                                </div>
+                                <span>{fb.date}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
           )}
         </main>
+      </div>
 
-        {/* Modal: Tambah Siswa Baru */}
-        {isAddStudentOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div className="bg-white max-w-md w-full rounded-[4px] border border-[#E6E2DE] p-6 space-y-4 shadow-xl">
-              <div className="flex items-center justify-between pb-2 border-b border-[#E6E2DE]">
-                <h4 className="text-sm font-bold text-[#21201E]">Tambah Siswa ke Kelompok {activeGroup.number}</h4>
-                <button onClick={() => setIsAddStudentOpen(false)} className="cursor-pointer text-slate-400 hover:text-slate-700">
+      {/* ══════════════════════════════════════════════════════════════════════════
+          SLIDE-OVER REVIEW DRAWER (SHEET)
+      ══════════════════════════════════════════════════════════════════════════ */}
+      {isDrawerOpen && activeReviewItem && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div
+            className="fixed inset-0 bg-slate-900/30 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsDrawerOpen(false)}
+          />
+          <div className="relative w-full max-w-lg bg-white h-full shadow-2xl p-6 flex flex-col justify-between overflow-y-auto z-10 animate-in slide-in-from-right duration-200">
+            <div className="space-y-6">
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#E50914] block">
+                    Review Berkas Siswa
+                  </span>
+                  <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                    {activeReviewItem.groupNumber}
+                  </h3>
+                  <span className="text-xs text-slate-400 font-medium">{activeReviewItem.schoolName}</span>
+                </div>
+                <button
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors cursor-pointer"
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleAddStudent} className="space-y-3 text-xs">
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Nama Lengkap Siswa</label>
-                  <input
-                    type="text"
-                    required
-                    value={newStudentName}
-                    onChange={(e) => setNewStudentName(e.target.value)}
-                    placeholder="Contoh: Muhammad Haidar"
-                    className="w-full h-9 px-3 border border-[#E6E2DE] rounded-[4px] focus:outline-none focus:border-[#21201E]"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">NIS Siswa</label>
-                  <input
-                    type="text"
-                    value={newStudentNIS}
-                    onChange={(e) => setNewStudentNIS(e.target.value)}
-                    placeholder="2024.11.xxxx (opsional)"
-                    className="w-full h-9 px-3 border border-[#E6E2DE] rounded-[4px] focus:outline-none focus:border-[#21201E]"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Peran Awal</label>
-                  <select
-                    value={newStudentRole}
-                    onChange={(e) => setNewStudentRole(e.target.value)}
-                    className="w-full h-9 px-3 border border-[#E6E2DE] rounded-[4px] focus:outline-none focus:border-[#21201E]"
-                  >
-                    <option value="Anggota">Anggota</option>
-                    <option value="Notulen & koordinasi">Notulen & koordinasi</option>
-                    <option value="Koordinator materi">Koordinator materi</option>
-                    <option value="Desain grafis">Desain grafis</option>
-                    <option value="Pengajar lab">Pengajar lab</option>
-                    <option value="Dokumentasi">Dokumentasi</option>
-                  </select>
-                </div>
-
-                <div className="pt-3 flex justify-end gap-2 border-t border-[#E6E2DE]">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddStudentOpen(false)}
-                    className="px-3 py-1.5 border border-[#E6E2DE] rounded-[4px] text-slate-600 hover:bg-slate-50 cursor-pointer"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 bg-[#E20113] hover:bg-[#b4000c] text-white font-semibold rounded-[4px] cursor-pointer"
-                  >
-                    Simpan Siswa
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Modal: Pindah Kelompok */}
-        {moveStudentTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div className="bg-white max-w-sm w-full rounded-[4px] border border-[#E6E2DE] p-6 space-y-4 shadow-xl text-xs">
-              <h4 className="text-sm font-bold text-[#21201E]">Pindahkan Siswa ke Kelompok Lain</h4>
-              <p className="text-slate-600">Pilih nomor kelompok SMP tujuan untuk transfer anggota ini:</p>
-
-              <select
-                value={moveTargetGroup}
-                onChange={(e) => setMoveTargetGroup(e.target.value)}
-                className="w-full h-9 px-3 border border-[#E6E2DE] rounded-[4px] focus:outline-none focus:border-[#21201E] font-medium"
-              >
-                {groups
-                  .filter((g) => g.id !== activeGroup.id)
-                  .map((g) => (
-                    <option key={g.id} value={g.id}>
-                      Kelompok {g.number} — {g.schoolName}
-                    </option>
-                  ))}
-              </select>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setMoveStudentTarget(null)}
-                  className="px-3 py-1.5 border border-[#E6E2DE] rounded-[4px] text-slate-600 hover:bg-slate-50 cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleMoveStudent(moveStudentTarget, moveTargetGroup)}
-                  className="px-4 py-1.5 bg-[#21201E] text-white font-semibold rounded-[4px] cursor-pointer"
-                >
-                  Pindahkan
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // RENDER: VIEW 1 (MAIN ADMIN DASHBOARD "Pantau kelompok")
-  // ════════════════════════════════════════════════════════════════════════════
-  return (
-    <div className="w-full min-h-screen bg-[#F7F5F2] text-[#21201E] font-['Poppins'] antialiased selection:bg-[#E20113] selection:text-white pb-24">
-      {/* ─── Top Bar: Wordmark, Nav Links, Role Chip, Keluar ─── */}
-      <header className="w-full bg-white border-b border-[#E6E2DE] sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <button onClick={() => navigate('/')} className="flex items-center gap-2 cursor-pointer text-left">
-              <span className="text-sm font-extrabold tracking-tight text-[#21201E]">Skomda Mengajar</span>
-              <span className="bg-[#E20113] text-white text-[10px] font-bold px-1.5 py-0.2 rounded-[2px] -rotate-3 inline-block">
-                #Skomda
-              </span>
-            </button>
-
-            <nav className="flex items-center gap-5 text-xs font-medium">
-              <span className="py-1 text-[#21201E] font-semibold border-b-2 border-[#21201E] cursor-default">
-                Beranda
-              </span>
-              <button
-                onClick={() => setIsSetupModalOpen(true)}
-                className="py-1 text-[#6B6560] hover:text-[#21201E] transition-colors cursor-pointer"
-              >
-                Kelompok
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedGroupId('03');
-                  setGroupDetailTab('feedback');
-                }}
-                className="py-1 text-[#6B6560] hover:text-[#21201E] transition-colors cursor-pointer"
-              >
-                Feedback
-              </button>
-              <button
-                onClick={() => showToast('Pengaturan sistem perizinan & kurikulum', 'info')}
-                className="py-1 text-[#6B6560] hover:text-[#21201E] transition-colors cursor-pointer"
-              >
-                Pengaturan
-              </button>
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-3 text-xs">
-            <span className="bg-[#E6E2DE]/60 text-[#21201E] px-2.5 py-1 rounded-[4px] font-medium text-[11px]">
-              Guru pembimbing
-            </span>
-            <button
-              onClick={() => {
-                navigate('/');
-                showToast('Keluar dari sesi guru pembimbing.', 'info');
-              }}
-              className="text-[#6B6560] hover:text-[#21201E] transition-colors cursor-pointer font-medium"
-            >
-              Keluar
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* ─── Main Content Canvas ─── */}
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        {/* 1. Top Preparation Banner Card (disappears or updates when all leaders are assigned) */}
-        {isPersiapanUnfinished && (
-          <div className="bg-white border border-[#E6E2DE] rounded-[4px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-[#6B6560] uppercase tracking-wider block">
-                TAHAP PERSIAPAN
-              </span>
-              <div className="flex flex-wrap items-center gap-4 text-xs">
-                {/* 1. Impor data */}
-                <div className="flex items-center gap-1.5 text-[#21201E] font-medium">
-                  <span className="w-4 h-4 rounded-[2px] bg-[#3DBE7A] text-white flex items-center justify-center shrink-0">
-                    <Check className="w-3 h-3 stroke-[3]" />
-                  </span>
-                  <span>1. Impor data</span>
-                </div>
-
-                <span className="text-[#E6E2DE]">•</span>
-
-                {/* 2. Tandai ketua */}
-                <div className="flex items-center gap-1.5 text-[#21201E] font-medium">
-                  <span className="w-4 h-4 rounded-[2px] border border-[#21201E] text-[#21201E] flex items-center justify-center shrink-0 text-[10px] font-bold">
-                    2
-                  </span>
-                  <span>
-                    2. Tandai ketua ({groupsWithLeaderCount} dari {groups.length} kelompok sudah punya ketua)
+              {/* Document Metadata Card */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900">{activeReviewItem.itemName}</span>
+                  <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                    {activeReviewItem.version}
                   </span>
                 </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                setSetupModalTab('leader');
-                setIsSetupModalOpen(true);
-              }}
-              className="px-4 py-2 bg-[#E20113] hover:bg-[#b4000c] text-white text-xs font-semibold rounded-[4px] transition-colors cursor-pointer shrink-0"
-            >
-              Tandai ketua
-            </button>
-          </div>
-        )}
-
-        {/* 2. Page Header: Title, sentence, stage milestone & progress line */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-[#E6E2DE]">
-          <div>
-            <h1 className="text-2xl font-extrabold text-[#21201E] tracking-tight">Pantau kelompok</h1>
-            <p className="text-xs text-[#6B6560] mt-1 leading-relaxed">
-              Ini yang perlu Anda tindak hari ini dan kelompok mana yang tertinggal.
-            </p>
-          </div>
-
-          <div className="flex flex-col md:items-end gap-1.5 shrink-0">
-            <span className="text-xs text-[#6B6560] font-medium">
-              Tahap 3 dari 6: Buat desain, tenggat 15 Feb (4 hari lagi)
-            </span>
-            {/* 6-segment mini progress line */}
-            <div className="flex items-center gap-1 w-56 h-1.5">
-              <span className="h-full flex-1 bg-[#21201E] rounded-[2px]" title="Tahap 1: Atur peran (Selesai)" />
-              <span className="h-full flex-1 bg-[#21201E] rounded-[2px]" title="Tahap 2: Rancang materi (Selesai)" />
-              <span
-                className="h-full flex-1 border border-[#21201E] bg-white rounded-[2px]"
-                title="Tahap 3: Buat desain (Aktif)"
-              />
-              <span className="h-full flex-1 bg-[#E6E2DE] rounded-[2px]" title="Tahap 4: Pelaksanaan di SMP" />
-              <span className="h-full flex-1 bg-[#E6E2DE] rounded-[2px]" title="Tahap 5: Kumpulkan laporan" />
-              <span className="h-full flex-1 bg-[#E6E2DE] rounded-[2px]" title="Tahap 6: Terima feedback" />
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Section 1: "Perlu tindakan" (Action Queue Card) */}
-        <section className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h2 className="text-sm font-extrabold text-[#21201E]">Perlu tindakan</h2>
-
-            {/* Two Tabs: Menunggu Anda vs Menunggu kelompok */}
-            <div className="flex items-center gap-1.5 text-xs">
-              <button
-                onClick={() => setActionTab('admin')}
-                className={`px-3 py-1 rounded-[4px] border transition-colors cursor-pointer font-medium ${
-                  actionTab === 'admin'
-                    ? 'bg-white border-[#21201E] text-[#21201E] font-semibold'
-                    : 'bg-white border-[#E6E2DE] text-[#6B6560] hover:text-[#21201E]'
-                }`}
-              >
-                Menunggu Anda {waitingAdmin.length}
-              </button>
-              <button
-                onClick={() => setActionTab('kelompok')}
-                className={`px-3 py-1 rounded-[4px] border transition-colors cursor-pointer font-medium ${
-                  actionTab === 'kelompok'
-                    ? 'bg-white border-[#21201E] text-[#21201E] font-semibold'
-                    : 'bg-white border-[#E6E2DE] text-[#6B6560] hover:text-[#21201E]'
-                }`}
-              >
-                Menunggu kelompok {waitingGroup.length}
-              </button>
-            </div>
-          </div>
-
-          {/* Action Rows List (Plain rows with hairline dividers) */}
-          <div className="bg-white border border-[#E6E2DE] rounded-[4px] divide-y divide-[#E6E2DE]">
-            {actionTab === 'admin' ? (
-              waitingAdmin.length === 0 ? (
-                <div className="p-6 text-center text-xs text-[#6B6560]">
-                  <p className="font-semibold text-[#21201E]">Semua pengajuan telah direview.</p>
-                  <p className="mt-0.5">Tidak ada berkas yang tertunda saat ini.</p>
+                <div className="text-[11px] text-slate-500 font-mono">
+                  {activeReviewItem.fileName} • {activeReviewItem.fileSize}
                 </div>
-              ) : (
-                waitingAdmin.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#F7F5F2]/60 transition-colors"
-                  >
-                    <div className="flex items-start sm:items-center gap-3">
-                      <span className="text-xs font-bold text-[#21201E] shrink-0 w-28">
-                        {item.groupNumber}
-                      </span>
-                      <span className="text-xs text-[#6B6560] shrink-0 w-36 truncate">
-                        {item.schoolName}
-                      </span>
-                      <span className="text-xs font-medium text-[#21201E] truncate max-w-xs">
-                        {item.itemName}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-xs shrink-0 self-end sm:self-center">
-                      <span className="px-2.5 py-0.5 rounded-[4px] bg-[#F2B33D]/25 text-[#21201E] text-[11px] font-medium">
-                        {item.statusLabel}
-                      </span>
-                      <span className="text-[11px] text-[#6B6560] w-36 text-right">{item.ageText}</span>
-                      <button
-                        onClick={() => handleOpenReview(item)}
-                        className="px-3.5 py-1 rounded-[4px] border border-[#21201E] text-[#21201E] hover:bg-[#21201E]/5 font-semibold text-xs transition-colors cursor-pointer"
-                      >
-                        Review
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )
-            ) : waitingGroup.length === 0 ? (
-              <div className="p-6 text-center text-xs text-[#6B6560]">
-                <p className="font-semibold text-[#21201E]">Semua kelompok berjalan sesuai jadwal.</p>
-                <p className="mt-0.5">Tidak ada keterlambatan tugas yang perlu diingatkan.</p>
+                <span className="text-[10px] text-slate-400 block">{activeReviewItem.ageText}</span>
               </div>
-            ) : (
-              waitingGroup.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#F7F5F2]/60 transition-colors"
-                >
-                  <div className="flex items-start sm:items-center gap-3">
-                    <span className="text-xs font-bold text-[#21201E] shrink-0 w-28">
-                      {item.groupNumber}
-                    </span>
-                    <span className="text-xs text-[#6B6560] shrink-0 w-36 truncate">
-                      {item.schoolName}
-                    </span>
-                    <span className="text-xs font-medium text-[#21201E] truncate max-w-xs">
-                      {item.itemName}
-                    </span>
-                  </div>
 
-                  <div className="flex items-center gap-4 text-xs shrink-0 self-end sm:self-center">
-                    {item.status === 'revisi' ? (
-                      <span className="px-2.5 py-0.5 rounded-[4px] bg-[#FF8A5B]/25 text-[#21201E] text-[11px] font-medium">
-                        Perlu revisi
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-0.5 rounded-[4px] bg-[#FF8A5B]/20 text-[#21201E] text-[11px] font-medium inline-flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-[#E20113]" />
-                        <span>{item.statusLabel}</span>
-                      </span>
-                    )}
-
-                    <span className="text-[11px] text-[#6B6560] w-36 text-right">{item.ageText}</span>
-
-                    <button
-                      onClick={() => handleCopyReminder(item)}
-                      className="px-3.5 py-1 rounded-[4px] border border-[#21201E] text-[#21201E] hover:bg-[#21201E]/5 font-semibold text-xs transition-colors cursor-pointer"
-                    >
-                      {copiedReminderId === item.id ? 'Disalin ✓' : 'Kirim Pengingat'}
-                    </button>
-                  </div>
+              {/* Student Submission Notes */}
+              {activeReviewItem.studentNotes && (
+                <div className="p-4 rounded-2xl bg-red-50/50 border border-red-100 space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-[#E50914] block">
+                    Catatan dari Ketua Siswa:
+                  </span>
+                  <p className="text-xs text-slate-700 italic">"{activeReviewItem.studentNotes}"</p>
                 </div>
-              ))
-            )}
-          </div>
-        </section>
+              )}
 
-        {/* 4. Section 2: "Progres kelompok" (Master Interactive Table) */}
-        <section className="space-y-3 pt-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h2 className="text-sm font-extrabold text-[#21201E]">Progres kelompok</h2>
-
-            {/* Search Input, Filter Pills, and Export Button */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-[#6B6560] absolute left-2.5 top-2.5" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari kelompok, ketua, atau SM..."
-                  className="pl-8 pr-3 py-1 text-xs bg-white border border-[#E6E2DE] rounded-[4px] text-[#21201E] placeholder:text-[#6B6560] focus:outline-none focus:border-[#21201E] w-56"
+              {/* Teacher Feedback Textarea */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-900 block">
+                  Catatan Evaluasi Guru Pembimbing:
+                </label>
+                <textarea
+                  rows={4}
+                  value={drawerNotes}
+                  onChange={(e) => setDrawerNotes(e.target.value)}
+                  placeholder="Tulis instruksi revisi atau apresiasi berkas di sini..."
+                  className="w-full rounded-2xl border border-slate-200 p-3 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20"
                 />
               </div>
+            </div>
 
-              <div className="flex items-center gap-1 text-xs">
-                {(['all', 'attention', 'done'] as const).map((key) => {
-                  const labels = {
-                    all: 'Semua',
-                    attention: 'Perlu perhatian',
-                    done: 'Selesai',
-                  };
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => setFilterPill(key)}
-                      className={`px-2.5 py-1 rounded-[4px] border transition-colors cursor-pointer font-medium ${
-                        filterPill === key
-                          ? 'bg-white border-[#21201E] text-[#21201E] font-semibold'
-                          : 'bg-white border-[#E6E2DE] text-[#6B6560] hover:text-[#21201E]'
-                      }`}
-                    >
-                      {labels[key]}
-                    </button>
-                  );
-                })}
-              </div>
-
+            {/* Action Buttons */}
+            <div className="pt-6 border-t border-slate-100 flex items-center gap-3">
               <button
-                onClick={() => {
-                  showToast('Mengunduh Laporan Progres Kelompok (Excel .xlsx)...', 'success');
-                }}
-                className="px-2.5 py-1 bg-white border border-[#E6E2DE] hover:border-[#21201E] text-[#21201E] text-xs font-semibold rounded-[4px] transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                onClick={handleRequestRevisionDrawer}
+                className="flex-1 py-2.5 rounded-full border border-slate-300 hover:bg-slate-50 text-xs font-bold text-slate-700 transition-colors cursor-pointer"
               >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Ekspor Excel</span>
+                Minta Revisi
+              </button>
+              <button
+                onClick={handleApproveDrawer}
+                className="flex-1 py-2.5 rounded-full bg-[#E50914] hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-600/20 transition-all cursor-pointer"
+              >
+                Setujui Berkas
               </button>
             </div>
           </div>
-
-          {/* Master Table */}
-          <div className="bg-white border border-[#E6E2DE] rounded-[4px] overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-[#E6E2DE] text-[#6B6560] font-medium bg-[#F7F5F2]/40">
-                  <th className="py-2.5 px-4 font-medium">Kelompok</th>
-                  <th className="py-2.5 px-4 font-medium">Ketua</th>
-                  <th className="py-2.5 px-4 font-medium">Tahap sekarang</th>
-                  <th className="py-2.5 px-4 font-medium">Progres</th>
-                  <th className="py-2.5 px-4 font-medium">Item</th>
-                  <th className="py-2.5 px-4 text-right font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E6E2DE]">
-                {filteredGroups.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-[#6B6560]">
-                      <p className="font-semibold text-[#21201E]">Tidak ada kelompok pada filter ini.</p>
-                      <p className="mt-0.5">Ubah kata kunci pencarian atau pilih pill "Semua".</p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredGroups.map((row) => (
-                    <tr
-                      key={row.id}
-                      onClick={() => setSelectedGroupId(row.id)}
-                      className="hover:bg-[#F7F5F2]/70 transition-colors cursor-pointer group"
-                    >
-                      {/* Column 1: Kelompok */}
-                      <td className="py-3 px-4">
-                        <div>
-                          <span className="font-bold text-[#21201E] block group-hover:text-[#E20113] transition-colors">
-                            Kelompok {row.number}
-                          </span>
-                          <span className="text-[11px] text-[#6B6560] block">{row.schoolName}</span>
-                        </div>
-                      </td>
-
-                      {/* Column 2: Ketua */}
-                      <td className="py-3 px-4 text-[#21201E]">
-                        {row.hasLeader ? (
-                          <span className="font-medium">{row.leaderName}</span>
-                        ) : (
-                          <span className="text-[#6B6560] italic">Belum ditentukan</span>
-                        )}
-                      </td>
-
-                      {/* Column 3: Tahap sekarang */}
-                      <td className="py-3 px-4 text-[#21201E] font-medium">{row.currentStage}</td>
-
-                      {/* Column 4: Progres (6-box mini step indicator) */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: 6 }).map((_, stepIdx) => {
-                            const isCompleted = stepIdx < row.completedStages;
-                            const isActive = stepIdx === row.currentStageIndex - 1;
-                            return (
-                              <span
-                                key={stepIdx}
-                                className={`w-2.5 h-2.5 rounded-[1.5px] ${
-                                  isCompleted
-                                    ? 'bg-[#21201E]'
-                                    : isActive
-                                    ? 'border border-[#21201E] bg-white'
-                                    : 'bg-[#E6E2DE]'
-                                }`}
-                                title={`Tahap ${stepIdx + 1}`}
-                              />
-                            );
-                          })}
-                        </div>
-                      </td>
-
-                      {/* Column 5: Item */}
-                      <td className="py-3 px-4 text-[#6B6560] font-medium">
-                        {row.approvedItemsCount} dari {row.totalItemsCount} disetujui
-                      </td>
-
-                      {/* Column 6: Status */}
-                      <td className="py-3 px-4 text-right">
-                        <div className="inline-flex items-center gap-2 justify-end">
-                          <span
-                            className={`px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium ${
-                              row.urgentStatus === 'approved'
-                                ? 'bg-[#3DBE7A]/20 text-[#21201E]'
-                                : row.urgentStatus === 'review'
-                                ? 'bg-[#F2B33D]/25 text-[#21201E]'
-                                : row.urgentStatus === 'overdue'
-                                ? 'bg-[#FF8A5B]/20 text-[#21201E] inline-flex items-center gap-1'
-                                : row.urgentStatus === 'revisi'
-                                ? 'bg-[#FF8A5B]/25 text-[#21201E]'
-                                : 'bg-[#8A8582]/15 text-[#21201E]'
-                            }`}
-                          >
-                            {row.urgentStatus === 'overdue' && <Clock className="w-3 h-3 text-[#E20113]" />}
-                            <span>{row.urgentStatusLabel}</span>
-                          </span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#21201E] group-hover:translate-x-0.5 transition-all" />
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          VIEW 2: SETUP MODAL ("Impor Data & Tandai Ketua")
+          SETUP & ASSIGN LEADER MODAL (DIALOG)
       ══════════════════════════════════════════════════════════════════════════ */}
       {isSetupModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white max-w-2xl w-full rounded-[4px] border border-[#E6E2DE] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsSetupModalOpen(false)}
+          />
+          <div className="relative w-full max-w-lg bg-white rounded-[28px] shadow-2xl p-6 sm:p-8 space-y-6 z-10 animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="p-5 border-b border-[#E6E2DE] flex items-center justify-between">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
-                <h3 className="text-base font-bold text-[#21201E]">Pengaturan Persiapan Skomda Mengajar</h3>
-                <p className="text-xs text-[#6B6560]">
-                  Sinkronisasi data master siswa dan aktivasi akun ketua kelompok 2026.
-                </p>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#E50914] block">
+                  Tahap Persiapan
+                </span>
+                <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                  Tandai Ketua & Impor Data
+                </h3>
               </div>
               <button
                 onClick={() => setIsSetupModalOpen(false)}
-                className="cursor-pointer text-slate-400 hover:text-slate-800 p-1"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Tabs */}
-            <div className="flex border-b border-[#E6E2DE] px-5 gap-6 text-xs font-semibold bg-[#F7F5F2]/40">
+            <div className="flex items-center gap-2 p-1 bg-slate-100/80 rounded-full w-full">
               <button
-                onClick={() => setSetupModalTab('leader')}
-                className={`py-3 transition-colors cursor-pointer border-b-2 ${
-                  setupModalTab === 'leader'
-                    ? 'border-[#E20113] text-[#E20113]'
-                    : 'border-transparent text-[#6B6560] hover:text-[#21201E]'
+                onClick={() => setSetupModalTab('assign')}
+                className={`flex-1 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer text-center ${
+                  setupModalTab === 'assign'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                1. Tandai Ketua Kelompok ({groups.length - groupsWithLeaderCount} Belum Ada)
+                Tandai Ketua Cepat
               </button>
               <button
                 onClick={() => setSetupModalTab('import')}
-                className={`py-3 transition-colors cursor-pointer border-b-2 ${
+                className={`flex-1 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer text-center ${
                   setupModalTab === 'import'
-                    ? 'border-[#E20113] text-[#E20113]'
-                    : 'border-transparent text-[#6B6560] hover:text-[#21201E]'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                2. Impor Data Siswa (CSV / Excel)
+                Impor Data Excel / CSV
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto flex-1">
-              {setupModalTab === 'leader' ? (
-                <div className="space-y-4">
-                  {/* Filter Toggle */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-[#6B6560]">Pilih kelompok untuk menunjuk ketua:</span>
-                    <div className="flex items-center gap-1 text-xs">
-                      <button
-                        onClick={() => setLeaderFilter('unassigned')}
-                        className={`px-2.5 py-1 rounded-[4px] border font-medium cursor-pointer ${
-                          leaderFilter === 'unassigned'
-                            ? 'bg-white border-[#21201E] text-[#21201E] font-semibold'
-                            : 'border-[#E6E2DE] text-[#6B6560]'
-                        }`}
-                      >
-                        Belum Punya Ketua ({groups.filter((g) => !g.hasLeader).length})
-                      </button>
-                      <button
-                        onClick={() => setLeaderFilter('all')}
-                        className={`px-2.5 py-1 rounded-[4px] border font-medium cursor-pointer ${
-                          leaderFilter === 'all'
-                            ? 'bg-white border-[#21201E] text-[#21201E] font-semibold'
-                            : 'border-[#E6E2DE] text-[#6B6560]'
-                        }`}
-                      >
-                        Semua Kelompok ({groups.length})
-                      </button>
-                    </div>
+            {/* Tab 1: Tandai Ketua */}
+            {setupModalTab === 'assign' && (
+              <div className="space-y-4">
+                <p className="text-xs text-slate-500">
+                  Terdapat 2 kelompok yang belum memiliki ketua. Pilih nama siswa untuk ditetapkan sebagai ketua kelompok:
+                </p>
+
+                {/* Group 23 */}
+                <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">Kelompok 23</span>
+                    <span className="text-[10px] text-slate-400">SMPN 2 Sedati</span>
                   </div>
-
-                  {/* Group Leader Assignment List */}
-                  <div className="border border-[#E6E2DE] rounded-[4px] divide-y divide-[#E6E2DE]">
-                    {groups
-                      .filter((g) => (leaderFilter === 'unassigned' ? !g.hasLeader : true))
-                      .map((grp) => (
-                        <div
-                          key={grp.id}
-                          className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white"
-                        >
-                          <div>
-                            <span className="text-xs font-bold text-[#21201E]">
-                              Kelompok {grp.number} — {grp.schoolName}
-                            </span>
-                            <span className="text-[11px] text-[#6B6560] block mt-0.5">
-                              {grp.hasLeader ? (
-                                <>
-                                  Ketua Saat Ini: <strong className="text-[#21201E]">{grp.leaderName}</strong>
-                                </>
-                              ) : (
-                                <span className="text-[#E20113] font-semibold">⚠️ Belum ada ketua ditetapkan</span>
-                              )}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <select
-                              value={selectedLeaderMap[grp.id] || (grp.members[0]?.name ?? '')}
-                              onChange={(e) =>
-                                setSelectedLeaderMap((prev) => ({ ...prev, [grp.id]: e.target.value }))
-                              }
-                              className="h-8 px-2.5 text-xs bg-white border border-[#E6E2DE] rounded-[4px] text-[#21201E] focus:outline-none cursor-pointer max-w-[200px]"
-                            >
-                              {grp.members.map((m) => (
-                                <option key={m.id} value={m.name}>
-                                  {m.name} ({m.nis})
-                                </option>
-                              ))}
-                            </select>
-
-                            <button
-                              onClick={() => handleActivateLeader(grp.id)}
-                              className="px-3 py-1.5 bg-[#E20113] hover:bg-[#b4000c] text-white text-xs font-semibold rounded-[4px] transition-colors cursor-pointer shrink-0"
-                            >
-                              Aktifkan Akun Ketua
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-
-                  {/* Generated Credentials Callout */}
-                  {createdCredentials && (
-                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-[4px] space-y-2 text-xs">
-                      <div className="flex items-center gap-1.5 text-emerald-800 font-bold">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        <span>Akun Login Ketua Telah Aktif ({createdCredentials.group})</span>
-                      </div>
-                      <div className="font-mono text-[11px] text-slate-700 bg-white p-2.5 rounded border border-emerald-200 space-y-0.5">
-                        <p>
-                          Username (Email): <strong>{createdCredentials.user}</strong>
-                        </p>
-                        <p>
-                          Password Awal: <strong>{createdCredentials.pass}</strong>
-                        </p>
-                      </div>
-                      <p className="text-[10px] text-emerald-700">
-                        Kredensial ini otomatis dikirim via WhatsApp ke siswa bersangkutan.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                /* Tab 2: Impor Data Siswa */
-                <div className="space-y-4">
-                  <div className="p-8 border-2 border-dashed border-[#E6E2DE] hover:border-[#21201E] rounded-xl flex flex-col items-center justify-center text-center transition-colors bg-slate-50/50">
-                    <div className="w-12 h-12 rounded-full bg-red-50 text-[#E20113] flex items-center justify-center mb-3">
-                      <Upload className="w-6 h-6" />
-                    </div>
-                    <h4 className="text-sm font-bold text-[#21201E]">Unggah Berkas Master Roster Siswa</h4>
-                    <p className="text-xs text-[#6B6560] max-w-sm mt-1">
-                      Tarik dan lepas file Excel (.xlsx) atau CSV (.csv) berisi NIS, Nama Siswa, dan SMP Penempatan.
-                    </p>
-
-                    <div className="mt-4 flex items-center gap-3">
-                      <button
-                        onClick={handleRunImport}
-                        disabled={isImporting}
-                        className="px-4 py-2 bg-[#21201E] hover:bg-slate-800 text-white text-xs font-semibold rounded-[4px] cursor-pointer inline-flex items-center gap-2"
-                      >
-                        {isImporting ? (
-                          <>
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>Memproses Impor...</span>
-                          </>
-                        ) : (
-                          <>
-                            <FileSpreadsheet className="w-3.5 h-3.5" />
-                            <span>Pilih Berkas & Impor (180 Siswa)</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-[#6B6560] pt-2">
-                    <span>Format yang didukung: XLSX, CSV (maksimal 10 MB)</span>
-                    <button
-                      onClick={() => showToast('Template_Skomda_2026.csv berhasil diunduh.', 'success')}
-                      className="text-[#E20113] font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedLeaderMap['23'] || 'Ahmad Fauzi'}
+                      onChange={(e) =>
+                        setSelectedLeaderMap((prev) => ({ ...prev, '23': e.target.value }))
+                      }
+                      className="text-xs font-semibold px-2.5 py-1.5 rounded-full border border-slate-300 bg-white outline-none cursor-pointer"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Unduh Template Format (.CSV)</span>
+                      <option value="Ahmad Fauzi">Ahmad Fauzi</option>
+                      <option value="Bella Safitri">Bella Safitri</option>
+                      <option value="Danu Pratama">Danu Pratama</option>
+                    </select>
+                    <button
+                      onClick={() => handleAssignLeader('23')}
+                      className="px-3 py-1.5 rounded-full bg-[#E50914] text-white text-xs font-bold hover:bg-red-700 transition-colors cursor-pointer"
+                    >
+                      Tandai
                     </button>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-[#E6E2DE] bg-slate-50 flex items-center justify-between text-xs">
-              <span className="text-[#6B6560]">
-                Perubahan langsung disinkronkan ke portal workspace ketua siswa.
-              </span>
+                {/* Group 24 */}
+                <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">Kelompok 24</span>
+                    <span className="text-[10px] text-slate-400">SMPN 4 Sidoarjo</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedLeaderMap['24'] || 'Salsa Bila Ramadhani'}
+                      onChange={(e) =>
+                        setSelectedLeaderMap((prev) => ({ ...prev, '24': e.target.value }))
+                      }
+                      className="text-xs font-semibold px-2.5 py-1.5 rounded-full border border-slate-300 bg-white outline-none cursor-pointer"
+                    >
+                      <option value="Salsa Bila Ramadhani">Salsa Bila Ramadhani</option>
+                      <option value="Bima Satria">Bima Satria</option>
+                      <option value="Cahya Ramadhan">Cahya Ramadhan</option>
+                    </select>
+                    <button
+                      onClick={() => handleAssignLeader('24')}
+                      className="px-3 py-1.5 rounded-full bg-[#E50914] text-white text-xs font-bold hover:bg-red-700 transition-colors cursor-pointer"
+                    >
+                      Tandai
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 2: Impor Data Excel */}
+            {setupModalTab === 'import' && (
+              <div className="space-y-4">
+                <p className="text-xs text-slate-500">
+                  Unggah berkas rekap kelompok dalam format `.xlsx` atau `.csv` dari kurikulum sekolah.
+                </p>
+                <div
+                  onClick={() => {
+                    setIsImporting(true);
+                    setTimeout(() => {
+                      setIsImporting(false);
+                      showToast('Data 24 kelompok & 168 siswa berhasil diperbarui dari berkas!', 'success');
+                      setIsSetupModalOpen(false);
+                    }, 1200);
+                  }}
+                  className="p-8 rounded-2xl border-2 border-dashed border-slate-300 hover:border-red-500 bg-slate-50 hover:bg-red-50/20 text-center transition-all cursor-pointer space-y-2"
+                >
+                  <Upload className="w-8 h-8 text-slate-400 mx-auto" />
+                  <span className="text-xs font-bold text-slate-800 block">
+                    {isImporting ? 'Sedang memproses berkas...' : 'Klik atau seret berkas ke area ini'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block">Mendukung format .XLSX, .XLS, .CSV</span>
+                </div>
+              </div>
+            )}
+
+            {/* Close Button */}
+            <div className="pt-4 border-t border-slate-100 text-right">
               <button
                 onClick={() => setIsSetupModalOpen(false)}
-                className="px-4 py-1.5 border border-[#21201E] rounded-[4px] text-xs font-semibold hover:bg-slate-100 cursor-pointer"
+                className="px-5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
               >
                 Tutup
               </button>
@@ -2460,173 +2203,8 @@ export const AdminMonitoringPage: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* ══════════════════════════════════════════════════════════════════════════
-          VIEW 3: QUICK REVIEW DRAWER / MODAL ("Review Berkas")
-      ══════════════════════════════════════════════════════════════════════════ */}
-      {isReviewOpen && reviewItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white max-w-4xl w-full rounded-[4px] border border-[#E6E2DE] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Header */}
-            <div className="p-5 border-b border-[#E6E2DE] flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-bold text-[#E20113] uppercase tracking-wider block">
-                  REVIEW BERKAS TAHAP 03
-                </span>
-                <h3 className="text-base font-extrabold text-[#21201E]">
-                  {reviewItem.groupNumber} — {reviewItem.schoolName}
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsReviewOpen(false)}
-                className="cursor-pointer text-slate-400 hover:text-slate-800 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Body: Split Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-12 flex-1 overflow-y-auto divide-y md:divide-y-0 md:divide-x divide-[#E6E2DE]">
-              {/* Left Column: Visual Simulated File Preview */}
-              <div className="md:col-span-6 p-6 bg-slate-50 space-y-4">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-800">{reviewItem.itemName}</span>
-                  {/* Version Selector */}
-                  <div className="flex items-center gap-1 bg-white border border-[#E6E2DE] rounded-[4px] p-0.5">
-                    <button
-                      onClick={() => setReviewVersion('v2')}
-                      className={`px-2 py-0.5 rounded-[2px] font-bold text-[10px] ${
-                        reviewVersion === 'v2' ? 'bg-[#21201E] text-white' : 'text-slate-600'
-                      }`}
-                    >
-                      v2 (Terbaru)
-                    </button>
-                    <button
-                      onClick={() => setReviewVersion('v1')}
-                      className={`px-2 py-0.5 rounded-[2px] font-bold text-[10px] ${
-                        reviewVersion === 'v1' ? 'bg-[#21201E] text-white' : 'text-slate-600'
-                      }`}
-                    >
-                      v1
-                    </button>
-                  </div>
-                </div>
-
-                {/* Simulated Visual Document Canvas */}
-                <div className="aspect-[4/5] bg-white rounded-lg border border-slate-300 p-4 shadow-sm flex flex-col justify-between relative overflow-hidden">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <span className="text-[10px] font-bold text-[#E20113] uppercase tracking-wider">
-                        SKOMDA MENGAJAR 2026
-                      </span>
-                      <span className="text-[9px] font-mono text-slate-400">SMPN 1 BUDURAN</span>
-                    </div>
-
-                    <div className="h-28 bg-gradient-to-br from-red-600 to-red-800 rounded-md p-3 text-white flex flex-col justify-between">
-                      <span className="text-[8px] font-bold uppercase tracking-wider opacity-80">
-                        Inisiatif Vokasi
-                      </span>
-                      <p className="text-xs font-extrabold leading-snug">
-                        Literasi Digital & Pemrograman Web Aplikatif Siswa SMP
-                      </p>
-                      <span className="text-[8px] opacity-75">18–25 Februari 2026</span>
-                    </div>
-
-                    <div className="space-y-1.5 pt-1">
-                      <div className="h-2 bg-slate-200 rounded w-3/4"></div>
-                      <div className="h-2 bg-slate-100 rounded w-full"></div>
-                      <div className="h-2 bg-slate-100 rounded w-5/6"></div>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[9px] text-slate-400 font-mono">
-                    <span>UKURAN: 60 × 160 CM • 300 DPI • CMYK</span>
-                    <span>STATUS: VALIDASI</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] text-[#6B6560]">
-                  <span>Berkas: {reviewItem.fileName}</span>
-                  <span>{reviewItem.fileSize}</span>
-                </div>
-              </div>
-
-              {/* Right Column: Verification Checklist & Decision */}
-              <div className="md:col-span-6 p-6 space-y-5 bg-white">
-                <div className="space-y-3">
-                  <span className="text-xs font-bold text-[#21201E] uppercase tracking-wider block">
-                    Checklist Verifikasi Standar
-                  </span>
-
-                  <label className="flex items-start gap-2 text-xs text-slate-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={checkImageRes}
-                      onChange={(e) => setCheckImageRes(e.target.checked)}
-                      className="mt-0.5 rounded border-slate-300 text-[#E20113]"
-                    />
-                    <span>Resolusi desain tajam (minimal 300 DPI untuk cetak mata ayam)</span>
-                  </label>
-
-                  <label className="flex items-start gap-2 text-xs text-slate-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={checkBranding}
-                      onChange={(e) => setCheckBranding(e.target.checked)}
-                      className="mt-0.5 rounded border-slate-300 text-[#E20113]"
-                    />
-                    <span>Logo resmi SMK Telkom & SMP mitra terpasang proporsional</span>
-                  </label>
-
-                  <label className="flex items-start gap-2 text-xs text-slate-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={checkLayout}
-                      onChange={(e) => setCheckLayout(e.target.checked)}
-                      className="mt-0.5 rounded border-slate-300 text-[#E20113]"
-                    />
-                    <span>Hierarki tipografi dan jadwal pelaksanaan terbaca dengan jelas</span>
-                  </label>
-                </div>
-
-                {/* Notes Textarea */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-[#21201E] block">
-                    Catatan / Instruksi Pembimbing (Opsional):
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={reviewNotes}
-                    onChange={(e) => setReviewNotes(e.target.value)}
-                    placeholder="Tuliskan catatan revisi jika ada bagian yang perlu disesuaikan oleh siswa..."
-                    className="w-full p-3 text-xs bg-white border border-[#E6E2DE] rounded-[4px] text-[#21201E] focus:outline-none focus:border-[#21201E]"
-                  />
-                </div>
-
-                {/* Decision Buttons */}
-                <div className="pt-4 border-t border-[#E6E2DE] flex items-center justify-end gap-3">
-                  <button
-                    onClick={handleRequestRevision}
-                    className="px-4 py-2 border border-[#FF8A5B] text-[#FF8A5B] hover:bg-orange-50 text-xs font-semibold rounded-[4px] transition-colors cursor-pointer"
-                  >
-                    Minta Revisi
-                  </button>
-
-                  <button
-                    onClick={handleApproveSubmission}
-                    className="px-5 py-2 bg-[#3DBE7A] hover:bg-emerald-600 text-white text-xs font-bold rounded-[4px] transition-colors cursor-pointer shadow-xs inline-flex items-center gap-1.5"
-                  >
-                    <Check className="w-4 h-4 stroke-[3]" />
-                    <span>Setujui Berkas</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
-};
+}
 
 export default AdminMonitoringPage;

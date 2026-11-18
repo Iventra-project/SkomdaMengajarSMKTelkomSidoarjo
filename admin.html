@@ -1,0 +1,4145 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin — Skomda Mengajar 2026 | SMK Telkom Sidoarjo</title>
+  <meta name="description" content="Dashboard koordinator dan admin Skomda Mengajar 2026. Pantau 24 kelompok, validasi berkas mengajar, dan tindak lanjut SMP mitra.">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       DESIGN SYSTEM TOKENS (CSS VARIABLES)
+       ========================================================================== */
+    :root {
+      /* Colors: Surfaces & Canvas */
+      --bg-canvas: #FFFFFF;
+      --bg-subtle: #F8FAFC;
+      --bg-hover: #F1F5F9;
+      --bg-active: #E2E8F0;
+
+      /* Borders & Dividers */
+      --border-hairline: #E8ECF2;
+      --border-focus: #D7141F;
+
+      /* Brand Identity: SMK Telkom Sidoarjo Crimson */
+      --color-brand: #D7141F;
+      --color-brand-hover: #B80F1A;
+      --color-brand-active: #9A0D16;
+      --color-brand-tint: #FFF1F2;
+      --color-brand-border: #FFE4E6;
+
+      /* Typography & Contrast */
+      --text-ink: #0B1B3A;
+      --text-body: #475569;
+      --text-muted: #64748B;
+      --text-white: #FFFFFF;
+
+      /* Semantic Status Badges */
+      --status-review-bg: #FFF7E6;
+      --status-review-text: #92400E;
+      --status-review-dot: #D97706;
+
+      --status-overdue-bg: #FEF2F2;
+      --status-overdue-text: #B42318;
+      --status-overdue-dot: #DC2626;
+
+      --status-done-bg: #ECFDF3;
+      --status-done-text: #067647;
+      --status-done-dot: #16A34A;
+
+      --status-progress-bg: #EFF6FF;
+      --status-progress-text: #1D4ED8;
+      --status-progress-dot: #2563EB;
+
+      --status-unassigned-bg: #F1F5F9;
+      --status-unassigned-text: #475569;
+      --status-unassigned-dot: #94A3B8;
+
+      /* Geometry & Spacing */
+      --radius-sm: 8px;
+      --radius-md: 10px;
+      --radius-lg: 12px;
+      --radius-card: 16px;
+      --radius-pill: 9999px;
+
+      /* Shadows (Elevation only) */
+      --shadow-sm: 0 1px 2px rgba(11, 27, 58, 0.04);
+      --shadow-hover: 0 4px 12px rgba(11, 27, 58, 0.06);
+      --shadow-elevation: 0 20px 40px -8px rgba(11, 27, 58, 0.12), 0 0 0 1px rgba(232, 236, 242, 0.8);
+      --shadow-toast: 0 12px 28px -4px rgba(11, 27, 58, 0.16);
+
+      /* Motion */
+      --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+      --duration-fast: 150ms;
+      --duration-normal: 250ms;
+      --duration-slow: 350ms;
+
+      /* Layout */
+      --sidebar-width: 248px;
+      --sidebar-rail-width: 72px;
+      --topbar-height: 64px;
+    }
+
+    /* ==========================================================================
+       RESET & BASE TYPOGRAPHY
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-body);
+      background-color: var(--bg-canvas);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    ::selection {
+      background-color: var(--color-brand);
+      color: #FFFFFF;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+      color: inherit;
+    }
+
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Accessibility Focus Ring */
+    :focus-visible {
+      outline: 3px solid rgba(215, 20, 31, 0.25);
+      outline-offset: 2px;
+    }
+
+    /* Utility Helpers */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+
+    /* ==========================================================================
+       APP SHELL: SIDEBAR & TOPBAR & MAIN CONTAINER
+       ========================================================================== */
+    .app-shell {
+      display: flex;
+      min-height: 100vh;
+      background-color: var(--bg-canvas);
+    }
+
+    /* ─── SIDEBAR ────────────────────────────────────────────────────────── */
+    .app-sidebar {
+      width: var(--sidebar-width);
+      flex-shrink: 0;
+      background-color: var(--bg-canvas);
+      border-right: 1px solid var(--border-hairline);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 40;
+      transition: width var(--duration-normal) var(--ease-standard);
+    }
+
+    .app-sidebar.is-rail {
+      width: var(--sidebar-rail-width);
+    }
+
+    .sidebar-header {
+      height: var(--topbar-height);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-hairline);
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .brand-logo-box {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-md);
+      background-color: var(--color-brand);
+      color: #FFFFFF;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .brand-details {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+      transition: opacity var(--duration-fast);
+    }
+
+    .app-sidebar.is-rail .brand-details {
+      opacity: 0;
+      pointer-events: none;
+      display: none;
+    }
+
+    .brand-name {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-ink);
+      letter-spacing: -0.2px;
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .btn-collapse-sidebar {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      border: 1px solid var(--border-hairline);
+      background-color: var(--bg-canvas);
+      transition: all var(--duration-fast);
+      flex-shrink: 0;
+    }
+
+    .btn-collapse-sidebar:hover {
+      color: var(--text-ink);
+      background-color: var(--bg-subtle);
+    }
+
+    .sidebar-nav-container {
+      flex: 1;
+      padding: 16px 10px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .nav-group-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      padding: 0 10px 4px 10px;
+      transition: opacity var(--duration-fast);
+    }
+
+    .app-sidebar.is-rail .nav-group-title {
+      display: none;
+    }
+
+    .nav-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .nav-item-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      border-radius: var(--radius-md);
+      color: var(--text-body);
+      font-size: 13px;
+      font-weight: 600;
+      position: relative;
+      transition: all var(--duration-fast);
+      cursor: pointer;
+    }
+
+    .nav-item-link:hover {
+      background-color: var(--bg-subtle);
+      color: var(--text-ink);
+    }
+
+    .nav-item-link.is-active {
+      background-color: var(--color-brand-tint);
+      color: var(--color-brand);
+      font-weight: 700;
+    }
+
+    .nav-item-link.is-active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 6px;
+      bottom: 6px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background-color: var(--color-brand);
+    }
+
+    .nav-left-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .nav-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      stroke-width: 1.75;
+    }
+
+    .nav-label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-sidebar.is-rail .nav-label {
+      display: none;
+    }
+
+    .nav-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: var(--radius-pill);
+      background-color: var(--bg-hover);
+      color: var(--text-muted);
+    }
+
+    .nav-badge.badge-amber {
+      background-color: var(--status-review-bg);
+      color: var(--status-review-text);
+    }
+
+    .nav-badge.badge-red {
+      background-color: var(--status-overdue-bg);
+      color: var(--status-overdue-text);
+    }
+
+    .app-sidebar.is-rail .nav-badge {
+      display: none;
+    }
+
+    /* Sidebar Footer User Card */
+    .sidebar-footer {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border-hairline);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background-color: var(--bg-canvas);
+    }
+
+    .user-profile-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 4px;
+      border-radius: var(--radius-md);
+      transition: background var(--duration-fast);
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-pill);
+      background-color: var(--text-ink);
+      color: #FFFFFF;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .user-avatar::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-pill);
+      background-color: #10B981;
+      border: 1.5px solid #FFFFFF;
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+      overflow: hidden;
+    }
+
+    .app-sidebar.is-rail .user-info {
+      display: none;
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-ink);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .user-role {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .btn-return-home {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 6px 4px;
+      border-radius: var(--radius-sm);
+      transition: color var(--duration-fast);
+    }
+
+    .btn-return-home:hover {
+      color: var(--color-brand);
+    }
+
+    .app-sidebar.is-rail .btn-return-home span {
+      display: none;
+    }
+
+    /* ─── MAIN CONTENT VIEWPORT ─────────────────────────────────────────── */
+    .app-main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-canvas);
+    }
+
+    /* ─── STICKY TOPBAR ──────────────────────────────────────────────────── */
+    .app-topbar {
+      height: var(--topbar-height);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background-color: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-hairline);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 180px;
+    }
+
+    .mobile-nav-toggle {
+      display: none;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      align-items: center;
+      justify-content: center;
+      color: var(--text-ink);
+      border: 1px solid var(--border-hairline);
+    }
+
+    .breadcrumb {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .breadcrumb strong {
+      color: var(--text-ink);
+      font-weight: 700;
+    }
+
+    .topbar-center {
+      flex: 1;
+      max-width: 480px;
+    }
+
+    .global-search-btn {
+      width: 100%;
+      height: 40px;
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-lg);
+      background-color: var(--bg-subtle);
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 13px;
+      transition: all var(--duration-fast);
+      cursor: pointer;
+    }
+
+    .global-search-btn:hover {
+      background-color: #FFFFFF;
+      border-color: #CBD5E1;
+      color: var(--text-body);
+    }
+
+    .search-left-hint {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-kbd-hint {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      background-color: #FFFFFF;
+      border: 1px solid var(--border-hairline);
+      color: var(--text-muted);
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sync-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background-color: var(--bg-subtle);
+      border: 1px solid var(--border-hairline);
+      padding: 6px 10px;
+      border-radius: var(--radius-pill);
+    }
+
+    .btn-refresh-sync {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: transform var(--duration-fast), color var(--duration-fast);
+    }
+
+    .btn-refresh-sync:hover {
+      color: var(--text-ink);
+    }
+
+    .btn-refresh-sync.is-spinning svg {
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .topbar-icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-body);
+      border: 1px solid var(--border-hairline);
+      background-color: var(--bg-canvas);
+      position: relative;
+      transition: all var(--duration-fast);
+    }
+
+    .topbar-icon-btn:hover {
+      background-color: var(--bg-subtle);
+      color: var(--text-ink);
+    }
+
+    .icon-badge-dot {
+      position: absolute;
+      top: 7px;
+      right: 7px;
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-pill);
+      background-color: var(--color-brand);
+      border: 1.5px solid #FFFFFF;
+    }
+
+    /* ─── MAIN CONTENT CONTAINER (32px PADDING, 1440px MAX) ─────────────── */
+    .dashboard-content {
+      padding: 32px;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ─── SECTION 1: SAMBUTAN (WELCOME HEADER) ─────────────────────────── */
+    .welcome-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .welcome-title-group h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-ink);
+      letter-spacing: -0.6px;
+      line-height: 1.2;
+    }
+
+    .welcome-meta {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .welcome-meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 700;
+      color: var(--status-review-text);
+      background-color: var(--status-review-bg);
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+    }
+
+    /* Single Primary Crimson Button */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: var(--color-brand);
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      transition: all var(--duration-fast) var(--ease-standard);
+      box-shadow: 0 2px 4px rgba(215, 20, 31, 0.2);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--color-brand-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(215, 20, 31, 0.28);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+      background-color: var(--color-brand-active);
+    }
+
+    /* ─── SECTION 2: 4 KPI CARDS (COUNT-UP & FILTER TRIGGER) ───────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .kpi-card {
+      background-color: var(--bg-canvas);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-card);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      cursor: pointer;
+      position: relative;
+      transition: all var(--duration-fast) var(--ease-standard);
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      border-color: #CBD5E1;
+      box-shadow: var(--shadow-hover);
+    }
+
+    .kpi-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-icon-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .kpi-card.kpi-total .kpi-icon-wrap { background-color: #EFF6FF; color: #1D4ED8; }
+    .kpi-card.kpi-review .kpi-icon-wrap { background-color: var(--status-review-bg); color: var(--status-review-dot); }
+    .kpi-card.kpi-overdue .kpi-icon-wrap { background-color: var(--status-overdue-bg); color: var(--status-overdue-dot); }
+    .kpi-card.kpi-unassigned .kpi-icon-wrap { background-color: var(--status-unassigned-bg); color: var(--status-unassigned-dot); }
+
+    .kpi-sparkline {
+      width: 64px;
+      height: 24px;
+    }
+
+    .kpi-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .kpi-number-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .kpi-number {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--text-ink);
+      line-height: 1;
+    }
+
+    .kpi-subtext {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* ─── SECTION 3: 8/4 GRID (PIPELINE & WIDGETS) ───────────────────────── */
+    .row-pipeline-widgets {
+      display: grid;
+      grid-template-columns: 8fr 4fr;
+      gap: 20px;
+    }
+
+    .dashboard-card {
+      background-color: var(--bg-canvas);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-card);
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-ink);
+      letter-spacing: -0.2px;
+    }
+
+    .card-subtitle-small {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* 6-Stage Visual Flow */
+    .pipeline-container {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      position: relative;
+      padding-top: 10px;
+      gap: 8px;
+    }
+
+    .pipeline-track-line {
+      position: absolute;
+      top: 32px;
+      left: 36px;
+      right: 36px;
+      height: 2px;
+      background-color: var(--border-hairline);
+      z-index: 1;
+    }
+
+    .pipeline-step-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      cursor: pointer;
+      transition: transform var(--duration-fast);
+    }
+
+    .pipeline-step-node:hover {
+      transform: translateY(-2px);
+    }
+
+    .step-circle-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-pill);
+      background-color: #FFFFFF;
+      border: 2px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-ink);
+      box-shadow: 0 2px 4px rgba(11, 27, 58, 0.04);
+      transition: all var(--duration-fast);
+    }
+
+    .pipeline-step-node:hover .step-circle-badge {
+      border-color: var(--color-brand);
+      color: var(--color-brand);
+    }
+
+    .pipeline-step-node.is-active .step-circle-badge {
+      border-color: var(--color-brand);
+      background-color: var(--color-brand-tint);
+      color: var(--color-brand);
+    }
+
+    .step-index-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .step-name-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-ink);
+      line-height: 1.3;
+      margin-top: 2px;
+      max-width: 100px;
+    }
+
+    .step-mini-bars {
+      width: 60px;
+      height: 4px;
+      border-radius: var(--radius-pill);
+      background-color: var(--border-hairline);
+      margin-top: 8px;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .bar-seg-done { background-color: var(--status-done-dot); height: 100%; }
+    .bar-seg-progress { background-color: var(--status-progress-dot); height: 100%; }
+    .bar-seg-overdue { background-color: var(--status-overdue-dot); height: 100%; }
+
+    /* Right Widgets: Deadline & Recent Activity */
+    .widgets-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .deadline-card {
+      background: linear-gradient(135deg, #FFF1F2 0%, #FFFFFF 100%);
+      border: 1px solid var(--color-brand-border);
+      border-radius: var(--radius-card);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .deadline-tag-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .deadline-chip {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--color-brand);
+      background-color: #FFFFFF;
+      border: 1px solid var(--color-brand-border);
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+    }
+
+    .deadline-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-ink);
+    }
+
+    .deadline-date-info {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .activity-feed-card {
+      background-color: var(--bg-canvas);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-card);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .activity-feed-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .activity-dot-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: var(--radius-pill);
+      background-color: var(--bg-subtle);
+      border: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+      color: var(--text-muted);
+    }
+
+    .activity-text-wrap {
+      flex: 1;
+      color: var(--text-body);
+    }
+
+    .activity-text-wrap strong {
+      color: var(--text-ink);
+      font-weight: 700;
+    }
+
+    .activity-timestamp {
+      color: var(--text-muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    /* ─── SECTION 4: MAIN CARD "DAFTAR KELOMPOK" ─────────────────────────── */
+    .groups-master-card {
+      background-color: var(--bg-canvas);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Toolbar: Tabs & Actions */
+    .master-toolbar {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* Horizontal Underline Tabs with Animated Sliding Marker */
+    .table-tabs-nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      position: relative;
+    }
+
+    .tab-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 8px 4px 10px 4px;
+      cursor: pointer;
+      position: relative;
+      transition: color var(--duration-fast);
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-ink);
+    }
+
+    .tab-btn.is-active {
+      color: var(--text-ink);
+      font-weight: 700;
+    }
+
+    .tab-counter-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: var(--radius-pill);
+      background-color: var(--bg-hover);
+      color: var(--text-muted);
+      transition: all var(--duration-fast);
+    }
+
+    .tab-btn.is-active .tab-counter-badge {
+      background-color: var(--text-ink);
+      color: #FFFFFF;
+    }
+
+    .tab-btn[data-tab="review"].is-active .tab-counter-badge {
+      background-color: var(--status-review-dot);
+      color: #FFFFFF;
+    }
+
+    .tab-btn[data-tab="overdue"].is-active .tab-counter-badge {
+      background-color: var(--status-overdue-dot);
+      color: #FFFFFF;
+    }
+
+    .tab-sliding-indicator {
+      position: absolute;
+      bottom: 0;
+      height: 2px;
+      background-color: var(--color-brand);
+      border-radius: 2px;
+      transition: left var(--duration-normal) var(--ease-standard), width var(--duration-normal) var(--ease-standard);
+    }
+
+    /* Right Action Controls */
+    .toolbar-actions-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .view-segmented-toggle {
+      display: flex;
+      align-items: center;
+      padding: 3px;
+      background-color: var(--bg-subtle);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+    }
+
+    .view-toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-radius: 6px;
+      transition: all var(--duration-fast);
+    }
+
+    .view-toggle-btn.is-active {
+      background-color: #FFFFFF;
+      color: var(--text-ink);
+      font-weight: 700;
+      box-shadow: 0 1px 2px rgba(11, 27, 58, 0.06);
+    }
+
+    .input-search-wrap {
+      position: relative;
+      width: 220px;
+    }
+
+    .input-search-wrap input {
+      width: 100%;
+      height: 36px;
+      padding: 0 12px 0 32px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-hairline);
+      background-color: var(--bg-canvas);
+      font-size: 13px;
+      color: var(--text-ink);
+      transition: all var(--duration-fast);
+    }
+
+    .input-search-wrap input:focus {
+      border-color: var(--color-brand);
+      background-color: #FFFFFF;
+    }
+
+    .input-search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .btn-secondary {
+      height: 36px;
+      padding: 0 12px;
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+      background-color: var(--bg-canvas);
+      color: var(--text-body);
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all var(--duration-fast);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--bg-subtle);
+      color: var(--text-ink);
+      border-color: #CBD5E1;
+    }
+
+    /* Active Filter Chips Strip */
+    .active-filter-chips-bar {
+      padding: 8px 20px;
+      background-color: var(--bg-subtle);
+      border-bottom: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-chip-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #FFFFFF;
+      border: 1px solid var(--border-hairline);
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      color: var(--text-body);
+      font-weight: 600;
+    }
+
+    .filter-chip-remove {
+      display: flex;
+      align-items: center;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .filter-chip-remove:hover {
+      color: var(--color-brand);
+    }
+
+    /* ─── TABLE VIEW SPEC ────────────────────────────────────────────────── */
+    .table-responsive-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      min-height: 340px;
+    }
+
+    .master-data-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 13px;
+    }
+
+    /* Density variants */
+    .master-data-table.density-comfortable tr { height: 64px; }
+    .master-data-table.density-compact tr { height: 48px; }
+
+    .master-data-table thead th {
+      background-color: var(--bg-subtle);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-hairline);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      user-select: none;
+    }
+
+    .master-data-table thead th.is-sortable {
+      cursor: pointer;
+    }
+
+    .master-data-table thead th.is-sortable:hover {
+      color: var(--text-ink);
+    }
+
+    .th-sort-inner {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .master-data-table tbody tr {
+      border-bottom: 1px solid var(--border-hairline);
+      transition: background-color var(--duration-fast);
+      cursor: pointer;
+    }
+
+    .master-data-table tbody tr:hover {
+      background-color: var(--bg-subtle);
+    }
+
+    .master-data-table tbody tr.is-selected {
+      background-color: #F8FAFC;
+    }
+
+    .master-data-table tbody td {
+      padding: 0 16px;
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Custom Checkbox */
+    .custom-checkbox {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1.5px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--duration-fast);
+      background-color: #FFFFFF;
+    }
+
+    .custom-checkbox.is-checked {
+      background-color: var(--color-brand);
+      border-color: var(--color-brand);
+      color: #FFFFFF;
+    }
+
+    /* Column Specific Styles */
+    .group-ident {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+
+    .group-code {
+      font-weight: 800;
+      color: var(--text-ink);
+      font-size: 13px;
+    }
+
+    .group-school {
+      color: var(--text-body);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .group-students-sub {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .leader-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .leader-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-pill);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #FFFFFF;
+      flex-shrink: 0;
+    }
+
+    .leader-name-wrap {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+      min-width: 0;
+    }
+
+    .leader-name-text {
+      font-weight: 600;
+      color: var(--text-ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .btn-wa-round {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-pill);
+      background-color: #ECFDF3;
+      color: #067647;
+      border: 1px solid #A7F3D0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform var(--duration-fast);
+      flex-shrink: 0;
+    }
+
+    .btn-wa-round:hover {
+      transform: scale(1.1);
+      background-color: #D1FAE5;
+    }
+
+    /* Stage Progress 6-Dots Stepper */
+    .stage-progress-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stepper-dots-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .mini-stepper-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: var(--radius-pill);
+      background-color: #E2E8F0;
+    }
+
+    .mini-stepper-dot.is-completed { background-color: var(--status-done-dot); }
+    .mini-stepper-dot.is-current { background-color: var(--text-ink); transform: scale(1.2); }
+
+    .stage-title-text {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-ink);
+    }
+
+    .stage-tasks-text {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Status Badges: dot + text */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: var(--radius-pill);
+    }
+
+    .badge-review { background-color: var(--status-review-bg); color: var(--status-review-text); }
+    .badge-review .status-badge-dot { background-color: var(--status-review-dot); }
+
+    .badge-overdue { background-color: var(--status-overdue-bg); color: var(--status-overdue-text); }
+    .badge-overdue .status-badge-dot { background-color: var(--status-overdue-dot); }
+
+    .badge-done { background-color: var(--status-done-bg); color: var(--status-done-text); }
+    .badge-done .status-badge-dot { background-color: var(--status-done-dot); }
+
+    .badge-progress { background-color: var(--status-progress-bg); color: var(--status-progress-text); }
+    .badge-progress .status-badge-dot { background-color: var(--status-progress-dot); }
+
+    .badge-unassigned { background-color: var(--status-unassigned-bg); color: var(--status-unassigned-text); }
+    .badge-unassigned .status-badge-dot { background-color: var(--status-unassigned-dot); }
+
+    /* Action Buttons in Rows */
+    .row-actions-cell {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .btn-row-action {
+      height: 32px;
+      padding: 0 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 700;
+      transition: all var(--duration-fast);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-row-action.btn-review-outline {
+      border: 1px solid var(--text-ink);
+      color: var(--text-ink);
+      background-color: transparent;
+    }
+
+    .btn-row-action.btn-review-outline:hover {
+      background-color: var(--color-brand);
+      border-color: var(--color-brand);
+      color: #FFFFFF;
+    }
+
+    .btn-row-action.btn-view-ghost {
+      border: 1px solid var(--border-hairline);
+      color: var(--text-body);
+      background-color: transparent;
+    }
+
+    .btn-row-action.btn-view-ghost:hover {
+      background-color: var(--bg-hover);
+      color: var(--text-ink);
+    }
+
+    .btn-kebab-menu {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: all var(--duration-fast);
+    }
+
+    .btn-kebab-menu:hover {
+      background-color: var(--bg-hover);
+      color: var(--text-ink);
+    }
+
+    /* Table Footer & Pagination */
+    .table-footer {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .pager-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-pager {
+      width: 30px;
+      height: 30px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--text-body);
+      transition: all var(--duration-fast);
+    }
+
+    .btn-pager:hover:not(:disabled) {
+      background-color: var(--bg-subtle);
+      color: var(--text-ink);
+    }
+
+    .btn-pager.is-current {
+      background-color: var(--text-ink);
+      color: #FFFFFF;
+      border-color: var(--text-ink);
+    }
+
+    .btn-pager:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* ─── MATRIX VIEW SPEC ───────────────────────────────────────────────── */
+    .matrix-wrapper {
+      padding: 20px;
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      overflow-x: auto;
+    }
+
+    .matrix-legend {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-box {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    .matrix-grid-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 680px;
+    }
+
+    .matrix-grid-table th {
+      padding: 10px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-hairline);
+      text-align: center;
+    }
+
+    .matrix-grid-table th:first-child {
+      text-align: left;
+      width: 180px;
+    }
+
+    .matrix-grid-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-hairline);
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .matrix-grid-table td:first-child {
+      text-align: left;
+      font-weight: 700;
+      color: var(--text-ink);
+    }
+
+    .matrix-cell-node {
+      display: inline-block;
+      width: 32px;
+      height: 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform var(--duration-fast);
+      position: relative;
+    }
+
+    .matrix-cell-node:hover {
+      transform: scale(1.18);
+      z-index: 5;
+    }
+
+    .matrix-cell-done { background-color: #D1FAE5; border: 1px solid #A7F3D0; }
+    .matrix-cell-progress { background-color: #DBEAFE; border: 1px solid #BFDBFE; }
+    .matrix-cell-review { background-color: #FEF3C7; border: 1px solid #FDE68A; }
+    .matrix-cell-overdue { background-color: #FEE2E2; border: 1px solid #FECACA; }
+    .matrix-cell-empty { background-color: #F1F5F9; border: 1px solid #E2E8F0; }
+
+    /* ─── SECTION 5: DRAWER DETAIL KELOMPOK (SLIDE 480px) ────────────────── */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(11, 27, 58, 0.4);
+      backdrop-filter: blur(4px);
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--duration-normal) var(--ease-standard);
+    }
+
+    .drawer-backdrop.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .detail-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 480px;
+      max-width: 100vw;
+      background-color: var(--bg-canvas);
+      z-index: 51;
+      box-shadow: -10px 0 30px rgba(11, 27, 58, 0.15);
+      transform: translateX(100%);
+      transition: transform var(--duration-normal) var(--ease-standard);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-drawer.is-open {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .drawer-title-group h2 {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-ink);
+    }
+
+    .drawer-school-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .btn-close-drawer {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: all var(--duration-fast);
+    }
+
+    .btn-close-drawer:hover {
+      background-color: var(--bg-subtle);
+      color: var(--text-ink);
+    }
+
+    .drawer-body-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .drawer-section-heading {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .drawer-leader-card {
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background-color: var(--bg-subtle);
+      border: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .drawer-stepper-vert {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+
+    .drawer-stepper-vert::before {
+      content: '';
+      position: absolute;
+      top: 14px;
+      bottom: 14px;
+      left: 13px;
+      width: 2px;
+      background-color: var(--border-hairline);
+    }
+
+    .drawer-step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .drawer-step-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-pill);
+      background-color: #FFFFFF;
+      border: 2px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .drawer-step-item.is-completed .drawer-step-circle {
+      border-color: var(--status-done-dot);
+      background-color: #ECFDF3;
+      color: var(--status-done-dot);
+    }
+
+    .drawer-step-item.is-current .drawer-step-circle {
+      border-color: var(--color-brand);
+      background-color: var(--color-brand-tint);
+      color: var(--color-brand);
+    }
+
+    .drawer-deliverable-card {
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-hairline);
+      background-color: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .deliverable-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .deliverable-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-ink);
+    }
+
+    .deliverable-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .drawer-feedback-textarea {
+      width: 100%;
+      height: 90px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-hairline);
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--text-ink);
+      resize: vertical;
+    }
+
+    .drawer-footer-sticky {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-hairline);
+      background-color: var(--bg-canvas);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-approve-solid {
+      flex: 1;
+      height: 42px;
+      border-radius: var(--radius-md);
+      background-color: var(--status-done-dot);
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background var(--duration-fast);
+    }
+
+    .btn-approve-solid:hover {
+      background-color: #15803D;
+    }
+
+    .btn-revision-outline {
+      flex: 1;
+      height: 42px;
+      border-radius: var(--radius-md);
+      border: 1px solid #CBD5E1;
+      color: var(--text-body);
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all var(--duration-fast);
+    }
+
+    .btn-revision-outline:hover {
+      border-color: var(--color-brand);
+      color: var(--color-brand);
+      background-color: var(--color-brand-tint);
+    }
+
+    /* ─── SECTION 6: BULK ACTION BAR ─────────────────────────────────────── */
+    .bulk-action-bar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120px);
+      background-color: var(--text-ink);
+      color: #FFFFFF;
+      padding: 10px 20px;
+      border-radius: var(--radius-pill);
+      box-shadow: var(--shadow-toast);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 45;
+      font-size: 13px;
+      font-weight: 600;
+      transition: transform var(--duration-normal) var(--ease-standard);
+    }
+
+    .bulk-action-bar.is-visible {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .bulk-btn {
+      color: #FFFFFF;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      background-color: rgba(255, 255, 255, 0.12);
+      transition: background var(--duration-fast);
+    }
+
+    .bulk-btn:hover {
+      background-color: rgba(255, 255, 255, 0.22);
+    }
+
+    /* ─── SECTION 7: COMMAND PALETTE (CTRL/CMD+K) ────────────────────────── */
+    .palette-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(11, 27, 58, 0.45);
+      backdrop-filter: blur(4px);
+      z-index: 60;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 15vh;
+    }
+
+    .palette-modal-backdrop.is-open {
+      display: flex;
+    }
+
+    .palette-container {
+      width: 560px;
+      max-width: 90vw;
+      background-color: #FFFFFF;
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-elevation);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: palettePop 150ms var(--ease-standard);
+    }
+
+    @keyframes palettePop {
+      0% { opacity: 0; transform: scale(0.97); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .palette-input-wrap {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .palette-search-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-ink);
+    }
+
+    .palette-search-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .palette-results-list {
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 8px;
+      list-style: none;
+    }
+
+    .palette-group-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      padding: 8px 12px 4px 12px;
+    }
+
+    .palette-result-item {
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .palette-result-item:hover, .palette-result-item.is-focused {
+      background-color: var(--bg-subtle);
+    }
+
+    /* ─── SECTION 8: TOAST NOTIFICATION WITH UNDO PROGRESS ───────────────── */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 70;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast-card {
+      pointer-events: auto;
+      background-color: var(--text-ink);
+      color: #FFFFFF;
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      box-shadow: var(--shadow-toast);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      position: relative;
+      overflow: hidden;
+      animation: toastIn 200ms var(--ease-standard);
+    }
+
+    @keyframes toastIn {
+      0% { opacity: 0; transform: translateY(12px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .toast-undo-btn {
+      color: #F87171;
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .toast-progress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background-color: var(--color-brand);
+      width: 100%;
+      animation: undoProgress 5s linear forwards;
+    }
+
+    @keyframes undoProgress {
+      0% { width: 100%; }
+      100% { width: 0%; }
+    }
+
+    /* Shimmer Skeleton on Initial Load */
+    .skeleton-shimmer {
+      background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 4px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ─── RESPONSIVE BREAKPOINTS (1024px, 768px, 390px) ─────────────────── */
+    @media (max-width: 1200px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .row-pipeline-widgets {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .app-sidebar {
+        width: var(--sidebar-rail-width);
+      }
+      .app-sidebar .brand-details,
+      .app-sidebar .nav-label,
+      .app-sidebar .nav-badge,
+      .app-sidebar .nav-group-title,
+      .app-sidebar .user-info,
+      .app-sidebar .btn-return-home span {
+        display: none !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .app-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+        width: 260px !important;
+        box-shadow: var(--shadow-elevation);
+      }
+      .app-sidebar.mobile-open {
+        transform: translateX(0);
+      }
+      .app-sidebar .brand-details,
+      .app-sidebar .nav-label,
+      .app-sidebar .nav-group-title,
+      .app-sidebar .user-info,
+      .app-sidebar .btn-return-home span {
+        display: block !important;
+      }
+      .mobile-nav-toggle {
+        display: flex;
+      }
+      .topbar-center {
+        display: none;
+      }
+      .dashboard-content {
+        padding: 16px;
+        gap: 16px;
+      }
+      .detail-drawer {
+        width: 100vw;
+      }
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+      .pipeline-container {
+        overflow-x: auto;
+        padding-bottom: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================================
+       APPLICATION SHELL: SIDEBAR + MAIN VIEWPORT
+       ======================================================================== -->
+  <div class="app-shell">
+
+    <!-- ─── SIDEBAR (248px COLLAPSIBLE TO 72px RAIL) ───────────────────────── -->
+    <aside class="app-sidebar" id="appSidebar" aria-label="Navigasi Utama">
+      <!-- Header with Logo "SM" -->
+      <div class="sidebar-header">
+        <div class="brand-mark">
+          <div class="brand-logo-box">SM</div>
+          <div class="brand-details">
+            <span class="brand-name">Skomda Mengajar</span>
+            <span class="brand-badge">Admin Panel</span>
+          </div>
+        </div>
+        <button class="btn-collapse-sidebar" id="btnCollapseSidebar" aria-label="Ciutkan Sidebar" title="Ciutkan Sidebar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Navigation Menu Groups -->
+      <div class="sidebar-nav-container">
+        <!-- Grup Utama -->
+        <div>
+          <div class="nav-group-title">Utama</div>
+          <ul class="nav-list">
+            <li>
+              <a class="nav-item-link" data-route="dashboard" id="navItemDashboard">
+                <div class="nav-left-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                  <span class="nav-label">Dashboard</span>
+                </div>
+              </a>
+            </li>
+            <li>
+              <a class="nav-item-link is-active" data-route="kelompok" id="navItemKelompok">
+                <div class="nav-left-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <span class="nav-label">Kelompok</span>
+                </div>
+              </a>
+            </li>
+            <li>
+              <a class="nav-item-link" data-route="review" id="navItemReview">
+                <div class="nav-left-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg>
+                  <span class="nav-label">Review Berkas</span>
+                </div>
+                <span class="nav-badge badge-amber" id="sidebarReviewBadge">4</span>
+              </a>
+            </li>
+            <li>
+              <a class="nav-item-link" data-route="persiapan" id="navItemPersiapan">
+                <div class="nav-left-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                  <span class="nav-label">Persiapan &amp; Ketua</span>
+                </div>
+                <span class="nav-badge" id="sidebarUnassignedBadge">2</span>
+              </a>
+            </li>
+            <li>
+              <a class="nav-item-link" data-route="feedback" id="navItemFeedback">
+                <div class="nav-left-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <span class="nav-label">Feedback SMP</span>
+                </div>
+              </a>
+            </li>
+            <li>
+              <a class="nav-item-link" data-route="laporan" id="navItemLaporan">
+                <div class="nav-left-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/></svg>
+                  <span class="nav-label">Laporan &amp; Ekspor</span>
+                </div>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Grup Sistem -->
+        <div>
+          <div class="nav-group-title">Sistem</div>
+          <ul class="nav-list">
+            <li>
+              <a class="nav-item-link" data-route="pengaturan">
+                <div class="nav-left-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <span class="nav-label">Pengaturan</span>
+                </div>
+              </a>
+            </li>
+            <li>
+              <a class="nav-item-link" data-route="bantuan">
+                <div class="nav-left-content">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                  <span class="nav-label">Bantuan</span>
+                </div>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Footer: Profil & Kembali ke Beranda -->
+      <div class="sidebar-footer">
+        <div class="user-profile-card">
+          <div class="user-avatar" title="Pak Indra (PI)">PI</div>
+          <div class="user-info">
+            <span class="user-name">Pak Indra</span>
+            <span class="user-role">Koordinator Guru</span>
+          </div>
+        </div>
+        <a href="/" class="btn-return-home" title="Kembali ke Beranda Utama">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          <span>Kembali ke Beranda</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- ─── MAIN VIEWPORT ──────────────────────────────────────────────────── -->
+    <main class="app-main">
+      <!-- Sticky Topbar -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button class="mobile-nav-toggle" id="btnMobileNavToggle" aria-label="Buka Menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="breadcrumb">
+            <span>Skomda Mengajar</span>
+            <span>/</span>
+            <strong>Dashboard Admin</strong>
+          </div>
+        </div>
+
+        <!-- Single Global Search with Ctrl+K Hint -->
+        <div class="topbar-center">
+          <button class="global-search-btn" id="btnOpenGlobalSearch" title="Buka Pencarian Cepat (Ctrl+K)">
+            <div class="search-left-hint">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <span>Cari kelompok, SMP, ketua...</span>
+            </div>
+            <kbd class="search-kbd-hint">Ctrl K</kbd>
+          </button>
+        </div>
+
+        <!-- Sync Chip & Utilities -->
+        <div class="topbar-right">
+          <div class="sync-chip" id="syncStatusChip">
+            <span id="syncStatusText">Tersinkron 2 menit lalu</span>
+            <button class="btn-refresh-sync" id="btnRefreshSync" title="Sinkronkan dengan Google Sheets">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            </button>
+          </div>
+
+          <button class="topbar-icon-btn" id="btnDeadlinePopover" title="Tenggat Jadwal Milestones">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </button>
+
+          <button class="topbar-icon-btn" id="btnNotificationPopover" title="Notifikasi Pengajuan (4)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <span class="icon-badge-dot"></span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Dashboard Body Content -->
+      <div class="dashboard-content">
+
+        <!-- ─── 1) SAMBUTAN & PRIMARY ACTION ───────────────────────────────── -->
+        <section class="welcome-header">
+          <div class="welcome-title-group">
+            <h1>Selamat datang, Pak Indra</h1>
+            <div class="welcome-meta">
+              <span id="currentDateIndo">Rabu, 18 Februari 2026</span>
+              <span>•</span>
+              <span class="welcome-meta-pill">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span id="pendingReviewSummaryCount">4 berkas menunggu review</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Single Crimson Primary Action Button -->
+          <button class="btn-primary" id="btnStartReviewPrimary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span id="labelStartReviewBtn">Mulai Review (4)</span>
+          </button>
+        </section>
+
+        <!-- ─── 2) 4 KPI CARDS (COUNT-UP ANIMATION & FILTER TRIGGER) ──────── -->
+        <section class="kpi-grid" aria-label="Ringkasan Kinerja Kelompok">
+          <!-- KPI 1: Total Kelompok -->
+          <div class="kpi-card kpi-total" data-filter="semua" title="Klik untuk menampilkan semua kelompok">
+            <div class="kpi-card-top">
+              <div class="kpi-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <!-- Mini SVG Sparkline -->
+              <svg class="kpi-sparkline" viewBox="0 0 64 24" fill="none">
+                <path d="M2 18 L16 14 L30 16 L44 8 L62 4" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="kpi-label">Total Kelompok</div>
+              <div class="kpi-number-wrap">
+                <span class="kpi-number tabular-nums" id="kpiTotalNum">24</span>
+                <span class="kpi-subtext">kelompok</span>
+              </div>
+            </div>
+            <span class="kpi-subtext">24 SMP mitra di Sidoarjo</span>
+          </div>
+
+          <!-- KPI 2: Menunggu Review -->
+          <div class="kpi-card kpi-review" data-filter="review" title="Klik untuk memfilter kelompok yang menunggu review">
+            <div class="kpi-card-top">
+              <div class="kpi-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <svg class="kpi-sparkline" viewBox="0 0 64 24" fill="none">
+                <path d="M2 20 L20 18 L38 10 L50 8 L62 4" stroke="#D97706" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="kpi-label">Menunggu Review</div>
+              <div class="kpi-number-wrap">
+                <span class="kpi-number tabular-nums" id="kpiReviewNum">4</span>
+                <span class="kpi-subtext">berkas</span>
+              </div>
+            </div>
+            <span class="kpi-subtext" style="color: var(--status-review-text); font-weight: 600;">Terlama 4 hari lalu</span>
+          </div>
+
+          <!-- KPI 3: Terlambat / Revisi -->
+          <div class="kpi-card kpi-overdue" data-filter="overdue" title="Klik untuk memfilter kelompok yang terlambat atau perlu revisi">
+            <div class="kpi-card-top">
+              <div class="kpi-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <svg class="kpi-sparkline" viewBox="0 0 64 24" fill="none">
+                <path d="M2 8 L22 14 L40 12 L52 18 L62 20" stroke="#DC2626" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="kpi-label">Terlambat / Revisi</div>
+              <div class="kpi-number-wrap">
+                <span class="kpi-number tabular-nums" id="kpiOverdueNum">4</span>
+                <span class="kpi-subtext">kelompok</span>
+              </div>
+            </div>
+            <span class="kpi-subtext" style="color: var(--status-overdue-text); font-weight: 600;">Butuh tindak lanjut WA</span>
+          </div>
+
+          <!-- KPI 4: Belum Ada Ketua -->
+          <div class="kpi-card kpi-unassigned" data-filter="unassigned" title="Klik untuk memfilter kelompok yang belum punya ketua">
+            <div class="kpi-card-top">
+              <div class="kpi-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="8" x2="23" y2="14"/><line x1="23" y1="8" x2="17" y2="14"/></svg>
+              </div>
+              <svg class="kpi-sparkline" viewBox="0 0 64 24" fill="none">
+                <path d="M2 12 L20 12 L40 12 L62 12" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="kpi-label">Belum Ada Ketua</div>
+              <div class="kpi-number-wrap">
+                <span class="kpi-number tabular-nums" id="kpiUnassignedNum">2</span>
+                <span class="kpi-subtext">kelompok</span>
+              </div>
+            </div>
+            <span class="kpi-subtext">Masih di Tahap 02</span>
+          </div>
+        </section>
+
+        <!-- ─── 3) ROW 2: 8/4 GRID (PIPELINE 6 TAHAP & WIDGETS) ────────────── -->
+        <section class="row-pipeline-widgets">
+          <!-- Kiri: Kartu Alur 6 Tahap Skomda Mengajar -->
+          <div class="dashboard-card">
+            <div class="card-header-row">
+              <div>
+                <h2 class="card-title">Posisi Kelompok per Tahap</h2>
+                <span class="card-subtitle-small">Klik pada tahap untuk menyaring daftar kelompok di bawah</span>
+              </div>
+              <span class="badge-progress status-badge">
+                <span class="status-badge-dot"></span>
+                <span>Alur Aktif 2026</span>
+              </span>
+            </div>
+
+            <!-- Pipeline Stepper Track -->
+            <div class="pipeline-container" id="pipelineFlowContainer">
+              <div class="pipeline-track-line"></div>
+              <!-- 6 Nodes injected by JS -->
+            </div>
+          </div>
+
+          <!-- Kanan: Deadline & Aktivitas Terbaru -->
+          <div class="widgets-stack">
+            <!-- Deadline Terdekat -->
+            <div class="deadline-card">
+              <div class="deadline-tag-row">
+                <span class="deadline-chip">Tenggat Terdekat</span>
+                <span class="status-badge badge-overdue" style="padding: 2px 8px; font-size: 11px;">3 hari lagi</span>
+              </div>
+              <h3 class="deadline-title">Tahap 04 - Siapkan Desain</h3>
+              <div class="deadline-date-info">
+                Batas akhir: <strong>Sabtu, 21 Februari 2026</strong>
+              </div>
+            </div>
+
+            <!-- Aktivitas Terbaru -->
+            <div class="activity-feed-card">
+              <h3 class="card-title" style="font-size: 14px;">Aktivitas Terbaru</h3>
+              <ul class="activity-feed-list" id="activityFeedList">
+                <!-- 5 item injected by JS -->
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 4) KARTU UTAMA "DAFTAR KELOMPOK" (TABEL & MATRIKS) ─────────── -->
+        <section class="groups-master-card" id="sectionDaftarKelompok">
+          <!-- Toolbar Atas -->
+          <div class="master-toolbar">
+            <!-- Tab Underline -->
+            <div class="table-tabs-nav" id="tableTabsNav">
+              <button class="tab-btn is-active" data-tab="semua">
+                <span>Semua Kelompok</span>
+                <span class="tab-counter-badge tabular-nums" id="tabCountSemua">24</span>
+              </button>
+              <button class="tab-btn" data-tab="review">
+                <span>Menunggu Review</span>
+                <span class="tab-counter-badge tabular-nums" id="tabCountReview">4</span>
+              </button>
+              <button class="tab-btn" data-tab="overdue">
+                <span>Terlambat / Revisi</span>
+                <span class="tab-counter-badge tabular-nums" id="tabCountOverdue">4</span>
+              </button>
+              <button class="tab-btn" data-tab="unassigned">
+                <span>Belum Ada Ketua</span>
+                <span class="tab-counter-badge tabular-nums" id="tabCountUnassigned">2</span>
+              </button>
+              <div class="tab-sliding-indicator" id="tabSlidingIndicator"></div>
+            </div>
+
+            <!-- Right Actions Toolbar -->
+            <div class="toolbar-actions-group">
+              <!-- View Segmented Toggle -->
+              <div class="view-segmented-toggle">
+                <button class="view-toggle-btn is-active" id="btnViewTable" title="Tampilan Tabel">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                  <span>Tabel</span>
+                </button>
+                <button class="view-toggle-btn" id="btnViewMatrix" title="Tampilan Matriks 24x6">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+                  <span>Matriks</span>
+                </button>
+              </div>
+
+              <!-- Local Live Search with Debounce -->
+              <div class="input-search-wrap">
+                <svg class="input-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="localSearchInput" placeholder="Cari nama, SMP, ketua..." aria-label="Cari di tabel">
+              </div>
+
+              <!-- Filter Popover Button -->
+              <button class="btn-secondary" id="btnFilterPopover">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span>Filter</span>
+              </button>
+
+              <!-- Export Button -->
+              <button class="btn-secondary" id="btnExportData" title="Ekspor data rekapitulasi ke Excel/CSV">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Ekspor</span>
+              </button>
+
+              <!-- Primary Action in Card: Tandai Ketua -->
+              <button class="btn-primary" id="btnAssignLeaderModal" style="padding: 8px 14px; font-size: 12px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Tandai Ketua</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Active Filter Chips (shown when filter applied) -->
+          <div class="active-filter-chips-bar" id="activeFilterChipsBar" style="display: none;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Filter Aktif:</span>
+            <div id="filterChipsContainer" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+            <button class="btn-secondary" id="btnClearAllFilters" style="height: 24px; padding: 0 8px; font-size: 11px; margin-left: auto;">
+              Reset Semua Filter
+            </button>
+          </div>
+
+          <!-- TABLE VIEW -->
+          <div class="table-responsive-wrapper" id="tableViewContainer">
+            <table class="master-data-table density-comfortable" id="masterGroupsTable" role="table">
+              <thead>
+                <tr>
+                  <th style="width: 44px; text-align: center;">
+                    <div class="custom-checkbox" id="thMasterCheckbox" title="Pilih Semua"></div>
+                  </th>
+                  <th class="is-sortable" data-sort="id" style="width: 240px;">
+                    <div class="th-sort-inner">
+                      <span>Kelompok</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+                    </div>
+                  </th>
+                  <th class="is-sortable" data-sort="ketua" style="width: 220px;">
+                    <div class="th-sort-inner">
+                      <span>Ketua Kelompok</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+                    </div>
+                  </th>
+                  <th class="is-sortable" data-sort="tahap" style="width: 230px;">
+                    <div class="th-sort-inner">
+                      <span>Tahap &amp; Progres</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+                    </div>
+                  </th>
+                  <th class="is-sortable" data-sort="menunggu" style="width: 140px;">
+                    <div class="th-sort-inner">
+                      <span>Menunggu Sejak</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+                    </div>
+                  </th>
+                  <th style="width: 160px;">Status</th>
+                  <th style="width: 120px; text-align: right;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="groupsTableBody">
+                <!-- 24 Rows injected by JS -->
+              </tbody>
+            </table>
+
+            <!-- Empty State Container -->
+            <div id="tableEmptyState" style="display: none; padding: 48px 24px; text-align: center;">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" style="margin: 0 auto 12px auto;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <h3 style="font-size: 15px; font-weight: 700; color: var(--text-ink);">Tidak ada kelompok yang cocok</h3>
+              <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Coba ubah kata kunci pencarian atau sesuaikan opsi filter.</p>
+              <button class="btn-secondary" id="btnEmptyReset" style="margin-top: 14px;">Reset Filter</button>
+            </div>
+          </div>
+
+          <!-- MATRIX VIEW (24 BARIS X 6 KOLOM) -->
+          <div class="matrix-wrapper" id="matrixViewContainer">
+            <div class="matrix-legend">
+              <div class="legend-item"><div class="legend-box matrix-cell-done"></div><span>Selesai</span></div>
+              <div class="legend-item"><div class="legend-box matrix-cell-progress"></div><span>Berjalan</span></div>
+              <div class="legend-item"><div class="legend-box matrix-cell-review"></div><span>Menunggu Review</span></div>
+              <div class="legend-item"><div class="legend-box matrix-cell-overdue"></div><span>Terlambat / Revisi</span></div>
+              <div class="legend-item"><div class="legend-box matrix-cell-empty"></div><span>Belum Mulai</span></div>
+            </div>
+            <table class="matrix-grid-table">
+              <thead>
+                <tr>
+                  <th>Kelompok</th>
+                  <th>01 Bentuk Tim</th>
+                  <th>02 Pilih Ketua</th>
+                  <th>03 Susun Modul</th>
+                  <th>04 Siapkan Desain</th>
+                  <th>05 Mengajar SMP</th>
+                  <th>06 Evaluasi &amp; Nilai</th>
+                </tr>
+              </thead>
+              <tbody id="matrixTableBody">
+                <!-- 24 Matrix rows injected by JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Table Footer & Pagination -->
+          <div class="table-footer" id="tableFooterBar">
+            <div id="tableFooterInfo">Menampilkan 1-10 dari 24 kelompok</div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span>Baris per halaman:</span>
+                <select id="selectRowsPerPage" style="border: 1px solid var(--border-hairline); border-radius: var(--radius-sm); padding: 3px 6px; font-size: 12px; background: #fff; outline: none; cursor: pointer;">
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                </select>
+              </div>
+              <div class="pager-controls" id="pagerControls">
+                <!-- Pager buttons injected by JS -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ─── 5) DRAWER DETAIL KELOMPOK (480px SLIDE OVER) ─────────────────────── -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="detail-drawer" id="detailDrawer" aria-label="Detail Kelompok">
+    <!-- Drawer Header -->
+    <div class="drawer-header">
+      <div class="drawer-title-group">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h2 id="drawerGroupIdTitle">KEL-03</h2>
+          <span class="status-badge badge-review" id="drawerStatusBadge">Menunggu Review</span>
+        </div>
+        <div class="drawer-school-sub" id="drawerSchoolSubtitle">SMPN 1 Buduran • Buduran</div>
+      </div>
+      <button class="btn-close-drawer" id="btnCloseDrawer" aria-label="Tutup Panel">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Drawer Body -->
+    <div class="drawer-body-scroll">
+      <!-- Section: Ketua Kelompok -->
+      <div>
+        <div class="drawer-section-heading">Ketua Kelompok &amp; Kontak</div>
+        <div class="drawer-leader-card">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="leader-avatar" id="drawerLeaderAvatar" style="background-color: #D7141F;">NP</div>
+            <div>
+              <div style="font-weight: 700; color: var(--text-ink);" id="drawerLeaderName">Nabila Putri Ramadhani</div>
+              <div style="font-size: 12px; color: var(--text-muted);" class="tabular-nums" id="drawerLeaderPhone">+62 812-3456-7890</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <a href="#" target="_blank" class="btn-wa-round" id="drawerBtnWA" title="Hubungi via WhatsApp">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </a>
+            <button class="btn-secondary" id="drawerBtnCopyPhone" style="height: 26px; padding: 0 8px; font-size: 11px;">Salin</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Berkas Pengajuan yang Menunggu Review -->
+      <div>
+        <div class="drawer-section-heading">Berkas Menunggu Validasi</div>
+        <div class="drawer-deliverable-card" id="drawerDeliverableBox">
+          <div class="deliverable-top">
+            <span class="deliverable-name" id="drawerDeliverableName">X-Banner v2 (SMPN 1 Buduran)</span>
+            <span class="badge-review status-badge" style="padding: 2px 6px; font-size: 10px;">Versi 2</span>
+          </div>
+          <div class="deliverable-meta" id="drawerDeliverableMeta">PDF • 14.8 MB • Diunggah 45 menit lalu</div>
+          <p style="font-size: 12px; color: var(--text-body); background: var(--bg-subtle); padding: 8px 10px; border-radius: var(--radius-sm); margin-top: 4px;" id="drawerStudentNotes">
+            "Revisi tata letak logo SMK Telkom Sidoarjo dan QR Code pendaftaran siswa SMP sudah diperbaiki sesuai panduan."
+          </p>
+          <button class="btn-secondary" id="btnPreviewFileModal" style="margin-top: 6px; justify-content: center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Pratinjau Berkas</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Section: Catatan Revisi / Evaluasi -->
+      <div>
+        <div class="drawer-section-heading">Catatan Evaluasi Guru Pembimbing</div>
+        <textarea class="drawer-feedback-textarea" id="drawerFeedbackNotes" placeholder="Tulis instruksi revisi atau apresiasi berkas..."></textarea>
+      </div>
+
+      <!-- Section: Progres 6 Tahap Kelompok -->
+      <div>
+        <div class="drawer-section-heading">Alur 6 Tahap Pelaksanaan</div>
+        <div class="drawer-stepper-vert" id="drawerVerticalStepper">
+          <!-- 6 vertical steps injected by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Drawer Sticky Footer: Setujui & Minta Revisi -->
+    <div class="drawer-footer-sticky">
+      <button class="btn-revision-outline" id="btnDrawerRequestRevision">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        <span>Minta Revisi</span>
+      </button>
+      <button class="btn-approve-solid" id="btnDrawerApprove">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>Setujui Berkas</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ─── 6) FLOATING BULK ACTION BAR ──────────────────────────────────────── -->
+  <div class="bulk-action-bar" id="bulkActionBar">
+    <span id="bulkSelectedCountText">2 kelompok dipilih</span>
+    <button class="bulk-btn" id="btnBulkApprove">Setujui Semua</button>
+    <button class="bulk-btn" id="btnBulkReminder">Kirim Pengingat WA</button>
+    <button class="bulk-btn" id="btnBulkExport">Ekspor</button>
+    <button class="bulk-btn" id="btnBulkCancel" style="background: none; text-decoration: underline;">Batal</button>
+  </div>
+
+  <!-- ─── 7) COMMAND PALETTE MODAL (CTRL+K) ────────────────────────────────── -->
+  <div class="palette-modal-backdrop" id="paletteBackdrop">
+    <div class="palette-container" role="dialog" aria-modal="true">
+      <div class="palette-input-wrap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="palette-search-input" id="paletteSearchInput" placeholder="Ketik nomor kelompok (contoh: KEL-03) atau nama SMP...">
+        <kbd class="search-kbd-hint">ESC</kbd>
+      </div>
+      <ul class="palette-results-list" id="paletteResultsList">
+        <!-- Palette items injected by JS -->
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─── 8) TOAST CONTAINER WITH UNDO ─────────────────────────────────────── -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ========================================================================
+       JAVASCRIPT: MODULAR, STANDALONE, ZERO-BUILD
+       ======================================================================== -->
+  <script>
+    /**
+     * @license
+     * Skomda Mengajar 2026 — SMK Telkom Sidoarjo
+     * Dashboard Admin & Koordinator (Pak Indra)
+     */
+
+    // ─── 1. DATA SOURCE (24 AUTHENTIC GROUPS) ───────────────────────────────
+    // Catatan: KEL-03 identik dengan data beranda siswa (Tahap 04, 4/6 tugas, SMPN 1 Buduran)
+    const INITIAL_GROUPS = [
+      {
+        id: 'KEL-03',
+        number: '03',
+        smp: 'SMPN 1 Buduran',
+        kecamatan: 'Buduran',
+        ketua: 'Nabila Putri Ramadhani',
+        wa: '6281234567890',
+        jumlahSiswa: 5,
+        tahap: 4,
+        tahapName: '04 Siapkan Desain',
+        tugasSelesai: 4,
+        tugasTotal: 6,
+        status: 'menunggu', // menunggu | terlambat | berjalan | selesai | belumKetua
+        menungguSejak: '2 jam lalu',
+        menungguHari: 0,
+        berkas: [{ nama: 'X-Banner_SMPN1Buduran_v2.pdf', ukuran: '14.8 MB', waktu: '45 menit lalu', versi: 'v2' }],
+        diperbaruiPada: 'Hari ini, 13:45'
+      },
+      {
+        id: 'KEL-02',
+        number: '02',
+        smp: 'SMPN 1 Waru',
+        kecamatan: 'Waru',
+        ketua: 'Dimas Bagus Wicaksono',
+        wa: '6281388991122',
+        jumlahSiswa: 6,
+        tahap: 3,
+        tahapName: '03 Susun Modul',
+        tugasSelesai: 5,
+        tugasTotal: 5,
+        status: 'menunggu',
+        menungguSejak: '2 hari lalu',
+        menungguHari: 2,
+        berkas: [{ nama: 'RPP_Informatika_Waru.pdf', ukuran: '2.1 MB', waktu: '2 hari lalu', versi: 'v2' }],
+        diperbaruiPada: 'Kemarin, 11:20'
+      },
+      {
+        id: 'KEL-06',
+        number: '06',
+        smp: 'SMPN 1 Tulangan',
+        kecamatan: 'Tulangan',
+        ketua: 'Bagus Pratama Putra',
+        wa: '6282144556677',
+        jumlahSiswa: 6,
+        tahap: 4,
+        tahapName: '04 Siapkan Desain',
+        tugasSelesai: 3,
+        tugasTotal: 6,
+        status: 'menunggu',
+        menungguSejak: '3 hari lalu',
+        menungguHari: 3,
+        berkas: [{ nama: 'Draf_Infografis_Materi.pptx', ukuran: '7.5 MB', waktu: '3 hari lalu', versi: 'v2' }],
+        diperbaruiPada: '15 Feb 2026'
+      },
+      {
+        id: 'KEL-12',
+        number: '12',
+        smp: 'SMPN 2 Taman',
+        kecamatan: 'Taman',
+        ketua: 'Kevin Alamsyah',
+        wa: '6285733221100',
+        jumlahSiswa: 6,
+        tahap: 4,
+        tahapName: '04 Siapkan Desain',
+        tugasSelesai: 2,
+        tugasTotal: 6,
+        status: 'menunggu',
+        menungguSejak: '4 hari lalu',
+        menungguHari: 4, // >3 hari = peringatan merah
+        berkas: [{ nama: 'Slide_Canva_WebDasar.pdf', ukuran: '9.3 MB', waktu: '4 hari lalu', versi: 'v2' }],
+        diperbaruiPada: '14 Feb 2026'
+      },
+      // 4 Kelompok Terlambat
+      {
+        id: 'KEL-04',
+        number: '04',
+        smp: 'SMPN 2 Krian',
+        kecamatan: 'Krian',
+        ketua: 'Siti Nurhaliza',
+        wa: '6282233445566',
+        jumlahSiswa: 5,
+        tahap: 3,
+        tahapName: '03 Susun Modul',
+        tugasSelesai: 2,
+        tugasTotal: 5,
+        status: 'terlambat',
+        menungguSejak: '4 hari lalu',
+        menungguHari: 4,
+        berkas: [],
+        diperbaruiPada: '14 Feb 2026'
+      },
+      {
+        id: 'KEL-07',
+        number: '07',
+        smp: 'SMP Telkom Sidoarjo',
+        kecamatan: 'Sidoarjo',
+        ketua: 'Fahri Ramadhan',
+        wa: '6281977889900',
+        jumlahSiswa: 6,
+        tahap: 4,
+        tahapName: '04 Siapkan Desain',
+        tugasSelesai: 2,
+        tugasTotal: 6,
+        status: 'terlambat',
+        menungguSejak: '2 hari lalu',
+        menungguHari: 2,
+        berkas: [],
+        diperbaruiPada: '16 Feb 2026'
+      },
+      {
+        id: 'KEL-09',
+        number: '09',
+        smp: 'SMPN 1 Taman',
+        kecamatan: 'Taman',
+        ketua: 'Rian Hidayat',
+        wa: '6285611223344',
+        jumlahSiswa: 5,
+        tahap: 3,
+        tahapName: '03 Susun Modul',
+        tugasSelesai: 1,
+        tugasTotal: 5,
+        status: 'terlambat',
+        menungguSejak: '5 hari lalu',
+        menungguHari: 5,
+        berkas: [],
+        diperbaruiPada: '13 Feb 2026'
+      },
+      {
+        id: 'KEL-05',
+        number: '05',
+        smp: 'SMPN 2 Candi',
+        kecamatan: 'Candi',
+        ketua: 'Dewi Maharani',
+        wa: '6287855667788',
+        jumlahSiswa: 5,
+        tahap: 3,
+        tahapName: '03 Susun Modul',
+        tugasSelesai: 2,
+        tugasTotal: 5,
+        status: 'terlambat',
+        menungguSejak: '1 hari lalu',
+        menungguHari: 1,
+        berkas: [],
+        diperbaruiPada: 'Kemarin'
+      },
+      // 2 Kelompok Belum Ada Ketua
+      {
+        id: 'KEL-23',
+        number: '23',
+        smp: 'SMPN 2 Sedati',
+        kecamatan: 'Sedati',
+        ketua: '—',
+        wa: '',
+        jumlahSiswa: 6,
+        tahap: 2,
+        tahapName: '02 Pilih Ketua',
+        tugasSelesai: 0,
+        tugasTotal: 3,
+        status: 'belumKetua',
+        menungguSejak: '6 hari lalu',
+        menungguHari: 6,
+        berkas: [],
+        diperbaruiPada: '12 Feb 2026'
+      },
+      {
+        id: 'KEL-24',
+        number: '24',
+        smp: 'SMPN 4 Sidoarjo',
+        kecamatan: 'Sidoarjo',
+        ketua: '—',
+        wa: '',
+        jumlahSiswa: 6,
+        tahap: 2,
+        tahapName: '02 Pilih Ketua',
+        tugasSelesai: 0,
+        tugasTotal: 3,
+        status: 'belumKetua',
+        menungguSejak: '6 hari lalu',
+        menungguHari: 6,
+        berkas: [],
+        diperbaruiPada: '12 Feb 2026'
+      },
+      // 14 Kelompok Berjalan / Selesai
+      {
+        id: 'KEL-01', number: '01', smp: 'SMPN 1 Sidoarjo', kecamatan: 'Sidoarjo',
+        ketua: 'Rafli Akbar Pratama', wa: '6281122334455', jumlahSiswa: 5,
+        tahap: 4, tahapName: '04 Siapkan Desain', tugasSelesai: 5, tugasTotal: 6,
+        status: 'berjalan', menungguSejak: 'Kemarin', menungguHari: 1, berkas: [], diperbaruiPada: 'Kemarin'
+      },
+      {
+        id: 'KEL-08', number: '08', smp: 'SMPN 2 Sukodono', kecamatan: 'Sukodono',
+        ketua: 'Putri Ayu Wandira', wa: '6281377665544', jumlahSiswa: 5,
+        tahap: 4, tahapName: '04 Siapkan Desain', tugasSelesai: 5, tugasTotal: 6,
+        status: 'berjalan', menungguSejak: 'Kemarin', menungguHari: 1, berkas: [], diperbaruiPada: 'Kemarin'
+      },
+      {
+        id: 'KEL-10', number: '10', smp: 'SMP Hang Tuah 5', kecamatan: 'Candi',
+        ketua: 'Kevin Sanjaya', wa: '6285299887766', jumlahSiswa: 5,
+        tahap: 4, tahapName: '04 Siapkan Desain', tugasSelesai: 4, tugasTotal: 6,
+        status: 'berjalan', menungguSejak: 'Kemarin', menungguHari: 1, berkas: [], diperbaruiPada: 'Kemarin'
+      },
+      {
+        id: 'KEL-11', number: '11', smp: 'SMPN 3 Porong', kecamatan: 'Porong',
+        ketua: 'Zidan Maulana', wa: '6282311447788', jumlahSiswa: 5,
+        tahap: 4, tahapName: '04 Siapkan Desain', tugasSelesai: 4, tugasTotal: 6,
+        status: 'berjalan', menungguSejak: 'Kemarin', menungguHari: 1, berkas: [], diperbaruiPada: 'Kemarin'
+      },
+      {
+        id: 'KEL-13', number: '13', smp: 'SMP Proklamasi Porong', kecamatan: 'Porong',
+        ketua: 'Aulia Rahman', wa: '6289533445566', jumlahSiswa: 5,
+        tahap: 4, tahapName: '04 Siapkan Desain', tugasSelesai: 4, tugasTotal: 6,
+        status: 'berjalan', menungguSejak: 'Kemarin', menungguHari: 1, berkas: [], diperbaruiPada: 'Kemarin'
+      },
+      {
+        id: 'KEL-14', number: '14', smp: 'SMPN 1 Sedati', kecamatan: 'Sedati',
+        ketua: 'Anisa Rahmawati', wa: '6281277882233', jumlahSiswa: 5,
+        tahap: 5, tahapName: '05 Mengajar SMP', tugasSelesai: 1, tugasTotal: 4,
+        status: 'berjalan', menungguSejak: 'Kemarin', menungguHari: 1, berkas: [], diperbaruiPada: 'Kemarin'
+      },
+      {
+        id: 'KEL-15', number: '15', smp: 'SMPN 2 Gedangan', kecamatan: 'Gedangan',
+        ketua: 'Rizal Fauzi', wa: '6281344559900', jumlahSiswa: 5,
+        tahap: 5, tahapName: '05 Mengajar SMP', tugasSelesai: 2, tugasTotal: 4,
+        status: 'berjalan', menungguSejak: 'Kemarin', menungguHari: 1, berkas: [], diperbaruiPada: 'Kemarin'
+      },
+      {
+        id: 'KEL-16', number: '16', smp: 'SMP PGRI 1 Buduran', kecamatan: 'Buduran',
+        ketua: 'Doni Firmansyah', wa: '6285866778899', jumlahSiswa: 5,
+        tahap: 5, tahapName: '05 Mengajar SMP', tugasSelesai: 2, tugasTotal: 4,
+        status: 'berjalan', menungguSejak: 'Kemarin', menungguHari: 1, berkas: [], diperbaruiPada: 'Kemarin'
+      },
+      {
+        id: 'KEL-17', number: '17', smp: 'SMPN 1 Krembung', kecamatan: 'Krembung',
+        ketua: 'Fandi Ahmad', wa: '6281299001122', jumlahSiswa: 5,
+        tahap: 5, tahapName: '05 Mengajar SMP', tugasSelesai: 3, tugasTotal: 4,
+        status: 'berjalan', menungguSejak: 'Kemarin', menungguHari: 1, berkas: [], diperbaruiPada: 'Kemarin'
+      },
+      {
+        id: 'KEL-18', number: '18', smp: 'SMPN 2 Porong', kecamatan: 'Porong',
+        ketua: 'Hendra Setiawan', wa: '6282133448899', jumlahSiswa: 5,
+        tahap: 6, tahapName: '06 Evaluasi & Nilai', tugasSelesai: 4, tugasTotal: 4,
+        status: 'selesai', menungguSejak: '2 hari lalu', menungguHari: 2, berkas: [], diperbaruiPada: '16 Feb 2026'
+      },
+      {
+        id: 'KEL-19', number: '19', smp: 'SMPN 1 Tarik', kecamatan: 'Tarik',
+        ketua: 'Indra Djati', wa: '6285744332211', jumlahSiswa: 5,
+        tahap: 6, tahapName: '06 Evaluasi & Nilai', tugasSelesai: 4, tugasTotal: 4,
+        status: 'selesai', menungguSejak: '3 hari lalu', menungguHari: 3, berkas: [], diperbaruiPada: '15 Feb 2026'
+      },
+      {
+        id: 'KEL-20', number: '20', smp: 'SMPN 2 Prambon', kecamatan: 'Prambon',
+        ketua: 'Joko Anwar', wa: '6281322119988', jumlahSiswa: 5,
+        tahap: 3, tahapName: '03 Susun Modul', tugasSelesai: 4, tugasTotal: 5,
+        status: 'berjalan', menungguSejak: 'Kemarin', menungguHari: 1, berkas: [], diperbaruiPada: 'Kemarin'
+      },
+      {
+        id: 'KEL-21', number: '21', smp: 'SMP Muhammadiyah 1', kecamatan: 'Sidoarjo',
+        ketua: 'Kiki Narendra', wa: '6287811224455', jumlahSiswa: 5,
+        tahap: 3, tahapName: '03 Susun Modul', tugasSelesai: 4, tugasTotal: 5,
+        status: 'berjalan', menungguSejak: 'Kemarin', menungguHari: 1, berkas: [], diperbaruiPada: 'Kemarin'
+      },
+      {
+        id: 'KEL-22', number: '22', smp: 'SMP YPM 1 Taman', kecamatan: 'Taman',
+        ketua: 'Lukman Sardi', wa: '6281244668800', jumlahSiswa: 5,
+        tahap: 4, tahapName: '04 Siapkan Desain', tugasSelesai: 3, tugasTotal: 6,
+        status: 'berjalan', menungguSejak: 'Kemarin', menungguHari: 1, berkas: [], diperbaruiPada: 'Kemarin'
+      }
+    ];
+
+    const STAGES_LIST = [
+      { id: 1, no: '01', name: 'Bentuk Tim' },
+      { id: 2, no: '02', name: 'Pilih Ketua' },
+      { id: 3, no: '03', name: 'Susun Modul' },
+      { id: 4, no: '04', name: 'Siapkan Desain' },
+      { id: 5, no: '05', name: 'Mengajar SMP' },
+      { id: 6, no: '06', name: 'Evaluasi & Nilai' }
+    ];
+
+    /**
+     * Simulasi koneksi Google Apps Script Web App
+     * GANTI URL_APPS_SCRIPT di bawah ini saat menghubungkan ke spreadsheet riil.
+     */
+    async function fetchGroupsFromAppsScript() {
+      // return fetch('https://script.google.com/macros/s/AKfycbx.../exec').then(res => res.json());
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(JSON.parse(JSON.stringify(INITIAL_GROUPS)));
+        }, 300);
+      });
+    }
+
+    // ─── 2. GLOBAL APPLICATION STATE ────────────────────────────────────────
+    let groupsState = [...INITIAL_GROUPS];
+    let selectedGroupIds = new Set();
+    let currentTab = 'semua'; // 'semua' | 'review' | 'overdue' | 'unassigned'
+    let currentSearchTerm = '';
+    let currentFilterStage = null;
+    let currentSortColumn = 'id';
+    let currentSortDirection = 'asc';
+    let currentViewMode = 'table'; // 'table' | 'matrix'
+    let currentPage = 1;
+    let rowsPerPage = 10;
+    let activeDrawerGroup = null;
+    let lastUndoneAction = null;
+
+    // ─── 3. INITIALIZATION ──────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+      formatCurrentDate();
+      initSidebar();
+      initGlobalShortcuts();
+      initTabs();
+      initSearch();
+      initTableSorting();
+      initDrawer();
+      initBulkActionBar();
+      initCommandPalette();
+      initSyncButton();
+
+      // Load initial data
+      groupsState = await fetchGroupsFromAppsScript();
+      renderAll();
+    });
+
+    function formatCurrentDate() {
+      const el = document.getElementById('currentDateIndo');
+      if (el) {
+        const now = new Date();
+        const formatted = new Intl.DateTimeFormat('id-ID', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        }).format(now);
+        el.textContent = formatted;
+      }
+    }
+
+    // ─── 4. RENDER ORCHESTRATOR ─────────────────────────────────────────────
+    function renderAll() {
+      renderKPI();
+      renderPipeline();
+      renderRecentActivity();
+      renderTable();
+      renderMatrix();
+      updateTabBadges();
+      updateSidebarBadges();
+    }
+
+    // ─── 5. KPI COMPUTATION & COUNT-UP ANIMATION ────────────────────────────
+    function renderKPI() {
+      const total = groupsState.length;
+      const review = groupsState.filter(g => g.status === 'menunggu').length;
+      const overdue = groupsState.filter(g => g.status === 'terlambat').length;
+      const unassigned = groupsState.filter(g => g.status === 'belumKetua').length;
+
+      animateCountUp('kpiTotalNum', total);
+      animateCountUp('kpiReviewNum', review);
+      animateCountUp('kpiOverdueNum', overdue);
+      animateCountUp('kpiUnassignedNum', unassigned);
+
+      // Primary button label in header
+      const labelBtn = document.getElementById('labelStartReviewBtn');
+      if (labelBtn) {
+        labelBtn.textContent = `Mulai Review (${review})`;
+      }
+      const summaryMeta = document.getElementById('pendingReviewSummaryCount');
+      if (summaryMeta) {
+        summaryMeta.textContent = `${review} berkas menunggu review`;
+      }
+    }
+
+    function animateCountUp(elementId, targetValue) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      const start = parseInt(el.textContent, 10) || 0;
+      if (start === targetValue) {
+        el.textContent = targetValue;
+        return;
+      }
+      const duration = 800;
+      const startTime = performance.now();
+
+      function update(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // easeOutExpo
+        const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+        const current = Math.round(start + (targetValue - start) * ease);
+        el.textContent = current;
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        } else {
+          el.textContent = targetValue;
+        }
+      }
+      requestAnimationFrame(update);
+    }
+
+    // ─── 6. PIPELINE 6 TAHAP RENDERING ──────────────────────────────────────
+    function renderPipeline() {
+      const container = document.getElementById('pipelineFlowContainer');
+      if (!container) return;
+
+      const track = container.querySelector('.pipeline-track-line');
+      container.innerHTML = '';
+      if (track) container.appendChild(track);
+
+      STAGES_LIST.forEach((stg) => {
+        const inStage = groupsState.filter(g => g.tahap === stg.id);
+        const count = inStage.length;
+        const countDone = inStage.filter(g => g.status === 'selesai').length;
+        const countOverdue = inStage.filter(g => g.status === 'terlambat').length;
+        const countProgress = inStage.filter(g => g.status === 'berjalan' || g.status === 'menunggu').length;
+
+        const node = document.createElement('div');
+        node.className = `pipeline-step-node ${currentFilterStage === stg.id ? 'is-active' : ''}`;
+        node.title = `${stg.no} ${stg.name}: ${count} kelompok`;
+        node.onclick = () => {
+          if (currentFilterStage === stg.id) {
+            currentFilterStage = null;
+          } else {
+            currentFilterStage = stg.id;
+          }
+          renderPipeline();
+          renderTable();
+          renderMatrix();
+          updateFilterChips();
+        };
+
+        const totalWidth = 60;
+        const pctDone = count > 0 ? (countDone / count) * 100 : 0;
+        const pctProg = count > 0 ? (countProgress / count) * 100 : 0;
+        const pctOver = count > 0 ? (countOverdue / count) * 100 : 0;
+
+        node.innerHTML = `
+          <div class="step-circle-badge tabular-nums">${count}</div>
+          <span class="step-index-label">${stg.no}</span>
+          <span class="step-name-label">${stg.name}</span>
+          <div class="step-mini-bars">
+            <div class="bar-seg-done" style="width: ${pctDone}%;"></div>
+            <div class="bar-seg-progress" style="width: ${pctProg}%;"></div>
+            <div class="bar-seg-overdue" style="width: ${pctOver}%;"></div>
+          </div>
+        `;
+        container.appendChild(node);
+      });
+    }
+
+    // ─── 7. RECENT ACTIVITY LIST ────────────────────────────────────────────
+    function renderRecentActivity() {
+      const list = document.getElementById('activityFeedList');
+      if (!list) return;
+
+      const activities = [
+        { group: 'KEL-03', text: 'mengunggah X-Banner v2', time: '45m lalu', icon: 'file' },
+        { group: 'KEL-02', text: 'mengajukan RPP modul ajar', time: '2j lalu', icon: 'file' },
+        { group: 'KEL-06', text: 'memperbarui draf infografis', time: '3j lalu', icon: 'file' },
+        { group: 'KEL-12', text: 'mengunggah slide Canva', time: '4j lalu', icon: 'file' },
+        { group: 'Pak Indra', text: 'menyetujui modul KEL-01', time: 'Kemarin', icon: 'check' }
+      ];
+
+      list.innerHTML = activities.map(act => `
+        <li class="activity-item">
+          <div class="activity-dot-icon">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              ${act.icon === 'check' ? '<polyline points="20 6 9 17 4 12"/>' : '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'}
+            </svg>
+          </div>
+          <div class="activity-text-wrap">
+            <strong>${act.group}</strong> ${act.text}
+          </div>
+          <span class="activity-timestamp">${act.time}</span>
+        </li>
+      `).join('');
+    }
+
+    // ─── 8. FILTERING, SORTING & TABLE RENDERING ────────────────────────────
+    function getFilteredGroups() {
+      return groupsState.filter(grp => {
+        // Tab filter
+        if (currentTab === 'review' && grp.status !== 'menunggu') return false;
+        if (currentTab === 'overdue' && grp.status !== 'terlambat') return false;
+        if (currentTab === 'unassigned' && grp.status !== 'belumKetua') return false;
+
+        // Stage filter
+        if (currentFilterStage !== null && grp.tahap !== currentFilterStage) return false;
+
+        // Search filter (ID, SMP, Kecamatan, Ketua)
+        if (currentSearchTerm.trim()) {
+          const q = currentSearchTerm.toLowerCase();
+          const match =
+            grp.id.toLowerCase().includes(q) ||
+            grp.smp.toLowerCase().includes(q) ||
+            grp.kecamatan.toLowerCase().includes(q) ||
+            grp.ketua.toLowerCase().includes(q);
+          if (!match) return false;
+        }
+
+        return true;
+      });
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('groupsTableBody');
+      const emptyState = document.getElementById('tableEmptyState');
+      const footer = document.getElementById('tableFooterBar');
+      if (!tbody) return;
+
+      const filtered = getFilteredGroups();
+
+      // Sort
+      filtered.sort((a, b) => {
+        let valA = a[currentSortColumn];
+        let valB = b[currentSortColumn];
+        if (typeof valA === 'string') valA = valA.toLowerCase();
+        if (typeof valB === 'string') valB = valB.toLowerCase();
+        if (valA < valB) return currentSortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return currentSortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyState) emptyState.style.display = 'block';
+        if (footer) footer.style.display = 'none';
+        return;
+      }
+
+      if (emptyState) emptyState.style.display = 'none';
+      if (footer) footer.style.display = 'flex';
+
+      // Pagination slice
+      const totalItems = filtered.length;
+      const totalPages = Math.ceil(totalItems / rowsPerPage);
+      if (currentPage > totalPages) currentPage = 1;
+
+      const startIndex = (currentPage - 1) * rowsPerPage;
+      const pageSlice = filtered.slice(startIndex, startIndex + rowsPerPage);
+
+      // Render Rows
+      tbody.innerHTML = pageSlice.map(grp => {
+        const isSelected = selectedGroupIds.has(grp.id);
+        const isMenunggu = grp.status === 'menunggu';
+        const isOverdue = grp.status === 'terlambat';
+        const isBelumKetua = grp.status === 'belumKetua';
+        const isSelesai = grp.status === 'selesai';
+
+        // Status Badge markup
+        let statusBadgeClass = 'badge-progress';
+        let statusLabel = 'Berjalan';
+        if (isMenunggu) { statusBadgeClass = 'badge-review'; statusLabel = 'Menunggu Review'; }
+        else if (isOverdue) { statusBadgeClass = 'badge-overdue'; statusLabel = 'Terlambat'; }
+        else if (isBelumKetua) { statusBadgeClass = 'badge-unassigned'; statusLabel = 'Belum Ada Ketua'; }
+        else if (isSelesai) { statusBadgeClass = 'badge-done'; statusLabel = 'Selesai'; }
+
+        // Avatar Initial & Color
+        const initial = grp.ketua && grp.ketua !== '—'
+          ? grp.ketua.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+          : '—';
+        const avatarBg = isMenunggu ? '#D97706' : isOverdue ? '#DC2626' : isBelumKetua ? '#94A3B8' : '#2563EB';
+
+        // WhatsApp button or placeholder
+        const waButton = grp.wa ? `
+          <a href="https://wa.me/${grp.wa}?text=Halo%20Ketua%20${encodeURIComponent(grp.id)}%20(${encodeURIComponent(grp.smp)})..."
+             target="_blank" class="btn-wa-round" title="WhatsApp Ketua (${grp.wa})" onclick="event.stopPropagation();">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </a>
+        ` : '';
+
+        // 6-step dots indicator
+        const dotsMarkup = [1, 2, 3, 4, 5, 6].map(stgNo => {
+          let dotClass = 'mini-stepper-dot';
+          if (stgNo < grp.tahap) dotClass += ' is-completed';
+          else if (stgNo === grp.tahap) dotClass += ' is-current';
+          return `<span class="${dotClass}"></span>`;
+        }).join('');
+
+        // Menunggu sejak text color
+        const waitTextColor = (grp.menungguHari > 3) ? 'color: var(--status-overdue-dot); font-weight: 700;' : '';
+
+        return `
+          <tr class="${isSelected ? 'is-selected' : ''}" onclick="openGroupDrawer('${grp.id}')">
+            <!-- Checkbox -->
+            <td style="text-align: center;" onclick="event.stopPropagation();">
+              <div class="custom-checkbox ${isSelected ? 'is-checked' : ''}" onclick="toggleRowSelection('${grp.id}')">
+                ${isSelected ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+              </div>
+            </td>
+
+            <!-- Kelompok & SMP -->
+            <td>
+              <div class="group-ident">
+                <span class="group-code">${highlightMatch(grp.id)}</span>
+                <span class="group-school">${highlightMatch(grp.smp)}</span>
+                <span class="group-students-sub">${grp.jumlahSiswa} siswa • ${grp.kecamatan}</span>
+              </div>
+            </td>
+
+            <!-- Ketua & WA -->
+            <td>
+              <div class="leader-cell">
+                <div class="leader-avatar" style="background-color: ${avatarBg};">${initial}</div>
+                <div class="leader-name-wrap">
+                  <span class="leader-name-text">${highlightMatch(grp.ketua)}</span>
+                  ${grp.wa ? `<span class="tabular-nums" style="font-size: 11px; color: var(--text-muted);">+${grp.wa}</span>` : '<span style="font-size: 11px; color: var(--status-review-text);">Belum ditentukan</span>'}
+                </div>
+                ${waButton}
+              </div>
+            </td>
+
+            <!-- Tahap & Progres Stepper -->
+            <td>
+              <div class="stage-progress-cell">
+                <div class="stepper-dots-row">${dotsMarkup}</div>
+                <span class="stage-title-text">${grp.tahapName}</span>
+                <span class="stage-tasks-text tabular-nums">${grp.tugasSelesai}/${grp.tugasTotal} tugas selesai</span>
+              </div>
+            </td>
+
+            <!-- Menunggu Sejak -->
+            <td style="${waitTextColor}">
+              <span class="tabular-nums">${grp.menungguSejak}</span>
+            </td>
+
+            <!-- Status Badge (dot + text) -->
+            <td>
+              <span class="status-badge ${statusBadgeClass}">
+                <span class="status-badge-dot"></span>
+                <span>${statusLabel}</span>
+              </span>
+            </td>
+
+            <!-- Aksi Kolom -->
+            <td onclick="event.stopPropagation();">
+              <div class="row-actions-cell">
+                ${isMenunggu ? `
+                  <button class="btn-row-action btn-review-outline" onclick="openGroupDrawer('${grp.id}')">Review</button>
+                ` : `
+                  <button class="btn-row-action btn-view-ghost" onclick="openGroupDrawer('${grp.id}')">Lihat</button>
+                `}
+                <button class="btn-kebab-menu" onclick="openKebabMenu('${grp.id}', event)" title="Menu opsi">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Update Pagination Footer Info
+      const startNum = startIndex + 1;
+      const endNum = Math.min(startIndex + rowsPerPage, totalItems);
+      const footerInfo = document.getElementById('tableFooterInfo');
+      if (footerInfo) {
+        footerInfo.textContent = `Menampilkan ${startNum}-${endNum} dari ${totalItems} kelompok`;
+      }
+
+      renderPager(totalPages);
+    }
+
+    function renderPager(totalPages) {
+      const container = document.getElementById('pagerControls');
+      if (!container) return;
+
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = `
+        <button class="btn-pager" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+      `;
+
+      for (let i = 1; i <= totalPages; i++) {
+        html += `
+          <button class="btn-pager ${i === currentPage ? 'is-current' : ''}" onclick="changePage(${i})">${i}</button>
+        `;
+      }
+
+      html += `
+        <button class="btn-pager" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      `;
+      container.innerHTML = html;
+    }
+
+    function changePage(newPage) {
+      currentPage = newPage;
+      renderTable();
+    }
+
+    function highlightMatch(text) {
+      if (!text || !currentSearchTerm.trim()) return text;
+      const q = currentSearchTerm.trim();
+      const regex = new RegExp(`(${q})`, 'gi');
+      return text.replace(regex, '<mark style="background-color: #FEF08A; color: inherit; padding: 0 1px; border-radius: 2px;">$1</mark>');
+    }
+
+    // ─── 9. MATRIX VIEW (24 BARIS X 6 KOLOM) ────────────────────────────────
+    function renderMatrix() {
+      const tbody = document.getElementById('matrixTableBody');
+      if (!tbody) return;
+
+      const filtered = getFilteredGroups();
+
+      tbody.innerHTML = filtered.map(grp => {
+        const stageCells = [1, 2, 3, 4, 5, 6].map(stgNo => {
+          let cellClass = 'matrix-cell-empty';
+          let cellTitle = `${grp.id} - Tahap ${stgNo} belum dimulai`;
+
+          if (stgNo < grp.tahap) {
+            cellClass = 'matrix-cell-done';
+            cellTitle = `${grp.id} - Tahap ${stgNo}: Selesai`;
+          } else if (stgNo === grp.tahap) {
+            if (grp.status === 'menunggu') {
+              cellClass = 'matrix-cell-review';
+              cellTitle = `${grp.id} - ${grp.tahapName}: Menunggu Review (${grp.tugasSelesai}/${grp.tugasTotal})`;
+            } else if (grp.status === 'terlambat') {
+              cellClass = 'matrix-cell-overdue';
+              cellTitle = `${grp.id} - ${grp.tahapName}: Terlambat (${grp.menungguSejak})`;
+            } else if (grp.status === 'selesai') {
+              cellClass = 'matrix-cell-done';
+              cellTitle = `${grp.id} - ${grp.tahapName}: Selesai`;
+            } else {
+              cellClass = 'matrix-cell-progress';
+              cellTitle = `${grp.id} - ${grp.tahapName}: Berjalan (${grp.tugasSelesai}/${grp.tugasTotal})`;
+            }
+          }
+
+          return `
+            <td>
+              <div class="matrix-cell-node ${cellClass}" title="${cellTitle}" onclick="openGroupDrawer('${grp.id}')"></div>
+            </td>
+          `;
+        }).join('');
+
+        return `
+          <tr>
+            <td>
+              <strong>${grp.id}</strong>
+              <div style="font-size: 11px; color: var(--text-muted);">${grp.smp}</div>
+            </td>
+            ${stageCells}
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ─── 10. TABS & FILTER CHIPS ────────────────────────────────────────────
+    function initTabs() {
+      const tabs = document.querySelectorAll('.tab-btn');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('is-active'));
+          tab.classList.add('is-active');
+          currentTab = tab.getAttribute('data-tab');
+          currentPage = 1;
+          renderTable();
+          renderMatrix();
+          updateTabSlidingIndicator();
+        });
+      });
+      setTimeout(updateTabSlidingIndicator, 100);
+
+      // KPI card click triggers tab & smooth scroll
+      document.querySelectorAll('.kpi-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const filter = card.getAttribute('data-filter');
+          const targetTab = document.querySelector(`.tab-btn[data-tab="${filter}"]`);
+          if (targetTab) {
+            targetTab.click();
+            document.getElementById('sectionDaftarKelompok').scrollIntoView({ behavior: 'smooth' });
+          }
+        });
+      });
+
+      // View toggle (Tabel vs Matriks)
+      const btnTable = document.getElementById('btnViewTable');
+      const btnMatrix = document.getElementById('btnViewMatrix');
+      const tableWrap = document.getElementById('tableViewContainer');
+      const matrixWrap = document.getElementById('matrixViewContainer');
+      const footer = document.getElementById('tableFooterBar');
+
+      if (btnTable && btnMatrix) {
+        btnTable.onclick = () => {
+          btnTable.classList.add('is-active');
+          btnMatrix.classList.remove('is-active');
+          tableWrap.style.display = 'block';
+          matrixWrap.style.display = 'none';
+          if (footer) footer.style.display = 'flex';
+          currentViewMode = 'table';
+        };
+
+        btnMatrix.onclick = () => {
+          btnMatrix.classList.add('is-active');
+          btnTable.classList.remove('is-active');
+          tableWrap.style.display = 'none';
+          matrixWrap.style.display = 'flex';
+          if (footer) footer.style.display = 'none';
+          currentViewMode = 'matrix';
+        };
+      }
+
+      // Density selection
+      const selectRows = document.getElementById('selectRowsPerPage');
+      if (selectRows) {
+        selectRows.addEventListener('change', (e) => {
+          rowsPerPage = parseInt(e.target.value, 10);
+          currentPage = 1;
+          renderTable();
+        });
+      }
+
+      // Primary Button "Mulai Review (4)"
+      const btnStart = document.getElementById('btnStartReviewPrimary');
+      if (btnStart) {
+        btnStart.onclick = () => {
+          const firstReview = groupsState.find(g => g.status === 'menunggu');
+          if (firstReview) {
+            openGroupDrawer(firstReview.id);
+          } else {
+            showToast('Semua pengajuan telah tuntas direview!');
+          }
+        };
+      }
+    }
+
+    function updateTabSlidingIndicator() {
+      const activeTab = document.querySelector('.tab-btn.is-active');
+      const indicator = document.getElementById('tabSlidingIndicator');
+      if (activeTab && indicator) {
+        indicator.style.left = `${activeTab.offsetLeft}px`;
+        indicator.style.width = `${activeTab.offsetWidth}px`;
+      }
+    }
+
+    function updateTabBadges() {
+      const total = groupsState.length;
+      const review = groupsState.filter(g => g.status === 'menunggu').length;
+      const overdue = groupsState.filter(g => g.status === 'terlambat').length;
+      const unassigned = groupsState.filter(g => g.status === 'belumKetua').length;
+
+      document.getElementById('tabCountSemua').textContent = total;
+      document.getElementById('tabCountReview').textContent = review;
+      document.getElementById('tabCountOverdue').textContent = overdue;
+      document.getElementById('tabCountUnassigned').textContent = unassigned;
+    }
+
+    function updateSidebarBadges() {
+      const review = groupsState.filter(g => g.status === 'menunggu').length;
+      const unassigned = groupsState.filter(g => g.status === 'belumKetua').length;
+
+      const badgeRev = document.getElementById('sidebarReviewBadge');
+      if (badgeRev) badgeRev.textContent = review;
+
+      const badgeUnass = document.getElementById('sidebarUnassignedBadge');
+      if (badgeUnass) badgeUnass.textContent = unassigned;
+    }
+
+    function updateFilterChips() {
+      const bar = document.getElementById('activeFilterChipsBar');
+      const container = document.getElementById('filterChipsContainer');
+      if (!bar || !container) return;
+
+      container.innerHTML = '';
+      let hasFilters = false;
+
+      if (currentFilterStage !== null) {
+        hasFilters = true;
+        const stg = STAGES_LIST.find(s => s.id === currentFilterStage);
+        const chip = document.createElement('div');
+        chip.className = 'filter-chip-item';
+        chip.innerHTML = `
+          <span>Tahap: ${stg.no} ${stg.name}</span>
+          <span class="filter-chip-remove" onclick="removeStageFilter()">&times;</span>
+        `;
+        container.appendChild(chip);
+      }
+
+      if (currentSearchTerm.trim()) {
+        hasFilters = true;
+        const chip = document.createElement('div');
+        chip.className = 'filter-chip-item';
+        chip.innerHTML = `
+          <span>Pencarian: "${currentSearchTerm}"</span>
+          <span class="filter-chip-remove" onclick="removeSearchFilter()">&times;</span>
+        `;
+        container.appendChild(chip);
+      }
+
+      bar.style.display = hasFilters ? 'flex' : 'none';
+    }
+
+    function removeStageFilter() {
+      currentFilterStage = null;
+      renderPipeline();
+      renderTable();
+      renderMatrix();
+      updateFilterChips();
+    }
+
+    function removeSearchFilter() {
+      currentSearchTerm = '';
+      const input = document.getElementById('localSearchInput');
+      if (input) input.value = '';
+      renderTable();
+      renderMatrix();
+      updateFilterChips();
+    }
+
+    document.getElementById('btnClearAllFilters')?.addEventListener('click', () => {
+      currentFilterStage = null;
+      currentSearchTerm = '';
+      const input = document.getElementById('localSearchInput');
+      if (input) input.value = '';
+      renderPipeline();
+      renderTable();
+      renderMatrix();
+      updateFilterChips();
+    });
+
+    // ─── 11. SEARCH INPUT LIVE FILTER (DEBOUNCED 200ms) ─────────────────────
+    function initSearch() {
+      const input = document.getElementById('localSearchInput');
+      let debounceTimeout = null;
+
+      if (input) {
+        input.addEventListener('input', (e) => {
+          clearTimeout(debounceTimeout);
+          debounceTimeout = setTimeout(() => {
+            currentSearchTerm = e.target.value;
+            currentPage = 1;
+            renderTable();
+            renderMatrix();
+            updateFilterChips();
+          }, 200);
+        });
+      }
+    }
+
+    // ─── 12. TABLE COLUMN SORTING ───────────────────────────────────────────
+    function initTableSorting() {
+      const headers = document.querySelectorAll('.master-data-table th.is-sortable');
+      headers.forEach(th => {
+        th.addEventListener('click', () => {
+          const col = th.getAttribute('data-sort');
+          if (currentSortColumn === col) {
+            currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+          } else {
+            currentSortColumn = col;
+            currentSortDirection = 'asc';
+          }
+          renderTable();
+        });
+      });
+    }
+
+    // ─── 13. DRAWER DETAIL KELOMPOK (SLIDE 480px & ACTION DISPATCH) ─────────
+    function initDrawer() {
+      const backdrop = document.getElementById('drawerBackdrop');
+      const drawer = document.getElementById('detailDrawer');
+      const btnClose = document.getElementById('btnCloseDrawer');
+
+      const close = () => {
+        if (backdrop) backdrop.classList.remove('is-open');
+        if (drawer) drawer.classList.remove('is-open');
+      };
+
+      if (backdrop) backdrop.addEventListener('click', close);
+      if (btnClose) btnClose.addEventListener('click', close);
+
+      // ESC closes drawer
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          close();
+          closePalette();
+        }
+      });
+
+      // Approve Deliverable button
+      const btnApprove = document.getElementById('btnDrawerApprove');
+      if (btnApprove) {
+        btnApprove.onclick = () => {
+          if (!activeDrawerGroup) return;
+          const grpId = activeDrawerGroup.id;
+          const prevStatus = activeDrawerGroup.status;
+
+          // Mutate state
+          activeDrawerGroup.status = 'selesai';
+          activeDrawerGroup.tugasSelesai = Math.min(activeDrawerGroup.tugasTotal, activeDrawerGroup.tugasSelesai + 1);
+
+          lastUndoneAction = {
+            id: grpId,
+            prevStatus,
+            revert: () => {
+              const target = groupsState.find(g => g.id === grpId);
+              if (target) {
+                target.status = prevStatus;
+                renderAll();
+                showToast(`Status ${grpId} dikembalikan.`);
+              }
+            }
+          };
+
+          close();
+          renderAll();
+          showToast(`Berkas ${grpId} berhasil disetujui!`, true);
+        };
+      }
+
+      // Request Revision button
+      const btnRevision = document.getElementById('btnDrawerRequestRevision');
+      if (btnRevision) {
+        btnRevision.onclick = () => {
+          if (!activeDrawerGroup) return;
+          const grpId = activeDrawerGroup.id;
+          const prevStatus = activeDrawerGroup.status;
+
+          activeDrawerGroup.status = 'terlambat'; // marked as revision/perlu tindak lanjut
+
+          lastUndoneAction = {
+            id: grpId,
+            prevStatus,
+            revert: () => {
+              const target = groupsState.find(g => g.id === grpId);
+              if (target) {
+                target.status = prevStatus;
+                renderAll();
+                showToast(`Revisi ${grpId} dibatalkan.`);
+              }
+            }
+          };
+
+          close();
+          renderAll();
+          showToast(`Catatan revisi dikirim ke ketua ${grpId}.`, true);
+        };
+      }
+    }
+
+    function openGroupDrawer(groupId) {
+      const grp = groupsState.find(g => g.id === groupId);
+      if (!grp) return;
+      activeDrawerGroup = grp;
+
+      const backdrop = document.getElementById('drawerBackdrop');
+      const drawer = document.getElementById('detailDrawer');
+
+      // Populate Drawer Header
+      document.getElementById('drawerGroupIdTitle').textContent = grp.id;
+      document.getElementById('drawerSchoolSubtitle').textContent = `${grp.smp} • ${grp.kecamatan}`;
+
+      // Status Badge
+      const badge = document.getElementById('drawerStatusBadge');
+      if (badge) {
+        badge.className = `status-badge ${grp.status === 'menunggu' ? 'badge-review' : grp.status === 'terlambat' ? 'badge-overdue' : 'badge-progress'}`;
+        badge.textContent = grp.status === 'menunggu' ? 'Menunggu Review' : grp.status === 'terlambat' ? 'Terlambat / Revisi' : 'Berjalan';
+      }
+
+      // Leader card
+      document.getElementById('drawerLeaderName').textContent = grp.ketua;
+      document.getElementById('drawerLeaderPhone').textContent = grp.wa ? `+${grp.wa}` : 'Belum ditentukan';
+      document.getElementById('drawerLeaderAvatar').textContent = grp.ketua && grp.ketua !== '—'
+        ? grp.ketua.split(' ').map(n => n[0]).slice(0, 2).join('')
+        : '—';
+
+      const btnWA = document.getElementById('drawerBtnWA');
+      if (btnWA) {
+        btnWA.href = grp.wa ? `https://wa.me/${grp.wa}` : '#';
+      }
+
+      // Deliverable box
+      const delBox = document.getElementById('drawerDeliverableBox');
+      if (grp.berkas && grp.berkas.length > 0) {
+        delBox.style.display = 'flex';
+        const b = grp.berkas[0];
+        document.getElementById('drawerDeliverableName').textContent = b.nama;
+        document.getElementById('drawerDeliverableMeta').textContent = `${b.ukuran} • ${b.waktu}`;
+      } else {
+        delBox.style.display = 'none';
+      }
+
+      // Vertical 6-step progress
+      const stepper = document.getElementById('drawerVerticalStepper');
+      if (stepper) {
+        stepper.innerHTML = STAGES_LIST.map(stg => {
+          let stepClass = 'drawer-step-item';
+          let statusText = 'Belum dimulai';
+          if (stg.id < grp.tahap) {
+            stepClass += ' is-completed';
+            statusText = 'Tuntas disetujui';
+          } else if (stg.id === grp.tahap) {
+            stepClass += ' is-current';
+            statusText = `${grp.tugasSelesai}/${grp.tugasTotal} tugas tuntas`;
+          }
+
+          return `
+            <div class="${stepClass}">
+              <div class="drawer-step-circle tabular-nums">${stg.no}</div>
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13px; color: var(--text-ink);">${stg.name}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">${statusText}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      if (backdrop) backdrop.classList.add('is-open');
+      if (drawer) drawer.classList.add('is-open');
+    }
+
+    // ─── 14. BULK ACTIONS ───────────────────────────────────────────────────
+    function initBulkActionBar() {
+      const masterCheckbox = document.getElementById('thMasterCheckbox');
+      const bulkBar = document.getElementById('bulkActionBar');
+      const btnCancel = document.getElementById('btnBulkCancel');
+      const btnApproveAll = document.getElementById('btnBulkApprove');
+
+      if (masterCheckbox) {
+        masterCheckbox.addEventListener('click', () => {
+          const filtered = getFilteredGroups();
+          if (selectedGroupIds.size === filtered.length) {
+            selectedGroupIds.clear();
+            masterCheckbox.classList.remove('is-checked');
+          } else {
+            selectedGroupIds = new Set(filtered.map(g => g.id));
+            masterCheckbox.classList.add('is-checked');
+          }
+          renderTable();
+          updateBulkBar();
+        });
+      }
+
+      if (btnCancel) {
+        btnCancel.addEventListener('click', () => {
+          selectedGroupIds.clear();
+          renderTable();
+          updateBulkBar();
+        });
+      }
+
+      if (btnApproveAll) {
+        btnApproveAll.addEventListener('click', () => {
+          const count = selectedGroupIds.size;
+          selectedGroupIds.forEach(id => {
+            const grp = groupsState.find(g => g.id === id);
+            if (grp) grp.status = 'selesai';
+          });
+          selectedGroupIds.clear();
+          renderAll();
+          updateBulkBar();
+          showToast(`${count} berkas kelompok disetujui sekaligus!`);
+        });
+      }
+    }
+
+    function toggleRowSelection(groupId) {
+      if (selectedGroupIds.has(groupId)) {
+        selectedGroupIds.delete(groupId);
+      } else {
+        selectedGroupIds.add(groupId);
+      }
+      renderTable();
+      updateBulkBar();
+    }
+
+    function updateBulkBar() {
+      const bulkBar = document.getElementById('bulkActionBar');
+      const countText = document.getElementById('bulkSelectedCountText');
+      if (!bulkBar) return;
+
+      if (selectedGroupIds.size > 0) {
+        bulkBar.classList.add('is-visible');
+        countText.textContent = `${selectedGroupIds.size} kelompok dipilih`;
+      } else {
+        bulkBar.classList.remove('is-visible');
+      }
+    }
+
+    // ─── 15. COMMAND PALETTE (CTRL/CMD+K) ───────────────────────────────────
+    function initCommandPalette() {
+      const btnOpen = document.getElementById('btnOpenGlobalSearch');
+      const backdrop = document.getElementById('paletteBackdrop');
+      const input = document.getElementById('paletteSearchInput');
+      const list = document.getElementById('paletteResultsList');
+
+      if (btnOpen) {
+        btnOpen.addEventListener('click', openPalette);
+      }
+
+      if (backdrop) {
+        backdrop.addEventListener('click', (e) => {
+          if (e.target === backdrop) closePalette();
+        });
+      }
+
+      if (input) {
+        input.addEventListener('input', (e) => {
+          renderPaletteResults(e.target.value);
+        });
+      }
+    }
+
+    function openPalette() {
+      const backdrop = document.getElementById('paletteBackdrop');
+      const input = document.getElementById('paletteSearchInput');
+      if (backdrop) backdrop.classList.add('is-open');
+      if (input) {
+        input.value = '';
+        input.focus();
+        renderPaletteResults('');
+      }
+    }
+
+    function closePalette() {
+      const backdrop = document.getElementById('paletteBackdrop');
+      if (backdrop) backdrop.classList.remove('is-open');
+    }
+
+    function renderPaletteResults(query) {
+      const list = document.getElementById('paletteResultsList');
+      if (!list) return;
+
+      const q = query.toLowerCase().trim();
+      const matches = groupsState.filter(g =>
+        !q || g.id.toLowerCase().includes(q) || g.smp.toLowerCase().includes(q) || g.ketua.toLowerCase().includes(q)
+      ).slice(0, 6);
+
+      let html = `<li class="palette-group-label">Kelompok Terkait</li>`;
+      if (matches.length === 0) {
+        html += `<li style="padding: 12px; font-size: 13px; color: var(--text-muted); text-align: center;">Tidak ada kelompok ditemukan</li>`;
+      } else {
+        html += matches.map(grp => `
+          <li class="palette-result-item" onclick="selectPaletteGroup('${grp.id}')">
+            <div>
+              <strong>${grp.id}</strong> — ${grp.smp}
+              <div style="font-size: 11px; color: var(--text-muted);">${grp.ketua} • ${grp.tahapName}</div>
+            </div>
+            <span class="status-badge ${grp.status === 'menunggu' ? 'badge-review' : 'badge-progress'}" style="font-size: 10px;">
+              ${grp.status === 'menunggu' ? 'Review' : 'Detail'}
+            </span>
+          </li>
+        `).join('');
+      }
+
+      html += `<li class="palette-group-label" style="margin-top: 8px;">Aksi Cepat</li>`;
+      html += `
+        <li class="palette-result-item" onclick="triggerFilterReviewFromPalette()">
+          <div>Tampilkan 4 Berkas Menunggu Review</div>
+          <kbd class="search-kbd-hint">R</kbd>
+        </li>
+        <li class="palette-result-item" onclick="triggerExportFromPalette()">
+          <div>Ekspor Laporan Kelompok ke CSV</div>
+          <kbd class="search-kbd-hint">E</kbd>
+        </li>
+      `;
+
+      list.innerHTML = html;
+    }
+
+    function selectPaletteGroup(id) {
+      closePalette();
+      openGroupDrawer(id);
+    }
+
+    function triggerFilterReviewFromPalette() {
+      closePalette();
+      document.querySelector('.tab-btn[data-tab="review"]')?.click();
+    }
+
+    function triggerExportFromPalette() {
+      closePalette();
+      document.getElementById('btnExportData')?.click();
+    }
+
+    function initGlobalShortcuts() {
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          openPalette();
+        }
+      });
+    }
+
+    // ─── 16. TOAST WITH 5-SECOND UNDO BAR ───────────────────────────────────
+    function showToast(message, withUndo = false) {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      toast.className = 'toast-card';
+
+      toast.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span style="flex: 1;">${message}</span>
+        ${withUndo ? '<span class="toast-undo-btn" id="btnToastUndo">Urungkan</span>' : ''}
+        ${withUndo ? '<div class="toast-progress-bar"></div>' : ''}
+      `;
+
+      if (withUndo) {
+        const undoBtn = toast.querySelector('#btnToastUndo');
+        if (undoBtn) {
+          undoBtn.onclick = () => {
+            if (lastUndoneAction && lastUndoneAction.revert) {
+              lastUndoneAction.revert();
+              lastUndoneAction = null;
+            }
+            toast.remove();
+          };
+        }
+      }
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.remove();
+      }, 5000);
+    }
+
+    // ─── 17. SIDEBAR COLLAPSE & MOBILE DRAWER ───────────────────────────────
+    function initSidebar() {
+      const sidebar = document.getElementById('appSidebar');
+      const btnToggle = document.getElementById('btnCollapseSidebar');
+      const mobileBtn = document.getElementById('btnMobileNavToggle');
+
+      if (btnToggle && sidebar) {
+        btnToggle.addEventListener('click', () => {
+          sidebar.classList.toggle('is-rail');
+          // Update icon direction
+          const isRail = sidebar.classList.contains('is-rail');
+          btnToggle.innerHTML = isRail
+            ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="9 18 15 12 9 6"/></svg>'
+            : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="15 18 9 12 15 6"/></svg>';
+        });
+      }
+
+      if (mobileBtn && sidebar) {
+        mobileBtn.addEventListener('click', () => {
+          sidebar.classList.toggle('mobile-open');
+        });
+      }
+    }
+
+    // ─── 18. SYNC BUTTON & REFRESH SIMULATION ───────────────────────────────
+    function initSyncButton() {
+      const btn = document.getElementById('btnRefreshSync');
+      const chipText = document.getElementById('syncStatusText');
+
+      if (btn) {
+        btn.addEventListener('click', () => {
+          btn.classList.add('is-spinning');
+          if (chipText) chipText.textContent = 'Menyinkronkan...';
+
+          setTimeout(() => {
+            btn.classList.remove('is-spinning');
+            if (chipText) chipText.textContent = 'Baru saja tersinkron';
+            showToast('Data berhasil diperbarui dari Google Sheets!');
+          }, 1200);
+        });
+      }
+    }
+
+    function openKebabMenu(groupId, e) {
+      e.stopPropagation();
+      openGroupDrawer(groupId);
+    }
+  </script>
+</body>
+</html>
