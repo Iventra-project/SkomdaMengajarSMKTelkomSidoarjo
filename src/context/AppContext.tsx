@@ -75,13 +75,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
       if (hash === '/login') return '/login';
-      if (hash === '/admin' || hash === '/dashboard/admin') return '/admin';
-      if (
-        hash === '/admin/kelompok/03' ||
-        hash === '/admin-kelompok-03' ||
-        hash === '/dashboard/admin/review'
-      )
-        return '/admin/kelompok/03';
+      if (hash === '/admin') return '/admin';
+      if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03') return '/admin/kelompok/03';
       if (hash === '/workspace' || hash === '/kelompok-03') return '/workspace';
     }
     return '/';
@@ -130,17 +125,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     groupsData.find((g) => g.number === userGroupNumber) ||
     groupsData.find((g) => g.number === '01') ||
     groupsData[0];
-
-  const setCurrentUser = (user: User | null) => {
-    setCurrentUserState(user);
-    if (typeof window !== 'undefined') {
-      if (user) {
-        localStorage.setItem('skomda_current_user', JSON.stringify(user));
-      } else {
-        localStorage.removeItem('skomda_current_user');
-      }
-    }
-  };
 
   const [members, setMembers] = useState<Member[]>(initialMembersKelompok03);
   const [sprintTasks, setSprintTasks] = useState<SprintTask[]>(initialSprintTasks);
