@@ -4,7 +4,8 @@ import { useApp } from '../context/AppContext';
 import { groupsData, showcaseProjects } from '../data/mockData';
 
 export const HomePage: React.FC = () => {
-  const { navigate, showToast, openGroupWorkspace } = useApp();
+  const { navigate, showToast, openGroupWorkspace, currentUser, activeGroup } = useApp();
+  const shortKelompokLabel = `KEL-${Number.parseInt(activeGroup.number, 10) || activeGroup.number}`;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'ready' | 'leader'>('all');
   const [selectedStep, setSelectedStep] = useState<number>(1);
@@ -61,19 +62,30 @@ export const HomePage: React.FC = () => {
           </nav>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/admin')}
-              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[16px] text-[#b4000c]">monitoring</span>
-              <span>Panel Admin</span>
-            </button>
-            <button
-              onClick={() => navigate('/login')}
-              className="inline-flex items-center justify-center bg-[#e20113] hover:bg-slate-900 text-white font-bold text-xs uppercase px-4 h-9 rounded-lg transition-colors tracking-wider shadow-none cursor-pointer"
-            >
-              Masuk
-            </button>
+            {!currentUser ? (
+              <button
+                onClick={() => navigate('/login')}
+                className="inline-flex items-center justify-center bg-[#e20113] hover:bg-slate-900 text-white font-bold text-xs uppercase px-5 h-9 rounded-lg transition-colors tracking-wider shadow-none cursor-pointer"
+              >
+                Login
+              </button>
+            ) : currentUser.role === 'admin' ? (
+              <button
+                onClick={() => navigate('/admin')}
+                className="inline-flex items-center gap-1.5 bg-[#e20113] hover:bg-slate-900 text-white font-bold text-xs uppercase px-4 h-9 rounded-lg transition-colors tracking-wider cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">monitoring</span>
+                <span>Admin</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate('/workspace')}
+                className="inline-flex items-center gap-1.5 bg-[#e20113] hover:bg-slate-900 text-white font-bold text-xs uppercase px-4 h-9 rounded-lg transition-colors tracking-wider cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">workspaces</span>
+                <span>{shortKelompokLabel}</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -140,11 +152,21 @@ export const HomePage: React.FC = () => {
                     <span>Tonton Dokumentasi</span>
                   </a>
                   <button
-                    onClick={() => navigate('/workspace')}
+                    onClick={() =>
+                      navigate(!currentUser ? '/login' : currentUser.role === 'admin' ? '/admin' : '/workspace')
+                    }
                     className="inline-flex items-center gap-2 text-xs font-bold text-[#b4000c] hover:bg-red-50 transition-colors px-4 h-12 rounded-full border border-red-200 cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-[18px]">engineering</span>
-                    <span>Workspace Tim (Langkah 04)</span>
+                    <span className="material-symbols-outlined text-[18px]">
+                      {!currentUser ? 'login' : currentUser.role === 'admin' ? 'monitoring' : 'engineering'}
+                    </span>
+                    <span>
+                      {!currentUser
+                        ? 'Login Portal'
+                        : currentUser.role === 'admin'
+                        ? 'Dashboard Admin'
+                        : `Workspace ${shortKelompokLabel}`}
+                    </span>
                   </button>
                 </div>
               </div>

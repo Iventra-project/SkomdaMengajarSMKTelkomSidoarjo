@@ -1,6 +1,21 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
+
+interface ChecklistTask {
+  id: number;
+  title: string;
+  status: 'selesai' | 'sekarang' | 'berikutnya';
+}
+
+const STAGES = [
+  { id: 1, no: '01', name: 'Bentuk Kelompok' },
+  { id: 2, no: '02', name: 'Pilih Ketua' },
+  { id: 3, no: '03', name: 'Susun Materi' },
+  { id: 4, no: '04', name: 'Siapkan Desain' },
+  { id: 5, no: '05', name: 'Mengajar di SMP' },
+  { id: 6, no: '06', name: 'Evaluasi & LPJ' },
+];
 
 export const WorkspacePage: React.FC = () => {
   const {
@@ -10,14 +25,8 @@ export const WorkspacePage: React.FC = () => {
     logout,
     members,
     toggleMemberStatus,
-    sprintTasks,
-    moveTaskColumn,
-    addTask,
-    bannerStatus,
     supervisorMemo,
-    showMemoToLeader,
     setIsBannerModalOpen,
-    showToast
   } = useApp();
 
   const userDisplayName = currentUser?.name || activeGroup.leaderName;
@@ -28,957 +37,3208 @@ export const WorkspacePage: React.FC = () => {
     .join('')
     .toUpperCase();
 
-  const [reminderSent, setReminderSent] = useState(false);
-  const [newPhotoUrl, setNewPhotoUrl] = useState('');
-  const [showAddPhotoModal, setShowAddPhotoModal] = useState(false);
-  const [photosList, setPhotosList] = useState([
-    {
-      id: 'p1',
-      title: 'Ruang Lab Komputer',
-      tag: '01 Lab Komp',
-      subtext: 'Kapasitas 36 Siswa',
-      img: 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&auto=format&fit=crop&q=80'
-    },
-    {
-      id: 'p2',
-      title: 'Gerbang Utama SMPN 1',
-      tag: '02 Gerbang',
-      subtext: 'Titik Pasang Banner',
-      img: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&auto=format&fit=crop&q=80'
-    },
-    {
-      id: 'p3',
-      title: 'Ruang Guru & Koordinasi',
-      tag: '03 R. Guru',
-      subtext: 'Ruang Transit Pemateri',
-      img: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?w=600&auto=format&fit=crop&q=80'
-    }
+  const mentorInitials = activeGroup.mentorName
+    .replace(/^(Pak|Bu|Dra\.|Drs\.|Ir\.)\s+/i, '')
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0] || '')
+    .join('')
+    .toUpperCase();
+
+  const schoolSlug = activeGroup.schoolName.replace(/\s+/g, '');
+
+  // Sidebar & navigation state
+  const [isRail, setIsRail] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeNav, setActiveNav] = useState<'pipeline' | 'workspace' | 'members'>('pipeline');
+  const [activeStage, setActiveStage] = useState<1 | 2 | 3 | 4 | 5 | 6>(4);
+
+  // Per-stage interactive state (Stages 1, 2, 3, 5, 6)
+  const [leaderPhone, setLeaderPhone] = useState('0812-3456-7890');
+  const [leaderClass, setLeaderClass] = useState('XII RPL 2');
+  const [rppFileName, setRppFileName] = useState(`RPP_${schoolSlug}_v2.pdf`);
+  const [slideFileName, setSlideFileName] = useState(`Slide_${schoolSlug}_Final.pptx`);
+  const [syllabusNotes, setSyllabusNotes] = useState(
+    `1. Pembukaan & Pengenalan SMK Telkom (15 menit)\n2. Praktik Inti ${activeGroup.featuredModule} (60 menit)\n3. Kuis Interaktif & Refleksi Siswa SMP (15 menit)`
+  );
+  const [teachingDate, setTeachingDate] = useState('2026-02-19');
+  const [teachingRoom, setTeachingRoom] = useState(`Lab Komputer ${activeGroup.schoolName}`);
+  const [attendedStudents, setAttendedStudents] = useState(34);
+  const [fieldNotes, setFieldNotes] = useState(
+    `Siswa kelas 8 ${activeGroup.schoolName} sangat antusias mengikuti sesi praktik ${activeGroup.featuredModule}.`
+  );
+  const [stage5Submitted, setStage5Submitted] = useState(false);
+  const [lpjFileName, setLpjFileName] = useState<string | null>(null);
+  const [reflectionNotes, setReflectionNotes] = useState(
+    `Seluruh rangkaian kegiatan mengajar di ${activeGroup.schoolName} berjalan lancar sesuai RPP dan mendapat apresiasi positif dari kepala laboratorium.`
+  );
+  const [stage6Submitted, setStage6Submitted] = useState(false);
+
+  // Notifications & Accordions
+  const [unreadBell, setUnreadBell] = useState(true);
+  const [unreadMemo, setUnreadMemo] = useState(true);
+  const [openBriefing, setOpenBriefing] = useState(true);
+  const [openMemo, setOpenMemo] = useState(false);
+
+  // Modals & Drawers
+  const [bleedModalOpen, setBleedModalOpen] = useState(false);
+  const [versionDrawerOpen, setVersionDrawerOpen] = useState(false);
+
+  // Dropzone & Preflight state
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadAttempt, setUploadAttempt] = useState(0);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [fileStatus, setFileStatus] = useState<'none' | 'review' | 'approved'>('none');
+  const [localToast, setLocalToast] = useState<{ id: number; message: string; withUndo: boolean } | null>(null);
+
+  // Checklist tasks (data-driven per group)
+  const [checklistTasks, setChecklistTasks] = useState<ChecklistTask[]>([
+    { id: 1, title: `Finalisasi slide materi ${activeGroup.featuredModule}`, status: 'selesai' },
+    { id: 2, title: `Persetujuan draf modul oleh ${activeGroup.mentorName}`, status: 'selesai' },
+    { id: 3, title: `Konsep visual dan copy teks X-Banner ${activeGroup.schoolName}`, status: 'selesai' },
+    { id: 4, title: 'Layout draf X-Banner di Canva / Photoshop', status: 'selesai' },
+    { id: 5, title: 'Unggah desain X-Banner final siap cetak', status: 'sekarang' },
+    { id: 6, title: 'Validasi dan persetujuan oleh admin kurikulum', status: 'berikutnya' },
   ]);
 
-  const validCount = members.filter((m) => m.status === 'valid').length;
-  const pendingCount = members.length - validCount;
-
-  const handleSendReminder = () => {
-    setReminderSent(true);
-    showToast(`Pesan pengingat otomatis telah dikirim ke ${pendingCount} anggota via WhatsApp!`, 'success');
-    setTimeout(() => setReminderSent(false), 3000);
-  };
-
-  const handleAddPhoto = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPhotoUrl) return;
-    setPhotosList([
-      ...photosList,
+  useEffect(() => {
+    setChecklistTasks([
+      { id: 1, title: `Finalisasi slide materi ${activeGroup.featuredModule}`, status: 'selesai' },
+      { id: 2, title: `Persetujuan draf modul oleh ${activeGroup.mentorName}`, status: 'selesai' },
+      { id: 3, title: `Konsep visual dan copy teks X-Banner ${activeGroup.schoolName}`, status: 'selesai' },
+      { id: 4, title: 'Layout draf X-Banner di Canva / Photoshop', status: 'selesai' },
       {
-        id: `p-${Date.now()}`,
-        title: 'Dokumentasi Tambahan',
-        tag: `0${photosList.length + 1} Foto Baru`,
-        subtext: 'Verifikasi Tim',
-        img: newPhotoUrl
-      }
+        id: 5,
+        title: 'Unggah desain X-Banner final siap cetak',
+        status: fileStatus === 'review' ? 'selesai' : 'sekarang',
+      },
+      { id: 6, title: 'Validasi dan persetujuan oleh admin kurikulum', status: 'berikutnya' },
     ]);
-    setNewPhotoUrl('');
-    setShowAddPhotoModal(false);
-    showToast('Foto dokumentasi survei berhasil ditambahkan!', 'success');
+  }, [activeGroup.number, activeGroup.featuredModule, activeGroup.mentorName, activeGroup.schoolName, fileStatus]);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const dropzoneRef = useRef<HTMLDivElement | null>(null);
+  const membersSectionRef = useRef<HTMLDivElement | null>(null);
+  const confettiCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const currentStageMeta = useMemo(() => {
+    const map: Record<
+      1 | 2 | 3 | 4 | 5 | 6,
+      {
+        title: string;
+        chipText: string;
+        chipColor: 'done' | 'active' | 'upcoming';
+        daysLeft: number;
+        deadlineText: string;
+        tasks: ChecklistTask[];
+      }
+    > = {
+      1: {
+        title: 'Bentuk Kelompok',
+        chipText: 'Selesai Disetujui',
+        chipColor: 'done',
+        daysLeft: 0,
+        deadlineText: '12 Jan 2026 (Tuntas)',
+        tasks: [
+          { id: 1, title: 'Registrasi anggota kelompok di portal Skomda Mengajar', status: 'selesai' },
+          { id: 2, title: `Penentuan sekolah mitra tujuan (${activeGroup.schoolName})`, status: 'selesai' },
+          { id: 3, title: 'Pembagian peran inti (Materi, Desain, Dokumentasi, Logistik)', status: 'selesai' },
+          { id: 4, title: 'Verifikasi NIS & publikasi profil anggota tim', status: 'selesai' },
+          { id: 5, title: `Pengesahan formasi tim oleh ${activeGroup.mentorName}`, status: 'selesai' },
+        ],
+      },
+      2: {
+        title: 'Pilih Ketua',
+        chipText: 'Selesai Disetujui',
+        chipColor: 'done',
+        daysLeft: 0,
+        deadlineText: '18 Jan 2026 (Tuntas)',
+        tasks: [
+          { id: 1, title: 'Musyawarah internal pemilihan ketua kelompok', status: 'selesai' },
+          { id: 2, title: `Penetapan ${userDisplayName} sebagai Ketua KEL-${activeGroup.number}`, status: 'selesai' },
+          { id: 3, title: 'Verifikasi kontak WhatsApp aktif koordinator lapangan', status: 'selesai' },
+          { id: 4, title: `Penerbitan Surat Tugas & Pengantar ke ${activeGroup.schoolName}`, status: 'selesai' },
+        ],
+      },
+      3: {
+        title: 'Susun Materi',
+        chipText: 'Selesai Disetujui',
+        chipColor: 'done',
+        daysLeft: 0,
+        deadlineText: '31 Jan 2026 (Tuntas)',
+        tasks: [
+          { id: 1, title: `Penentuan topik modul (${activeGroup.featuredModule})`, status: 'selesai' },
+          { id: 2, title: 'Penyusunan dokumen RPP & alokasi waktu (2 x 45 menit)', status: 'selesai' },
+          { id: 3, title: 'Pembuatan slide presentasi interaktif & modul praktik', status: 'selesai' },
+          { id: 4, title: `Review substansi materi bersama ${activeGroup.mentorName}`, status: 'selesai' },
+          { id: 5, title: 'Persetujuan akhir silabus ajar oleh kurikulum', status: 'selesai' },
+        ],
+      },
+      4: {
+        title: 'Siapkan Desain',
+        chipText: 'Sedang berjalan',
+        chipColor: 'active',
+        daysLeft: 4,
+        deadlineText: activeGroup.targetDate,
+        tasks: checklistTasks,
+      },
+      5: {
+        title: 'Mengajar di SMP',
+        chipText: stage5Submitted ? 'Tuntas Dilaporkan' : 'Tahap Pelaksanaan',
+        chipColor: stage5Submitted ? 'done' : 'active',
+        daysLeft: 7,
+        deadlineText: '25 Feb 2026',
+        tasks: [
+          { id: 1, title: `Pemasangan X-Banner & persiapan lab di ${activeGroup.schoolName}`, status: 'selesai' },
+          { id: 2, title: 'Sesi pembukaan & pengenalan profil SMK Telkom Sidoarjo', status: 'selesai' },
+          { id: 3, title: `Penyampaian materi & praktik ${activeGroup.featuredModule}`, status: 'selesai' },
+          {
+            id: 4,
+            title: 'Unggah foto dokumentasi kelas & Berita Acara mengajar',
+            status: stage5Submitted ? 'selesai' : 'sekarang',
+          },
+          {
+            id: 5,
+            title: `Verifikasi laporan pelaksanaan oleh ${activeGroup.mentorName}`,
+            status: stage5Submitted ? 'selesai' : 'berikutnya',
+          },
+        ],
+      },
+      6: {
+        title: 'Evaluasi & LPJ',
+        chipText: stage6Submitted ? 'LPJ Terkirim' : 'Tahap Akhir',
+        chipColor: stage6Submitted ? 'done' : 'active',
+        daysLeft: 10,
+        deadlineText: '28 Feb 2026',
+        tasks: [
+          { id: 1, title: `Rekapitulasi kuesioner feedback dari ${activeGroup.schoolName}`, status: 'selesai' },
+          { id: 2, title: 'Verifikasi kelengkapan tautan publikasi Instagram anggota', status: 'selesai' },
+          { id: 3, title: 'Penyusunan dokumen Laporan Pertanggungjawaban (LPJ)', status: 'selesai' },
+          {
+            id: 4,
+            title: 'Unggah berkas LPJ final (PDF) ke portal Skomda Mengajar',
+            status: stage6Submitted ? 'selesai' : 'sekarang',
+          },
+          {
+            id: 5,
+            title: 'Penerbitan sertifikat pengabdian masyarakat 2026',
+            status: stage6Submitted ? 'selesai' : 'berikutnya',
+          },
+        ],
+      },
+    };
+    return map[activeStage];
+  }, [activeStage, activeGroup, userDisplayName, checklistTasks, stage5Submitted, stage6Submitted]);
+
+  const activeStageTasks = currentStageMeta.tasks;
+  const completedCount = activeStageTasks.filter((t) => t.status === 'selesai').length;
+  const totalCount = activeStageTasks.length;
+  const progressPct = Math.round((completedCount / totalCount) * 100);
+
+  const diffDays = currentStageMeta.daysLeft;
+  const radialOffset = diffDays === 0 ? 0 : 175 - (diffDays / 14) * 175;
+
+  const triggerWorkspaceToast = (message: string, withUndo = false) => {
+    const id = Date.now();
+    setLocalToast({ id, message, withUndo });
+    setTimeout(() => {
+      setLocalToast((prev) => (prev?.id === id ? null : prev));
+    }, 5000);
   };
+
+  const triggerConfetti = () => {
+    const canvas = confettiCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const colors = ['#D7141F', '#0F9D58', '#2563EB', '#F59E0B', '#9333EA'];
+    const particles = Array.from({ length: 60 }, () => ({
+      x: canvas.width / 2,
+      y: canvas.height * 0.4,
+      vx: (Math.random() - 0.5) * 12,
+      vy: (Math.random() - 0.8) * 14,
+      size: Math.random() * 6 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      gravity: 0.35,
+      life: 60,
+    }));
+
+    const update = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.gravity;
+        p.life--;
+        if (p.life > 0) alive = true;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+      }
+      if (alive) {
+        requestAnimationFrame(update);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    };
+    requestAnimationFrame(update);
+  };
+
+  const handleFileUpload = (fileName: string) => {
+    const nextAttempt = uploadAttempt + 1;
+    setUploadAttempt(nextAttempt);
+    setUploadedFileName(fileName);
+    if (nextAttempt >= 2) {
+      triggerWorkspaceToast('Seluruh spesifikasi cetak banner lolos kelayakan!', false);
+    }
+  };
+
+  const handleSubmitForReview = () => {
+    setFileStatus('review');
+    triggerConfetti();
+    triggerWorkspaceToast('Berkas banner berhasil dikirim ke admin kurikulum!', true);
+  };
+
+  const handleUndoSubmit = () => {
+    setFileStatus('none');
+    setLocalToast(null);
+    triggerWorkspaceToast('Pengiriman berkas dibatalkan.', false);
+  };
+
+  const isSecondAttempt = uploadAttempt >= 2;
+  const preflightCriteria = [
+    { label: 'Ukuran Kanvas 60 x 160 cm', pass: true },
+    { label: 'Resolusi Gambar 300 DPI Siap Cetak', pass: true },
+    { label: 'Mode Warna Cetak CMYK', pass: true },
+    {
+      label: 'Bleed 1 cm di Setiap Sisi',
+      pass: isSecondAttempt,
+      failNote:
+        'File berukuran 60x160 cm tanpa bleed lebihan. Tambahkan 1 cm pada tiap sisi (menjadi 62x162 cm) agar potongan mata ayam rapi.',
+    },
+  ];
 
   return (
-    <div className="w-full min-h-screen bg-[#f9f9f9] text-[#1a1c1c] font-sans antialiased flex h-screen overflow-hidden">
-      {/* ================= 1. PERSISTENT LEFT SIDEBAR (~260px) ================= */}
-      <aside className="w-64 shrink-0 h-screen bg-white border-r border-slate-200 flex flex-col justify-between z-30 select-none">
-        <div className="flex flex-col min-h-0">
-          {/* Brand Lockup */}
-          <div className="p-5 border-b border-slate-200 space-y-2">
-            <button onClick={() => navigate('/')} className="block text-left cursor-pointer">
-              <span className="text-[17px] font-extrabold uppercase tracking-tight text-slate-900 hover:text-[#b4000c] transition-colors italic">
-                #SKOMDA MENGAJAR
-              </span>
-            </button>
-            <div className="inline-block -rotate-2 origin-left">
-              <span className="bg-[#e20113] text-white text-[10px] uppercase px-2 py-0.5 rounded-full font-bold tracking-wider">
-                #IMPACT2026 / TELKOM SIDOARJO
-              </span>
+    <div className="tahap04-root">
+      <style>{`
+        .tahap04-root {
+          --bg-canvas: #FFFFFF;
+          --bg-subtle: #F8FAFC;
+          --bg-hover: #F1F5F9;
+          --bg-active: #E2E8F0;
+          --border-hairline: #E8ECF2;
+          --border-focus: #D7141F;
+          --color-brand: #D7141F;
+          --color-brand-hover: #B80F1A;
+          --color-brand-active: #9A0D16;
+          --color-brand-tint: #FFF1F2;
+          --color-brand-border: #FFE4E6;
+          --text-ink: #0B1B3A;
+          --text-body: #475569;
+          --text-muted: #64748B;
+          --text-white: #FFFFFF;
+          --stage-done: #0F9D58;
+          --stage-done-tint: #ECFDF3;
+          --stage-done-border: #A7F3D0;
+          --stage-active: #D7141F;
+          --stage-active-tint: #FFF1F2;
+          --stage-locked: #CBD5E1;
+          --stage-locked-bg: #F8FAFC;
+          --status-review-bg: #FFF7E6;
+          --status-review-text: #92400E;
+          --status-review-dot: #D97706;
+          --radius-sm: 8px;
+          --radius-md: 12px;
+          --radius-card: 16px;
+          --radius-pill: 9999px;
+          --shadow-sm: 0 1px 2px rgba(11, 27, 58, 0.04);
+          --shadow-hover: 0 4px 14px rgba(11, 27, 58, 0.06);
+          --shadow-modal: 0 20px 40px -8px rgba(11, 27, 58, 0.16), 0 0 0 1px rgba(232, 236, 242, 0.8);
+          --shadow-toast: 0 12px 28px -4px rgba(11, 27, 58, 0.16);
+          --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+          --duration-fast: 160ms;
+          --duration-normal: 260ms;
+          --sidebar-width: 248px;
+          --sidebar-rail-width: 72px;
+          --topbar-height: 64px;
+
+          font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+          font-size: 15px;
+          line-height: 1.6;
+          color: var(--text-body);
+          background-color: var(--bg-canvas);
+          min-height: 100vh;
+        }
+        .tahap04-root *, .tahap04-root *::before, .tahap04-root *::after {
+          box-sizing: border-box;
+        }
+        .tahap04-root button {
+          background: none;
+          border: none;
+          cursor: pointer;
+          user-select: none;
+          font: inherit;
+        }
+        .tahap04-root .tabular-nums {
+          font-variant-numeric: tabular-nums;
+        }
+        .tahap04-root .eyebrow-label {
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: var(--text-muted);
+          line-height: 1.2;
+        }
+        .tahap04-root .app-shell {
+          display: flex;
+          min-height: 100vh;
+          background-color: var(--bg-canvas);
+        }
+        .tahap04-root .app-sidebar {
+          width: var(--sidebar-width);
+          flex-shrink: 0;
+          background-color: var(--bg-canvas);
+          border-right: 1px solid var(--border-hairline);
+          display: flex;
+          flex-direction: column;
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          z-index: 40;
+          transition: width var(--duration-normal) var(--ease-standard);
+        }
+        .tahap04-root .app-sidebar.is-rail {
+          width: var(--sidebar-rail-width);
+        }
+        .tahap04-root .sidebar-brand-row {
+          height: var(--topbar-height);
+          padding: 0 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid var(--border-hairline);
+        }
+        .tahap04-root .brand-logo-group {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          overflow: hidden;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+        .tahap04-root .brand-logo-box {
+          width: 32px;
+          height: 32px;
+          border-radius: var(--radius-sm);
+          background-color: var(--color-brand);
+          color: #FFFFFF;
+          font-weight: 800;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .tahap04-root .brand-text-wrap {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.2;
+        }
+        .tahap04-root .app-sidebar.is-rail .brand-text-wrap {
+          display: none;
+        }
+        .tahap04-root .brand-title {
+          font-weight: 700;
+          font-size: 14px;
+          color: var(--text-ink);
+        }
+        .tahap04-root .brand-program {
+          font-size: 11px;
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+        .tahap04-root .btn-toggle-rail {
+          width: 28px;
+          height: 28px;
+          border-radius: var(--radius-sm);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-muted);
+          border: 1px solid var(--border-hairline);
+          background-color: #FFFFFF;
+          transition: all var(--duration-fast);
+          flex-shrink: 0;
+        }
+        .tahap04-root .btn-toggle-rail:hover {
+          background-color: var(--bg-subtle);
+          color: var(--text-ink);
+        }
+        .tahap04-root .sidebar-team-badge {
+          margin: 12px 14px 6px 14px;
+          padding: 10px 12px;
+          border-radius: var(--radius-md);
+          background-color: var(--bg-subtle);
+          border: 1px solid var(--border-hairline);
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .tahap04-root .app-sidebar.is-rail .sidebar-team-badge {
+          display: none;
+        }
+        .tahap04-root .sidebar-team-title {
+          font-size: 12px;
+          font-weight: 800;
+          color: var(--color-brand);
+        }
+        .tahap04-root .sidebar-team-sub {
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-ink);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .tahap04-root .sidebar-nav-list {
+          flex: 1;
+          padding: 10px;
+          list-style: none;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          margin: 0;
+        }
+        .tahap04-root .nav-item-link {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 9px 12px;
+          border-radius: var(--radius-md);
+          color: var(--text-body);
+          font-size: 13px;
+          font-weight: 600;
+          position: relative;
+          transition: all var(--duration-fast);
+          cursor: pointer;
+          text-align: left;
+        }
+        .tahap04-root .nav-item-link:hover {
+          background-color: var(--bg-subtle);
+          color: var(--text-ink);
+        }
+        .tahap04-root .nav-item-link.is-active {
+          background-color: var(--color-brand-tint);
+          color: var(--color-brand);
+          font-weight: 700;
+        }
+        .tahap04-root .nav-item-link.is-active::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 6px;
+          bottom: 6px;
+          width: 3px;
+          border-radius: 0 3px 3px 0;
+          background-color: var(--color-brand);
+        }
+        .tahap04-root .nav-item-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .tahap04-root .nav-icon {
+          width: 18px;
+          height: 18px;
+          stroke-width: 1.75;
+          flex-shrink: 0;
+        }
+        .tahap04-root .app-sidebar.is-rail .nav-label,
+        .tahap04-root .app-sidebar.is-rail .nav-badge-pill {
+          display: none;
+        }
+        .tahap04-root .nav-badge-pill {
+          font-size: 11px;
+          font-weight: 700;
+          padding: 1px 7px;
+          border-radius: var(--radius-pill);
+          background-color: var(--bg-hover);
+          color: var(--text-muted);
+        }
+        .tahap04-root .sidebar-footer {
+          padding: 14px;
+          border-top: 1px solid var(--border-hairline);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          background-color: var(--bg-canvas);
+        }
+        .tahap04-root .user-pill-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+        }
+        .tahap04-root .user-avatar-circle {
+          width: 32px;
+          height: 32px;
+          border-radius: var(--radius-pill);
+          background-color: var(--color-brand);
+          color: #FFFFFF;
+          font-weight: 700;
+          font-size: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .tahap04-root .user-details-col {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.25;
+          overflow: hidden;
+        }
+        .tahap04-root .app-sidebar.is-rail .user-details-col {
+          display: none;
+        }
+        .tahap04-root .user-name-text {
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--text-ink);
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          overflow: hidden;
+        }
+        .tahap04-root .user-role-text {
+          font-size: 11px;
+          color: var(--text-muted);
+        }
+        .tahap04-root .app-main {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+        }
+        .tahap04-root .app-topbar {
+          height: var(--topbar-height);
+          position: sticky;
+          top: 0;
+          z-index: 30;
+          background-color: rgba(255, 255, 255, 0.94);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid var(--border-hairline);
+          padding: 0 32px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .tahap04-root .topbar-breadcrumb-wrap {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .tahap04-root .btn-mobile-menu {
+          display: none;
+          width: 36px;
+          height: 36px;
+          border-radius: var(--radius-sm);
+          align-items: center;
+          justify-content: center;
+          color: var(--text-ink);
+          border: 1px solid var(--border-hairline);
+        }
+        .tahap04-root .breadcrumb-text {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-muted);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .tahap04-root .breadcrumb-text strong {
+          color: var(--text-ink);
+          font-weight: 700;
+        }
+        .tahap04-root .topbar-actions-wrap {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .tahap04-root .topbar-icon-button {
+          width: 38px;
+          height: 38px;
+          border-radius: var(--radius-md);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-body);
+          border: 1px solid var(--border-hairline);
+          background-color: var(--bg-canvas);
+          position: relative;
+          transition: all var(--duration-fast);
+        }
+        .tahap04-root .topbar-icon-button:hover {
+          background-color: var(--bg-subtle);
+          color: var(--text-ink);
+        }
+        .tahap04-root .notification-dot {
+          position: absolute;
+          top: 7px;
+          right: 7px;
+          width: 8px;
+          height: 8px;
+          border-radius: var(--radius-pill);
+          background-color: var(--color-brand);
+          border: 1.5px solid #FFFFFF;
+        }
+        .tahap04-root .page-content-wrapper {
+          padding: 24px 32px 64px 32px;
+          max-width: 1280px;
+          width: 100%;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .tahap04-root .stage-hero-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          padding-bottom: 4px;
+        }
+        .tahap04-root .hero-title-group h1 {
+          font-size: 34px;
+          font-weight: 800;
+          color: var(--text-ink);
+          letter-spacing: -0.6px;
+          line-height: 1.15;
+          margin: 3px 0;
+        }
+        .tahap04-root .hero-meta-subtitle {
+          font-size: 13.5px;
+          color: var(--text-muted);
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .tahap04-root .chip-live-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--color-brand);
+          background-color: var(--color-brand-tint);
+          border: 1px solid var(--color-brand-border);
+          padding: 4px 10px;
+          border-radius: var(--radius-pill);
+          white-space: nowrap;
+        }
+        .tahap04-root .pulse-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: var(--radius-pill);
+          background-color: var(--color-brand);
+          animation: pulseAnim 1.8s infinite;
+        }
+        @keyframes pulseAnim {
+          0% { box-shadow: 0 0 0 0 rgba(215, 20, 31, 0.5); }
+          70% { box-shadow: 0 0 0 7px rgba(215, 20, 31, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(215, 20, 31, 0); }
+        }
+        .tahap04-root .stage-stepper-card {
+          background-color: var(--bg-canvas);
+          border: 1px solid var(--border-hairline);
+          border-radius: var(--radius-card);
+          padding: 16px 20px;
+          position: relative;
+        }
+        .tahap04-root .stepper-nodes-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          position: relative;
+        }
+        .tahap04-root .stepper-track-underlay {
+          position: absolute;
+          top: 15px;
+          left: 24px;
+          right: 24px;
+          height: 2px;
+          background-color: var(--border-hairline);
+          z-index: 1;
+        }
+        .tahap04-root .stepper-track-fill {
+          position: absolute;
+          top: 15px;
+          left: 24px;
+          width: 60%;
+          height: 2px;
+          background-color: var(--stage-done);
+          z-index: 2;
+        }
+        .tahap04-root .step-node-col {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          position: relative;
+          z-index: 3;
+          flex: 1;
+          cursor: pointer;
+        }
+        .tahap04-root .step-circle {
+          width: 32px;
+          height: 32px;
+          border-radius: var(--radius-pill);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          font-weight: 800;
+          background-color: #FFFFFF;
+          transition: all var(--duration-fast);
+        }
+        .tahap04-root .step-node-col.is-completed .step-circle {
+          background-color: var(--stage-done);
+          color: #FFFFFF;
+          box-shadow: 0 2px 4px rgba(15, 157, 88, 0.25);
+        }
+        .tahap04-root .step-node-col.is-active .step-circle {
+          background-color: var(--color-brand);
+          color: #FFFFFF;
+          box-shadow: 0 0 0 4px var(--color-brand-tint);
+        }
+        .tahap04-root .step-node-col.is-locked .step-circle {
+          background-color: var(--stage-locked-bg);
+          border: 1px solid var(--stage-locked);
+          color: var(--text-muted);
+          cursor: not-allowed;
+        }
+        .tahap04-root .step-node-label {
+          margin-top: 6px;
+          font-size: 12.5px;
+          font-weight: 600;
+          color: var(--text-muted);
+          line-height: 1.25;
+          max-width: 110px;
+        }
+        .tahap04-root .step-node-col.is-active .step-node-label {
+          color: var(--text-ink);
+          font-weight: 700;
+        }
+        .tahap04-root .stage-workspace-grid {
+          display: grid;
+          grid-template-columns: 8fr 4fr;
+          gap: 24px;
+          align-items: start;
+        }
+        .tahap04-root .primary-deliverable-card {
+          background-color: var(--bg-canvas);
+          border: 1px solid var(--border-hairline);
+          border-radius: var(--radius-card);
+          padding: 22px 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+        }
+        .tahap04-root .deliverable-header-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+        .tahap04-root .deliverable-title-box h2 {
+          font-size: 19px;
+          font-weight: 700;
+          color: var(--text-ink);
+          margin-top: 3px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .tahap04-root .tag-mandatory {
+          font-size: 11px;
+          font-weight: 700;
+          padding: 2px 7px;
+          border-radius: var(--radius-sm);
+          background-color: #FEF2F2;
+          color: #B42318;
+          border: 1px solid #FECACA;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+        .tahap04-root .status-chip-file {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: var(--radius-pill);
+          font-size: 12px;
+          font-weight: 700;
+          background-color: var(--bg-subtle);
+          color: var(--text-muted);
+          border: 1px solid var(--border-hairline);
+        }
+        .tahap04-root .status-chip-file.is-review {
+          background-color: var(--status-review-bg);
+          color: var(--status-review-text);
+          border-color: #FDE68A;
+        }
+        .tahap04-root .deliverable-body-layout {
+          display: grid;
+          grid-template-columns: 190px 1fr;
+          gap: 22px;
+        }
+        .tahap04-root .banner-preview-box {
+          width: 100%;
+          aspect-ratio: 3 / 8;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border-hairline);
+          background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+          box-shadow: var(--shadow-sm);
+          overflow: hidden;
+          cursor: zoom-in;
+          position: relative;
+          transition: transform var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast);
+        }
+        .tahap04-root .banner-preview-box:hover {
+          transform: translateY(-2px) scale(1.01);
+          box-shadow: var(--shadow-hover);
+        }
+        .tahap04-root .preview-magnify-hint {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 26px;
+          height: 26px;
+          border-radius: var(--radius-pill);
+          background-color: rgba(255, 255, 255, 0.9);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-ink);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .tahap04-root .deliverable-actions-col {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          justify-content: space-between;
+        }
+        .tahap04-root .specs-chips-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+        .tahap04-root .spec-item-chip {
+          font-size: 11.5px;
+          font-weight: 700;
+          color: var(--text-body);
+          background-color: var(--bg-subtle);
+          border: 1px solid var(--border-hairline);
+          padding: 4px 9px;
+          border-radius: var(--radius-pill);
+        }
+        .tahap04-root .link-bleed-popover {
+          font-size: 11.5px;
+          font-weight: 700;
+          color: var(--color-brand);
+          text-decoration: underline;
+          cursor: pointer;
+          margin-left: 2px;
+        }
+        .tahap04-root .dropzone-container {
+          border: 2px dashed #CBD5E1;
+          border-radius: var(--radius-card);
+          padding: 24px 20px;
+          text-align: center;
+          background-color: var(--bg-subtle);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          cursor: pointer;
+          position: relative;
+          transition: all var(--duration-fast) var(--ease-standard);
+        }
+        .tahap04-root .dropzone-container:hover, .tahap04-root .dropzone-container.is-dragover {
+          border-color: var(--color-brand);
+          background-color: var(--color-brand-tint);
+          transform: scale(1.008);
+        }
+        .tahap04-root .dropzone-icon-circle {
+          width: 44px;
+          height: 44px;
+          border-radius: var(--radius-pill);
+          background-color: #FFFFFF;
+          border: 1px solid var(--border-hairline);
+          color: var(--color-brand);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        }
+        .tahap04-root .dropzone-title {
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--text-ink);
+        }
+        .tahap04-root .dropzone-subtitle {
+          font-size: 12px;
+          color: var(--text-muted);
+        }
+        .tahap04-root .btn-upload-primary {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background-color: var(--color-brand);
+          color: #FFFFFF;
+          font-size: 13px;
+          font-weight: 700;
+          padding: 9px 18px;
+          border-radius: var(--radius-md);
+          transition: all var(--duration-fast);
+          margin-top: 4px;
+          box-shadow: 0 2px 6px rgba(215, 20, 31, 0.25);
+        }
+        .tahap04-root .btn-upload-primary:hover {
+          background-color: var(--color-brand-hover);
+          transform: translateY(-1px);
+        }
+        .tahap04-root .preflight-panel {
+          border: 1px solid var(--border-hairline);
+          border-radius: var(--radius-md);
+          padding: 14px 16px;
+          background-color: #FFFFFF;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .tahap04-root .preflight-top-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .tahap04-root .preflight-title {
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--text-ink);
+        }
+        .tahap04-root .preflight-ring-badge {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-ink);
+        }
+        .tahap04-root .preflight-checklist {
+          list-style: none;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin: 0;
+          padding: 0;
+        }
+        .tahap04-root .preflight-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          font-size: 12.5px;
+          line-height: 1.4;
+        }
+        .tahap04-root .check-icon-node {
+          width: 18px;
+          height: 18px;
+          border-radius: var(--radius-pill);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+        .tahap04-root .check-icon-node.is-pass {
+          background-color: #ECFDF3;
+          color: #0F9D58;
+        }
+        .tahap04-root .check-icon-node.is-fail {
+          background-color: #FEF2F2;
+          color: #B42318;
+        }
+        .tahap04-root .preflight-error-hint {
+          margin-top: 4px;
+          font-size: 11.5px;
+          color: #B42318;
+          background-color: #FEF2F2;
+          padding: 6px 10px;
+          border-radius: 6px;
+          border: 1px solid #FECACA;
+        }
+        .tahap04-root .preflight-actions-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding-top: 6px;
+          border-top: 1px solid var(--border-hairline);
+          flex-wrap: wrap;
+        }
+        .tahap04-root .btn-submit-review {
+          flex: 1;
+          height: 40px;
+          border-radius: var(--radius-md);
+          background-color: var(--color-brand);
+          color: #FFFFFF;
+          font-size: 13px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          transition: all var(--duration-fast);
+        }
+        .tahap04-root .btn-submit-review:disabled {
+          background-color: #E2E8F0;
+          color: #94A3B8;
+          cursor: not-allowed;
+        }
+        .tahap04-root .deliverable-meta-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 12px;
+          color: var(--text-muted);
+          border-top: 1px solid var(--border-hairline);
+          padding-top: 12px;
+        }
+        .tahap04-root .link-version-history {
+          font-weight: 600;
+          color: var(--color-brand);
+          cursor: pointer;
+        }
+        .tahap04-root .link-version-history:hover {
+          text-decoration: underline;
+        }
+        .tahap04-root .stage-checklist-card {
+          background-color: var(--bg-canvas);
+          border: 1px solid var(--border-hairline);
+          border-radius: var(--radius-card);
+          padding: 22px 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+        .tahap04-root .checklist-rows-container {
+          display: flex;
+          flex-direction: column;
+          border: 1px solid var(--border-hairline);
+          border-radius: var(--radius-md);
+          overflow: hidden;
+        }
+        .tahap04-root .checklist-row-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 13px 16px;
+          background-color: #FFFFFF;
+          border-bottom: 1px solid var(--border-hairline);
+          font-size: 13.5px;
+        }
+        .tahap04-root .checklist-row-item:last-child {
+          border-bottom: none;
+        }
+        .tahap04-root .checklist-row-item.is-current {
+          background-color: var(--color-brand-tint);
+          cursor: pointer;
+        }
+        .tahap04-root .checklist-left-group {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .tahap04-root .task-status-symbol {
+          width: 22px;
+          height: 22px;
+          border-radius: var(--radius-pill);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .tahap04-root .task-status-symbol.is-done {
+          background-color: #ECFDF3;
+          color: #0F9D58;
+        }
+        .tahap04-root .task-status-symbol.is-active-ring {
+          border: 2px solid var(--color-brand);
+          background-color: #FFFFFF;
+          color: var(--color-brand);
+        }
+        .tahap04-root .task-status-symbol.is-pending-dot {
+          background-color: #E2E8F0;
+          color: #64748B;
+        }
+        .tahap04-root .task-title-text {
+          color: var(--text-ink);
+          font-weight: 500;
+        }
+        .tahap04-root .checklist-row-item.is-current .task-title-text {
+          font-weight: 700;
+          color: var(--color-brand);
+        }
+        .tahap04-root .badge-task-now {
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          padding: 2px 7px;
+          border-radius: var(--radius-pill);
+          background-color: var(--color-brand);
+          color: #FFFFFF;
+        }
+        .tahap04-root .right-widgets-column {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          position: sticky;
+          top: 88px;
+        }
+        .tahap04-root .summary-stage-card {
+          background-color: var(--bg-canvas);
+          border: 1px solid var(--border-hairline);
+          border-radius: var(--radius-card);
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .tahap04-root .countdown-radial-box {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        .tahap04-root .radial-svg-wrap {
+          width: 68px;
+          height: 68px;
+          position: relative;
+          flex-shrink: 0;
+        }
+        .tahap04-root .radial-svg-wrap svg {
+          transform: rotate(-90deg);
+        }
+        .tahap04-root .radial-center-number {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 15px;
+          font-weight: 800;
+          color: var(--text-ink);
+        }
+        .tahap04-root .countdown-text-col {
+          display: flex;
+          flex-direction: column;
+        }
+        .tahap04-root .countdown-days-big {
+          font-size: 17px;
+          font-weight: 800;
+          color: var(--text-ink);
+        }
+        .tahap04-root .countdown-deadline-sub {
+          font-size: 12px;
+          color: var(--text-muted);
+          margin-top: 2px;
+        }
+        .tahap04-root .single-progress-wrap {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .tahap04-root .progress-bar-track {
+          width: 100%;
+          height: 6px;
+          border-radius: var(--radius-pill);
+          background-color: var(--border-hairline);
+          overflow: hidden;
+        }
+        .tahap04-root .progress-bar-fill {
+          height: 100%;
+          border-radius: var(--radius-pill);
+          background-color: var(--color-brand);
+          transition: width var(--duration-normal) var(--ease-standard);
+        }
+        .tahap04-root .progress-bar-label-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-ink);
+        }
+        .tahap04-root .supervisor-pill-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 12px;
+          border-top: 1px solid var(--border-hairline);
+        }
+        .tahap04-root .supervisor-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .tahap04-root .supervisor-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: var(--radius-pill);
+          background-color: var(--bg-hover);
+          color: var(--text-ink);
+          font-size: 11px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .tahap04-root .supervisor-name {
+          font-size: 12.5px;
+          font-weight: 700;
+          color: var(--text-ink);
+          line-height: 1.2;
+        }
+        .tahap04-root .supervisor-role {
+          font-size: 11px;
+          color: var(--text-muted);
+        }
+        .tahap04-root .btn-wa-round {
+          width: 28px;
+          height: 28px;
+          border-radius: var(--radius-pill);
+          background-color: #ECFDF3;
+          color: #0F9D58;
+          border: 1px solid #A7F3D0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .tahap04-root .info-accordion-card {
+          background-color: var(--bg-canvas);
+          border: 1px solid var(--border-hairline);
+          border-radius: var(--radius-card);
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+        .tahap04-root .accordion-item-row {
+          border-bottom: 1px solid var(--border-hairline);
+        }
+        .tahap04-root .accordion-item-row:last-child {
+          border-bottom: none;
+        }
+        .tahap04-root .accordion-trigger-btn {
+          width: 100%;
+          padding: 14px 18px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          text-align: left;
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--text-ink);
+        }
+        .tahap04-root .accordion-trigger-btn:hover {
+          background-color: var(--bg-subtle);
+        }
+        .tahap04-root .accordion-left-tag {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .tahap04-root .accordion-content-panel {
+          padding: 0 18px 14px 18px;
+          font-size: 12.5px;
+          color: var(--text-body);
+          line-height: 1.5;
+        }
+        .tahap04-root .new-indicator-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: var(--radius-pill);
+          background-color: #D97706;
+          display: inline-block;
+          margin-left: 4px;
+        }
+        .tahap04-root .support-footer-row {
+          font-size: 12px;
+          color: var(--text-muted);
+          text-align: center;
+          padding: 4px;
+        }
+        .tahap04-root .support-footer-row a {
+          color: var(--text-ink);
+          font-weight: 600;
+          text-decoration: underline;
+        }
+        .tahap04-root .popover-modal-backdrop {
+          position: fixed;
+          inset: 0;
+          background-color: rgba(11, 27, 58, 0.4);
+          backdrop-filter: blur(4px);
+          z-index: 60;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+        }
+        .tahap04-root .popover-card-box {
+          background-color: #FFFFFF;
+          border-radius: var(--radius-card);
+          max-width: 440px;
+          width: 100%;
+          padding: 22px;
+          box-shadow: var(--shadow-modal);
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+        .tahap04-root .version-drawer-backdrop {
+          position: fixed;
+          inset: 0;
+          background-color: rgba(11, 27, 58, 0.4);
+          z-index: 65;
+        }
+        .tahap04-root .version-drawer-panel {
+          position: fixed;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          width: 360px;
+          max-width: 90vw;
+          background-color: #FFFFFF;
+          z-index: 66;
+          box-shadow: -8px 0 28px rgba(11, 27, 58, 0.15);
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .tahap04-root .toast-container {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          z-index: 70;
+        }
+        .tahap04-root .toast-card {
+          background-color: var(--text-ink);
+          color: #FFFFFF;
+          border-radius: var(--radius-md);
+          padding: 12px 18px;
+          box-shadow: var(--shadow-toast);
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          font-size: 13px;
+          font-weight: 600;
+          position: relative;
+          overflow: hidden;
+        }
+        .tahap04-root .toast-undo-action {
+          color: #F87171;
+          font-weight: 700;
+          font-size: 12px;
+          text-transform: uppercase;
+          cursor: pointer;
+        }
+        .tahap04-root .toast-progress-line {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          height: 3px;
+          background-color: var(--color-brand);
+          width: 100%;
+          animation: toastProgress 5s linear forwards;
+        }
+        @keyframes toastProgress {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+        @media (max-width: 1024px) {
+          .tahap04-root .stage-workspace-grid {
+            grid-template-columns: 1fr;
+          }
+          .tahap04-root .right-widgets-column {
+            position: static;
+          }
+        }
+        @media (max-width: 768px) {
+          .tahap04-root .app-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            transform: translateX(-100%);
+            width: 250px !important;
+            box-shadow: var(--shadow-modal);
+          }
+          .tahap04-root .app-sidebar.mobile-open {
+            transform: translateX(0);
+          }
+          .tahap04-root .btn-mobile-menu {
+            display: flex;
+          }
+          .tahap04-root .page-content-wrapper {
+            padding: 16px 16px 80px 16px;
+          }
+          .tahap04-root .deliverable-body-layout {
+            grid-template-columns: 1fr;
+          }
+          .tahap04-root .banner-preview-box {
+            max-width: 200px;
+            margin: 0 auto;
+          }
+        }
+      `}</style>
+
+      {/* Confetti Canvas */}
+      <canvas
+        ref={confettiCanvasRef}
+        style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 99 }}
+      />
+
+      <div className="app-shell">
+        {/* ─── SIDEBAR (248px / RAIL 72px) ──────────────────────────────────── */}
+        <aside
+          className={`app-sidebar ${isRail ? 'is-rail' : ''} ${mobileMenuOpen ? 'mobile-open' : ''}`}
+          aria-label="Navigasi Siswa"
+        >
+          <div className="sidebar-brand-row">
+            <div className="brand-logo-group" onClick={() => navigate('/')}>
+              <div className="brand-logo-box">SM</div>
+              <div className="brand-text-wrap">
+                <span className="brand-title">Skomda Mengajar</span>
+                <span className="brand-program">Tahun Ajaran 2026</span>
+              </div>
             </div>
+            <button
+              className="btn-toggle-rail"
+              onClick={() => setIsRail(!isRail)}
+              title="Ciutkan Sidebar"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
           </div>
 
-          {/* Group Info Card */}
-          <div className="p-3.5 mx-3 mt-3.5 bg-slate-50 rounded-xl border border-slate-200">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#b4000c] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                {activeGroup.number}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs uppercase font-extrabold text-slate-900 truncate">
-                  Kelompok {activeGroup.number}
-                </p>
-                <p className="text-[11px] text-slate-500 truncate">{activeGroup.schoolName}</p>
-              </div>
-            </div>
-            <div className="mt-2.5 pt-2 border-t border-slate-200 flex items-center justify-between">
-              <span className="text-[10px] text-slate-400 font-mono uppercase">Status:</span>
-              <span className="inline-flex items-center gap-1 text-[10px] text-[#b4000c] font-bold uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#b4000c] animate-pulse"></span>
-                {activeGroup.statusLabel}
-              </span>
-            </div>
+          {/* Dynamic Team Badge Card for Logged-in Group */}
+          <div className="sidebar-team-badge">
+            <span className="sidebar-team-title">KEL-{activeGroup.number}</span>
+            <span className="sidebar-team-sub">{activeGroup.schoolName}</span>
           </div>
 
-          {/* Sidebar Navigation */}
-          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-            <button
-              onClick={() => navigate('/')}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors text-xs uppercase tracking-wider font-semibold text-left cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px] text-slate-400">grid_view</span>
-              <span>Beranda Publik</span>
-            </button>
+          {/* Menu Items */}
+          <ul className="sidebar-nav-list">
+            <li>
+              <button
+                type="button"
+                className="nav-item-link"
+                onClick={() => navigate('/')}
+              >
+                <div className="nav-item-left">
+                  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                  </svg>
+                  <span className="nav-label">Beranda Publik</span>
+                </div>
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className={`nav-item-link ${activeNav === 'pipeline' ? 'is-active' : ''}`}
+                onClick={() => {
+                  setActiveNav('pipeline');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                <div className="nav-item-left">
+                  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  </svg>
+                  <span className="nav-label">Alur Pelaksanaan</span>
+                </div>
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className={`nav-item-link ${activeNav === 'workspace' ? 'is-active' : ''}`}
+                onClick={() => {
+                  setActiveNav('workspace');
+                  dropzoneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
+              >
+                <div className="nav-item-left">
+                  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect width="18" height="18" x="3" y="3" rx="2" />
+                    <path d="M3 9h18" />
+                    <path d="M9 21V9" />
+                  </svg>
+                  <span className="nav-label">Ruang Kerja Kelompok</span>
+                </div>
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className={`nav-item-link ${activeNav === 'members' ? 'is-active' : ''}`}
+                onClick={() => {
+                  setActiveNav('members');
+                  membersSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              >
+                <div className="nav-item-left">
+                  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                  <span className="nav-label">Anggota Tim</span>
+                </div>
+                <span className="nav-badge-pill tabular-nums">{members.length}</span>
+              </button>
+            </li>
+          </ul>
 
-            {/* Alur Pelaksanaan (ACTIVE) */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-red-50 text-[#b4000c] text-xs uppercase tracking-wider font-bold border-l-[3px] border-[#b4000c]">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[18px]">alt_route</span>
-                  <span>Alur Pelaksanaan</span>
-                </div>
-                <span className="text-[9px] bg-[#b4000c] text-white px-1.5 py-0.2 rounded font-bold">04</span>
-              </div>
-
-              {/* Sub-steps drawer indicator */}
-              <div className="ml-4 pl-4 border-l border-slate-200 py-1 space-y-1 text-[11px]">
-                <div className="flex items-center gap-2 text-slate-400 py-0.5">
-                  <span className="material-symbols-outlined text-[14px] text-emerald-600">check_circle</span>
-                  <span className="line-through">01 Bentuk Kelompok</span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-400 py-0.5">
-                  <span className="material-symbols-outlined text-[14px] text-emerald-600">check_circle</span>
-                  <span className="line-through">02 Pilih Ketua</span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-400 py-0.5">
-                  <span className="material-symbols-outlined text-[14px] text-emerald-600">check_circle</span>
-                  <span className="line-through">03 Susun Materi</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#b4000c] font-bold py-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#b4000c]"></span>
-                  <span>04 Siapkan Desain</span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-400 opacity-60 py-0.5">
-                  <span className="material-symbols-outlined text-[13px]">lock</span>
-                  <span>05 Mengajar di SMP</span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-400 opacity-60 py-0.5">
-                  <span className="material-symbols-outlined text-[13px]">lock</span>
-                  <span>06 Evaluasi & LPJ</span>
-                </div>
+          {/* User Card Footer with Logout */}
+          <div className="sidebar-footer">
+            <div className="user-pill-row">
+              <div className="user-avatar-circle">{userInitials}</div>
+              <div className="user-details-col">
+                <span className="user-name-text">{userDisplayName}</span>
+                <span className="user-role-text">Ketua Kelompok {activeGroup.number}</span>
               </div>
             </div>
-
             <button
-              onClick={() => showToast(`Membuka Ruang Diskusi Kelompok ${activeGroup.number}`, 'info')}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors text-xs uppercase tracking-wider font-semibold text-left cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px] text-slate-400">workspaces</span>
-              <span>Ruang Kerja Kelompok</span>
-            </button>
-
-            <button
-              onClick={() => {
-                const el = document.getElementById('instagram-members-section');
-                el?.scrollIntoView({ behavior: 'smooth' });
+              type="button"
+              onClick={() => void logout()}
+              title="Keluar Sesi"
+              style={{
+                padding: '6px',
+                borderRadius: '8px',
+                color: 'var(--text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors text-xs uppercase tracking-wider font-semibold text-left cursor-pointer"
             >
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[18px] text-slate-400">groups</span>
-                <span>Anggota Tim</span>
-              </div>
-              <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded font-bold">
-                {members.length}
-              </span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
             </button>
-          </nav>
-        </div>
+          </div>
+        </aside>
 
-        {/* Bottom Profile */}
-        <div className="p-3.5 border-t border-slate-200 bg-white">
-          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-[#b4000c] flex items-center justify-center text-white text-xs font-bold shrink-0">
+        {/* ─── MAIN VIEWPORT ────────────────────────────────────────────────── */}
+        <main className="app-main">
+          {/* Sticky Topbar */}
+          <header className="app-topbar">
+            <div className="topbar-breadcrumb-wrap">
+              <button
+                type="button"
+                className="btn-mobile-menu"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Buka Navigasi"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              </button>
+              <div className="breadcrumb-text">
+                <span>Alur Pelaksanaan</span>
+                <span>&gt;</span>
+                <strong>
+                  Tahap 0{activeStage}: {currentStageMeta.title} — KEL-{activeGroup.number}
+                </strong>
+              </div>
+            </div>
+
+            <div className="topbar-actions-wrap">
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  className="topbar-icon-button"
+                  onClick={() => {
+                    setUnreadBell(false);
+                    setUnreadMemo(false);
+                    triggerWorkspaceToast('Pengumuman briefing teknis & memo kurikulum ditandai sudah dibaca.');
+                  }}
+                  title="Notifikasi Pengumuman & Memo"
+                >
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                  </svg>
+                  {unreadBell && <span className="notification-dot" />}
+                </button>
+              </div>
+
+              <div
+                className="user-avatar-circle"
+                style={{ width: 34, height: 34, fontSize: 12 }}
+                title={`${userDisplayName} (KEL-${activeGroup.number})`}
+              >
                 {userInitials}
               </div>
-              <div className="min-w-0">
-                <p className="text-xs text-slate-900 font-bold truncate">{userDisplayName}</p>
-                <p className="text-[10px] text-slate-400 truncate">Kelompok {activeGroup.number}</p>
+            </div>
+          </header>
+
+          {/* Main Scrollable Content */}
+          <div className="page-content-wrapper">
+            {/* ─── 1) HEADER RINGKAS ────────────────────────────────────────── */}
+            <section className="stage-hero-header">
+              <div className="hero-title-group">
+                <span className="eyebrow-label">Tahap {activeStage} dari 6</span>
+                <h1>{currentStageMeta.title}</h1>
+                <div className="hero-meta-subtitle">
+                  <span style={{ fontWeight: 700, color: 'var(--color-brand)' }}>KEL-{activeGroup.number}</span>
+                  <span>•</span>
+                  <span style={{ fontWeight: 700, color: 'var(--text-ink)' }}>{activeGroup.schoolName}</span>
+                  <span>•</span>
+                  <span>Pembimbing: {activeGroup.mentorName}</span>
+                </div>
               </div>
-            </div>
-            <button
-              onClick={() => void logout()}
-              className="p-1.5 rounded hover:bg-slate-200 text-slate-400 hover:text-[#b4000c] transition-colors shrink-0 cursor-pointer"
-              title="Keluar"
-            >
-              <span className="material-symbols-outlined text-[18px]">logout</span>
-            </button>
-          </div>
-        </div>
-      </aside>
 
-      {/* ================= 2. MAIN VIEWPORT ================= */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-slate-50/50">
-        {/* Top Bar */}
-        <header className="h-16 shrink-0 bg-white border-b border-slate-200 px-6 lg:px-8 flex items-center justify-between gap-4 z-20">
-          <div className="flex items-center gap-2 min-w-0">
-            <button
-              onClick={() => navigate('/')}
-              className="inline-flex items-center gap-1 text-slate-500 hover:text-[#b4000c] transition-colors text-xs font-bold uppercase tracking-wider cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-              <span>Alur Utama</span>
-            </button>
-            <span className="text-slate-300">/</span>
-            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-mono">Pelaksanaan</span>
-            <span className="text-slate-300">/</span>
-            <span className="text-xs uppercase tracking-wider text-slate-900 font-bold truncate">
-              Tahap 04: Siapkan Desain
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold">
-              <span className="material-symbols-outlined text-[16px] text-[#b4000c]">hourglass_top</span>
-              <span className="text-slate-800">4 Hari Tersisa</span>
-              <span className="text-slate-400 text-[11px]">(Tenggat: 15 Feb)</span>
-            </div>
-
-            <button
-              onClick={() => showToast('Tidak ada notifikasi mendesak baru', 'info')}
-              className="relative p-2 rounded-lg hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[20px]">notifications</span>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#b4000c]"></span>
-            </button>
-
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 rounded-lg">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#b4000c] animate-pulse"></span>
-              <span className="text-[10px] text-[#b4000c] uppercase font-bold tracking-wider">
-                Tahap Aktif
-              </span>
-            </div>
-          </div>
-        </header>
-
-        {/* Scrollable Content */}
-        <main className="flex-1 overflow-y-auto px-6 lg:px-10 py-8 custom-scrollbar">
-          <div className="max-w-7xl mx-auto flex flex-col gap-8 pb-20">
-            {/* Step Header Section */}
-            <section className="pb-6 border-b border-slate-200">
-              <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-                <div className="flex items-start gap-5 max-w-3xl">
-                  <div className="shrink-0 select-none">
-                    <span className="text-6xl md:text-8xl font-light text-slate-300 leading-none">04</span>
-                  </div>
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 uppercase tracking-tight">
-                        Siapkan Desain
-                      </h1>
-                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-50 border border-red-200 rounded-full">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#b4000c] opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-[#b4000c]"></span>
-                        </span>
-                        <span className="text-[10px] text-[#b4000c] uppercase font-bold tracking-widest">
-                          Tahap Aktif
-                        </span>
-                      </div>
-                      <span className="bg-[#b4000c] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full tracking-wider">
-                        Wajib Cetak
-                      </span>
-                    </div>
-
-                    <p className="text-sm md:text-base text-slate-600 font-medium">
-                      Kelompok {activeGroup.number} • {activeGroup.schoolName}{' '}
-                      <span className="mx-2 text-slate-300">/</span>
-                      <span className="text-slate-500 text-xs">Pembimbing: {activeGroup.mentorName}</span>
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right side: Countdown Ring & Metrics */}
-                <div className="flex items-center gap-5 self-start lg:self-end bg-white px-5 py-3.5 rounded-xl border border-slate-200 shadow-2xs">
-                  <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
-                    <svg className="w-14 h-14 -rotate-90" viewBox="0 0 48 48">
-                      <circle cx="24" cy="24" fill="none" r="20" stroke="#f1f5f9" strokeWidth="4"></circle>
-                      <circle
-                        cx="24"
-                        cy="24"
-                        fill="none"
-                        r="20"
-                        stroke="#b4000c"
-                        strokeDasharray="125.6"
-                        strokeDashoffset="62.8"
-                        strokeLinecap="round"
-                        strokeWidth="4"
-                      ></circle>
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-xs font-bold text-slate-900 leading-none">4H</span>
-                      <span className="text-[8px] text-slate-400 font-mono uppercase mt-0.5">Sisa</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-[10px] font-mono uppercase text-slate-400">Tenggat Waktu:</span>
-                      <span className="text-xs font-bold text-slate-900">15 Feb 2026</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#b4000c] rounded-full" style={{ width: '50%' }}></div>
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-700 uppercase">Item: 2/4 (50%)</span>
-                    </div>
-                  </div>
-                </div>
+              <div
+                className="chip-live-status"
+                style={
+                  currentStageMeta.chipColor === 'done'
+                    ? {
+                        backgroundColor: 'var(--stage-done-tint)',
+                        borderColor: 'var(--stage-done-border)',
+                        color: 'var(--stage-done)',
+                      }
+                    : undefined
+                }
+              >
+                <span
+                  className="pulse-dot"
+                  style={
+                    currentStageMeta.chipColor === 'done'
+                      ? { backgroundColor: 'var(--stage-done)', animation: 'none' }
+                      : undefined
+                  }
+                />
+                <span>{currentStageMeta.chipText}</span>
               </div>
             </section>
 
-            {/* Stepper horizontal line */}
-            <section className="py-4 bg-white border border-slate-200 rounded-xl p-5 overflow-x-auto shadow-2xs">
-              <div className="min-w-[760px] flex items-center justify-between relative px-4">
-                <div className="absolute top-4 left-8 right-8 h-[2px] bg-slate-100 -z-0"></div>
-                <div className="absolute top-4 left-8 w-[55%] h-[2px] bg-[#b4000c] -z-0"></div>
+            {/* ─── 2) STEPPER RINGKAS (6 TAHAP INTERAKTIF) ──────────────────── */}
+            <section className="stage-stepper-card" aria-label="Alur 6 Tahap Skomda Mengajar">
+              <div className="stepper-nodes-row">
+                <div className="stepper-track-underlay" />
+                <div
+                  className="stepper-track-fill"
+                  style={{ width: `${Math.round(((activeStage - 1) / 5) * 92)}%` }}
+                />
 
-                <div className="flex flex-col items-center gap-2 z-10">
-                  <div className="w-8 h-8 rounded-full bg-[#b4000c] text-white flex items-center justify-center text-xs">
-                    <span className="material-symbols-outlined text-[16px]">check</span>
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-800 uppercase">01 Bentuk Kelompok</span>
-                </div>
+                {STAGES.map((stg) => {
+                  const isCompleted =
+                    stg.id < 4 ||
+                    (stg.id === 4 && fileStatus === 'review') ||
+                    (stg.id === 5 && stage5Submitted) ||
+                    (stg.id === 6 && stage6Submitted);
+                  const isActive = stg.id === activeStage;
 
-                <div className="flex flex-col items-center gap-2 z-10">
-                  <div className="w-8 h-8 rounded-full bg-[#b4000c] text-white flex items-center justify-center text-xs">
-                    <span className="material-symbols-outlined text-[16px]">check</span>
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-800 uppercase">02 Pilih Ketua</span>
-                </div>
-
-                <div className="flex flex-col items-center gap-2 z-10">
-                  <div className="w-8 h-8 rounded-full bg-[#b4000c] text-white flex items-center justify-center text-xs">
-                    <span className="material-symbols-outlined text-[16px]">check</span>
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-800 uppercase">03 Susun Materi</span>
-                </div>
-
-                <div className="flex flex-col items-center gap-2 z-10">
-                  <div className="w-8 h-8 rounded-full bg-[#b4000c] text-white ring-4 ring-red-100 flex items-center justify-center text-xs font-bold">
-                    04
-                  </div>
-                  <span className="text-[10px] font-extrabold text-[#b4000c] uppercase">04 Siapkan Desain</span>
-                </div>
-
-                <div className="flex flex-col items-center gap-2 z-10 opacity-60">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-xs">
-                    <span className="material-symbols-outlined text-[15px]">lock</span>
-                  </div>
-                  <span className="text-[10px] font-medium text-slate-500 uppercase">05 Mengajar di SMP</span>
-                </div>
-
-                <div className="flex flex-col items-center gap-2 z-10 opacity-60">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-xs">
-                    <span className="material-symbols-outlined text-[15px]">flag</span>
-                  </div>
-                  <span className="text-[10px] font-medium text-slate-500 uppercase">06 Evaluasi & LPJ</span>
-                </div>
-              </div>
-            </section>
-
-            {/* Main Content Grid 8:4 */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              {/* LEFT COLUMN (8) */}
-              <div className="lg:col-span-8 flex flex-col gap-8">
-                {/* Berkas 01: X-Banner Publikasi */}
-                <div className="p-6 md:p-8 rounded-xl bg-white border border-slate-200 flex flex-col gap-6 shadow-sm">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-slate-100">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-[#b4000c] font-bold uppercase">BERKAS 01</span>
-                        <span className="text-slate-300">•</span>
-                        <span className="text-[10px] font-mono text-slate-400 uppercase">PUBLIKASI OFFLINE</span>
-                      </div>
-                      <h2 className="text-lg font-bold text-slate-900 tracking-tight mt-1">
-                        X-Banner Publikasi (60×160 cm)
-                      </h2>
-                    </div>
-
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg self-start">
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          bannerStatus === 'approved'
-                            ? 'bg-emerald-500'
-                            : bannerStatus === 'revision'
-                            ? 'bg-amber-500'
-                            : 'bg-amber-400'
-                        }`}
-                      />
-                      <span className="text-[10px] font-bold uppercase text-slate-800">
-                        {bannerStatus === 'approved'
-                          ? 'Telah Disetujui Admin'
-                          : bannerStatus === 'revision'
-                          ? 'Perlu Revisi Desain'
-                          : 'Menunggu Finalisasi'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                    {/* Thumbnail Frame */}
-                    <div className="md:col-span-4 flex justify-center">
+                  return (
+                    <div
+                      key={stg.id}
+                      onClick={() => setActiveStage(stg.id as 1 | 2 | 3 | 4 | 5 | 6)}
+                      className={`step-node-col ${
+                        isActive ? 'is-active' : isCompleted ? 'is-completed' : ''
+                      }`}
+                      title={`Klik untuk membuka Tahap ${stg.no}: ${stg.name}`}
+                    >
                       <div
-                        onClick={() => setIsBannerModalOpen(true)}
-                        className="relative w-36 h-72 bg-slate-100 border border-slate-300 rounded-lg overflow-hidden flex flex-col items-center justify-between p-3 group cursor-pointer shadow-inner hover:ring-2 hover:ring-[#b4000c] transition-all"
+                        className="step-circle tabular-nums"
+                        style={
+                          !isActive && !isCompleted
+                            ? {
+                                backgroundColor: '#F8FAFC',
+                                border: '1.5px solid #CBD5E1',
+                                color: '#475569',
+                              }
+                            : undefined
+                        }
                       >
-                        <div className="w-full flex items-center justify-between text-[8px] font-bold">
-                          <span className="text-[#b4000c]">#SKOMDA</span>
-                          <span className="text-slate-400">VOL.{activeGroup.number}</span>
-                        </div>
+                        {isCompleted && !isActive ? (
+                          <svg
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        ) : (
+                          stg.id
+                        )}
+                      </div>
+                      <span className="step-node-label">{stg.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
 
-                        <div className="text-center space-y-1 my-auto">
-                          <div className="w-12 h-12 mx-auto rounded-full bg-red-100 flex items-center justify-center text-[#b4000c] mb-2">
-                            <span className="material-symbols-outlined text-[24px]">school</span>
-                          </div>
-                          <p className="text-[10px] text-slate-900 uppercase font-extrabold leading-tight">
-                            {activeGroup.schoolName}
-                          </p>
-                          <p className="text-[8px] text-slate-500">{activeGroup.featuredModule}</p>
-                        </div>
-
-                        <div className="w-full pt-2 border-t border-slate-200 text-center">
-                          <span className="text-[7px] text-slate-400 uppercase tracking-widest font-mono">
-                            KELOMPOK {activeGroup.number} • 2026
+            {/* ─── 3 & 4) WORKSPACE GRID (KIRI 8 / KANAN 4) ─────────────────── */}
+            <div className="stage-workspace-grid">
+              {/* KOLOM KIRI: PEKERJAAN */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* ─── TAHAP 01: BENTUK KELOMPOK ─────────────────────────────── */}
+                {activeStage === 1 && (
+                  <div className="primary-deliverable-card">
+                    <div className="deliverable-header-row">
+                      <div className="deliverable-title-box">
+                        <span className="eyebrow-label">Berkas 01 — Formasi &amp; Pembagian Peran Tim</span>
+                        <h2>
+                          <span>Susunan Tim &amp; Penempatan ({activeGroup.schoolName})</span>
+                          <span
+                            className="tag-mandatory"
+                            style={{ backgroundColor: '#ECFDF3', color: '#0F9D58', borderColor: '#A7F3D0' }}
+                          >
+                            Tervalidasi
                           </span>
-                        </div>
+                        </h2>
+                      </div>
+                      <div className="status-chip-file is-approved">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Disetujui Kurikulum</span>
+                      </div>
+                    </div>
 
-                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <span className="text-xs text-white font-bold uppercase tracking-wider underline">
-                            Pratinjau Full
-                          </span>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: 12,
+                        padding: 16,
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-hairline)',
+                      }}
+                    >
+                      <div>
+                        <span className="eyebrow-label" style={{ fontSize: 10 }}>Sekolah Mitra Tujuan</span>
+                        <div style={{ fontWeight: 800, color: 'var(--text-ink)', fontSize: 15, marginTop: 2 }}>
+                          {activeGroup.schoolName}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                          {activeGroup.schoolAddress}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="eyebrow-label" style={{ fontSize: 10 }}>Kecamatan &amp; Kuota</span>
+                        <div style={{ fontWeight: 800, color: 'var(--text-ink)', fontSize: 15, marginTop: 2 }}>
+                          Kec. {activeGroup.district}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                          {members.length} Siswa Relawan Terdaftar
+                        </div>
+                      </div>
+                      <div>
+                        <span className="eyebrow-label" style={{ fontSize: 10 }}>Guru Pembimbing</span>
+                        <div style={{ fontWeight: 800, color: 'var(--text-ink)', fontSize: 15, marginTop: 2 }}>
+                          {activeGroup.mentorName}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                          SK Penugasan #SKD-2026-{activeGroup.number}
                         </div>
                       </div>
                     </div>
 
-                    {/* Specs, Progress & Trigger */}
-                    <div className="md:col-span-8 flex flex-col gap-4">
-                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1 text-xs">
-                        <span className="text-[10px] font-mono text-slate-400 font-bold uppercase">
-                          Spesifikasi Percetakan:
-                        </span>
-                        <p className="text-slate-700 font-medium leading-relaxed">
-                          Format cetak: TIFF / PDF High-Res 300 DPI, Ruang Warna CMYK, Bleed 1 cm keliling untuk mata ayam.
-                        </p>
-                      </div>
+                    <div className="deliverable-meta-row">
+                      <span>Formasi tim telah dikunci bersama {activeGroup.mentorName}</span>
+                      <button
+                        type="button"
+                        className="link-version-history"
+                        onClick={() =>
+                          membersSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                        }
+                      >
+                        Lihat Daftar {members.length} Anggota ↓
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-500 uppercase font-mono text-[10px]">
-                            Status Kelayakan Layout
+                {/* ─── TAHAP 02: PILIH KETUA ─────────────────────────────────── */}
+                {activeStage === 2 && (
+                  <div className="primary-deliverable-card">
+                    <div className="deliverable-header-row">
+                      <div className="deliverable-title-box">
+                        <span className="eyebrow-label">Berkas 02 — Mandat &amp; Koordinator Lapangan</span>
+                        <h2>
+                          <span>Penetapan Ketua Kelompok &amp; Surat Tugas</span>
+                          <span
+                            className="tag-mandatory"
+                            style={{ backgroundColor: '#ECFDF3', color: '#0F9D58', borderColor: '#A7F3D0' }}
+                          >
+                            SK Terbit
                           </span>
-                          <span className="text-xs font-bold text-[#b4000c]">75% Selesai</span>
+                        </h2>
+                      </div>
+                      <div className="status-chip-file is-approved">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Ketua Aktif</span>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 14,
+                        padding: 18,
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-hairline)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div
+                          className="user-avatar-circle"
+                          style={{ width: 48, height: 48, fontSize: 16 }}
+                        >
+                          {userInitials}
                         </div>
-                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-[#b4000c] rounded-full" style={{ width: '75%' }}></div>
+                        <div>
+                          <span className="eyebrow-label" style={{ fontSize: 10, color: 'var(--color-brand)' }}>
+                            Ketua Koordinator KEL-{activeGroup.number}
+                          </span>
+                          <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-ink)' }}>
+                            {userDisplayName}
+                          </div>
+                          <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                            Penanggung Jawab Lapangan • {activeGroup.schoolName}
+                          </div>
                         </div>
-                        <p className="text-[10px] text-slate-400 font-mono">
-                          Terakhir diubah oleh Nabila Putri • Hari ini, 10:14 WIB
-                        </p>
                       </div>
 
-                      <div className="pt-2 flex flex-wrap items-center gap-3">
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                          gap: 12,
+                          paddingTop: 12,
+                          borderTop: '1px solid var(--border-hairline)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>
+                            Nomor WhatsApp Koordinator
+                          </label>
+                          <input
+                            type="text"
+                            value={leaderPhone}
+                            onChange={(e) => setLeaderPhone(e.target.value)}
+                            style={{
+                              height: 38,
+                              padding: '0 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: '1px solid var(--border-hairline)',
+                              backgroundColor: '#FFFFFF',
+                              fontSize: 13,
+                            }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>
+                            Kelas &amp; Jurusan Ketua
+                          </label>
+                          <input
+                            type="text"
+                            value={leaderClass}
+                            onChange={(e) => setLeaderClass(e.target.value)}
+                            style={{
+                              height: 38,
+                              padding: '0 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: '1px solid var(--border-hairline)',
+                              backgroundColor: '#FFFFFF',
+                              fontSize: 13,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, paddingTop: 4 }}>
                         <button
                           type="button"
-                          onClick={() => {
-                            showToast('Membuka dialog unggah file PDF/TIFF X-Banner...', 'info');
-                          }}
-                          className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-[#b4000c] text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-900 transition-colors cursor-pointer shadow-xs"
+                          className="btn-upload-primary"
+                          onClick={() =>
+                            triggerWorkspaceToast(
+                              `Data kontak Ketua KEL-${activeGroup.number} (${leaderPhone}) berhasil diperbarui!`
+                            )
+                          }
                         >
-                          <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
-                          <span>Unggah Desain Banner</span>
+                          Simpan Kontak Ketua
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            showToast('Mengunduh template resmi (.AI & .PSD) Skomda Mengajar...', 'info');
+                          className="btn-upload-primary"
+                          style={{
+                            backgroundColor: '#FFFFFF',
+                            color: 'var(--text-ink)',
+                            border: '1px solid var(--border-hairline)',
+                            boxShadow: 'none',
                           }}
-                          className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-300 text-slate-800 text-xs font-bold uppercase tracking-wider hover:bg-slate-50 transition-colors cursor-pointer"
+                          onClick={() =>
+                            triggerWorkspaceToast(
+                              `Mengunduh Surat_Tugas_KEL-${activeGroup.number}_${schoolSlug}.pdf...`
+                            )
+                          }
                         >
-                          <span className="material-symbols-outlined text-[18px]">download</span>
-                          <span>Unduh Template (.AI / .PSD)</span>
+                          Unduh Surat Tugas &amp; Pengantar SMP (PDF)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── TAHAP 03: SUSUN MATERI ────────────────────────────────── */}
+                {activeStage === 3 && (
+                  <div className="primary-deliverable-card">
+                    <div className="deliverable-header-row">
+                      <div className="deliverable-title-box">
+                        <span className="eyebrow-label">Berkas 03 — Kurikulum &amp; Silabus Ajar</span>
+                        <h2>
+                          <span>RPP &amp; Modul: {activeGroup.featuredModule}</span>
+                          <span className="tag-mandatory">2 x 45 Menit</span>
+                        </h2>
+                      </div>
+                      <div className="status-chip-file is-approved">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Modul Disetujui</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+                      <div
+                        style={{
+                          padding: 14,
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid var(--border-hairline)',
+                          backgroundColor: 'var(--bg-subtle)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 6,
+                        }}
+                      >
+                        <span className="eyebrow-label" style={{ fontSize: 10, color: 'var(--stage-done)' }}>
+                          Dokumen 01 • RPP &amp; Silabus
+                        </span>
+                        <div style={{ fontWeight: 700, color: 'var(--text-ink)', fontSize: 13.5 }}>
+                          {rppFileName}
+                        </div>
+                        <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                          PDF • 2.4 MB • Disetujui oleh {activeGroup.mentorName}
+                        </span>
+                        <button
+                          type="button"
+                          className="link-version-history"
+                          style={{ textAlign: 'left', marginTop: 4 }}
+                          onClick={() => {
+                            setRppFileName(`RPP_${schoolSlug}_v3_Revisi.pdf`);
+                            triggerWorkspaceToast('Versi terbaru dokumen RPP berhasil diunggah!');
+                          }}
+                        >
+                          Perbarui File RPP
+                        </button>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: 14,
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid var(--border-hairline)',
+                          backgroundColor: 'var(--bg-subtle)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 6,
+                        }}
+                      >
+                        <span className="eyebrow-label" style={{ fontSize: 10, color: 'var(--stage-done)' }}>
+                          Dokumen 02 • Slide Presentasi Kelas
+                        </span>
+                        <div style={{ fontWeight: 700, color: 'var(--text-ink)', fontSize: 13.5 }}>
+                          {slideFileName}
+                        </div>
+                        <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                          PPTX / Canva • 8.6 MB • Siap Tayang di Lab
+                        </span>
+                        <button
+                          type="button"
+                          className="link-version-history"
+                          style={{ textAlign: 'left', marginTop: 4 }}
+                          onClick={() => {
+                            setSlideFileName(`Slide_${schoolSlug}_v3_Final.pptx`);
+                            triggerWorkspaceToast('Slide presentasi berhasil diperbarui!');
+                          }}
+                        >
+                          Perbarui Slide Materi
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-ink)' }}>
+                        Rancangan Susunan Sesi Mengajar di {activeGroup.schoolName}
+                      </label>
+                      <textarea
+                        value={syllabusNotes}
+                        onChange={(e) => setSyllabusNotes(e.target.value)}
+                        rows={3}
+                        style={{
+                          width: '100%',
+                          padding: 12,
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid var(--border-hairline)',
+                          fontSize: 13,
+                          color: 'var(--text-ink)',
+                        }}
+                      />
+                      <div>
+                        <button
+                          type="button"
+                          className="btn-upload-primary"
+                          onClick={() =>
+                            triggerWorkspaceToast('Rancangan sesi & silabus mengajar berhasil disimpan!')
+                          }
+                        >
+                          Simpan Catatan Silabus
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── TAHAP 04: SIAPKAN DESAIN (X-BANNER) ───────────────────── */}
+                {activeStage === 4 && (
+                <div className="primary-deliverable-card">
+                  <div className="deliverable-header-row">
+                    <div className="deliverable-title-box">
+                      <span className="eyebrow-label">Berkas 01 — Publikasi Offline</span>
+                      <h2>
+                        <span>X-Banner Publikasi (60x160 cm)</span>
+                        <span className="tag-mandatory">Wajib Cetak</span>
+                      </h2>
+                    </div>
+                    <div className={`status-chip-file ${fileStatus === 'review' ? 'is-review' : ''}`}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span>{fileStatus === 'review' ? 'Menunggu review' : 'Belum diunggah'}</span>
+                    </div>
+                  </div>
+
+                  {/* Body: 2 Kolom (Preview Banner 3:8 & Dropzone) */}
+                  <div className="deliverable-body-layout">
+                    {/* Kiri: Banner Preview SVG 3:8 */}
+                    <div
+                      className="banner-preview-box"
+                      onClick={() => setIsBannerModalOpen(true)}
+                      title="Klik untuk pratinjau besar"
+                    >
+                      <div className="preview-magnify-hint">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="11" cy="11" r="8" />
+                          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                          <line x1="11" y1="8" x2="11" y2="14" />
+                          <line x1="8" y1="11" x2="14" y2="11" />
+                        </svg>
+                      </div>
+                      <svg width="100%" height="100%" viewBox="0 0 300 800" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stopColor="#D7141F" />
+                            <stop offset="60%" stopColor="#9A0D16" />
+                            <stop offset="100%" stopColor="#0B1B3A" />
+                          </linearGradient>
+                        </defs>
+                        <rect width="300" height="800" fill="url(#bgGrad)" />
+                        <circle cx="50" cy="50" r="22" fill="#FFFFFF" />
+                        <text
+                          x="50"
+                          y="55"
+                          fontSize="14"
+                          fontWeight="bold"
+                          fill="#D7141F"
+                          textAnchor="middle"
+                          fontFamily="'Plus Jakarta Sans'"
+                        >
+                          SM
+                        </text>
+                        <text x="82" y="48" fontSize="11" fontWeight="700" fill="#FFFFFF" fontFamily="'Plus Jakarta Sans'">
+                          SKOMDA MENGAJAR
+                        </text>
+                        <text
+                          x="82"
+                          y="60"
+                          fontSize="9"
+                          fill="rgba(255,255,255,0.7)"
+                          fontFamily="'Plus Jakarta Sans'"
+                        >
+                          #IMPACT2026 • VOL.{activeGroup.number}
+                        </text>
+                        <circle cx="20" cy="20" r="6" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+                        <circle cx="280" cy="20" r="6" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+                        <circle cx="20" cy="780" r="6" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+                        <circle cx="280" cy="780" r="6" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+                        <text
+                          x="150"
+                          y="245"
+                          fontSize="26"
+                          fontWeight="800"
+                          fill="#FFFFFF"
+                          textAnchor="middle"
+                          fontFamily="'Plus Jakarta Sans'"
+                        >
+                          WORKSHOP
+                        </text>
+                        <text
+                          x="150"
+                          y="285"
+                          fontSize="18"
+                          fontWeight="800"
+                          fill="#FBBF24"
+                          textAnchor="middle"
+                          fontFamily="'Plus Jakarta Sans'"
+                        >
+                          {activeGroup.featuredModule.slice(0, 22).toUpperCase()}
+                        </text>
+                        <rect x="30" y="380" width="240" height="42" rx="8" fill="rgba(255,255,255,0.15)" />
+                        <text
+                          x="150"
+                          y="406"
+                          fontSize="13"
+                          fontWeight="700"
+                          fill="#FFFFFF"
+                          textAnchor="middle"
+                          fontFamily="'Plus Jakarta Sans'"
+                        >
+                          {activeGroup.schoolName.toUpperCase()}
+                        </text>
+                        <text
+                          x="150"
+                          y="580"
+                          fontSize="13"
+                          fill="#FFFFFF"
+                          textAnchor="middle"
+                          fontFamily="'Plus Jakarta Sans'"
+                        >
+                          18 — 25 Februari 2026
+                        </text>
+                        <text
+                          x="150"
+                          y="602"
+                          fontSize="11"
+                          fill="rgba(255,255,255,0.7)"
+                          textAnchor="middle"
+                          fontFamily="'Plus Jakarta Sans'"
+                        >
+                          Lab Komputer {activeGroup.schoolName}
+                        </text>
+                        <rect x="0" y="730" width="300" height="70" fill="rgba(11,27,58,0.6)" />
+                        <text
+                          x="150"
+                          y="760"
+                          fontSize="10"
+                          fill="#FFFFFF"
+                          textAnchor="middle"
+                          fontFamily="'Plus Jakarta Sans'"
+                        >
+                          SMK TELKOM SIDOARJO
+                        </text>
+                      </svg>
+                    </div>
+
+                    {/* Kanan: Spesifikasi, Dropzone, & Preflight Panel */}
+                    <div className="deliverable-actions-col" ref={dropzoneRef}>
+                      {/* 5 Spesifikasi Cetak */}
+                      <div className="specs-chips-row">
+                        <span className="spec-item-chip">60x160 cm</span>
+                        <span className="spec-item-chip">300 DPI</span>
+                        <span className="spec-item-chip">CMYK</span>
+                        <span className="spec-item-chip">Bleed 1 cm</span>
+                        <span className="spec-item-chip">TIFF / PDF</span>
+                        <button
+                          type="button"
+                          className="link-bleed-popover"
+                          onClick={() => setBleedModalOpen(true)}
+                        >
+                          Apa itu bleed?
+                        </button>
+                      </div>
+
+                      {/* Dropzone atau Preflight Panel */}
+                      {uploadAttempt === 0 ? (
+                        <div
+                          className={`dropzone-container ${isDragOver ? 'is-dragover' : ''}`}
+                          onClick={() => fileInputRef.current?.click()}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            setIsDragOver(true);
+                          }}
+                          onDragLeave={() => setIsDragOver(false)}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setIsDragOver(false);
+                            if (e.dataTransfer.files.length > 0) {
+                              handleFileUpload(e.dataTransfer.files[0].name);
+                            }
+                          }}
+                        >
+                          <div className="dropzone-icon-circle">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                              <polyline points="17 8 12 3 7 8" />
+                              <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                          </div>
+                          <span className="dropzone-title">Seret file ke sini atau pilih file</span>
+                          <span className="dropzone-subtitle">
+                            Format TIFF atau PDF siap cetak, maksimal 50 MB
+                          </span>
+                          <button
+                            type="button"
+                            className="btn-upload-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              fileInputRef.current?.click();
+                            }}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                              <polyline points="17 8 12 3 7 8" />
+                              <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                            <span>Unggah Desain Banner</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="preflight-panel">
+                          <div className="preflight-top-row">
+                            <span className="preflight-title">
+                              Cek Kelayakan File Cetak {uploadedFileName ? `(${uploadedFileName})` : ''}
+                            </span>
+                            <div className="preflight-ring-badge">
+                              <span>{isSecondAttempt ? '4 dari 4 terpenuhi' : '3 dari 4 terpenuhi'}</span>
+                              <span
+                                style={{
+                                  color: isSecondAttempt ? 'var(--stage-done)' : 'var(--color-brand)',
+                                  fontWeight: 800,
+                                }}
+                              >
+                                {isSecondAttempt ? '(100%)' : '(75%)'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <ul className="preflight-checklist">
+                            {preflightCriteria.map((crit, idx) => (
+                              <li key={idx} className="preflight-item">
+                                <div className={`check-icon-node ${crit.pass ? 'is-pass' : 'is-fail'}`}>
+                                  <svg
+                                    width="12"
+                                    height="12"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                  >
+                                    {crit.pass ? (
+                                      <polyline points="20 6 9 17 4 12" />
+                                    ) : (
+                                      <>
+                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                      </>
+                                    )}
+                                  </svg>
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <span style={{ fontWeight: 600, color: 'var(--text-ink)' }}>
+                                    {crit.label}
+                                  </span>
+                                  {!crit.pass && crit.failNote && (
+                                    <div className="preflight-error-hint">{crit.failNote}</div>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+
+                          <div className="preflight-actions-row">
+                            <button
+                              type="button"
+                              className="btn-submit-review"
+                              disabled={!isSecondAttempt || fileStatus === 'review'}
+                              onClick={handleSubmitForReview}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="22" y1="2" x2="11" y2="13" />
+                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                              </svg>
+                              <span>
+                                {fileStatus === 'review'
+                                  ? 'Terkirim — Menunggu Review'
+                                  : 'Kirim untuk Review'}
+                              </span>
+                            </button>
+
+                            {!isSecondAttempt && (
+                              <button
+                                type="button"
+                                className="btn-upload-primary"
+                                style={{
+                                  backgroundColor: 'var(--bg-hover)',
+                                  color: 'var(--text-ink)',
+                                  boxShadow: 'none',
+                                  marginTop: 0,
+                                }}
+                                onClick={() =>
+                                  handleFileUpload(`X-Banner_${schoolSlug}_v2_BleedFixed.pdf`)
+                                }
+                              >
+                                Unggah Ulang File Perbaikan
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.tiff,.tif"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files.length > 0) {
+                            handleFileUpload(e.target.files[0].name);
+                          }
+                        }}
+                      />
+
+                      {/* Meta Satu Baris */}
+                      <div className="deliverable-meta-row">
+                        <span>Terakhir diubah oleh {userDisplayName} — Hari ini, 10:14 WIB</span>
+                        <button
+                          type="button"
+                          className="link-version-history"
+                          onClick={() => setVersionDrawerOpen(true)}
+                        >
+                          Riwayat versi (2)
                         </button>
                       </div>
                     </div>
                   </div>
                 </div>
+                )}
 
-                {/* Berkas 02: Feed Instagram */}
-                <div id="instagram-members-section" className="p-6 md:p-8 rounded-xl bg-white border border-slate-200 flex flex-col gap-6 shadow-sm">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-slate-100">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-[#b4000c] font-bold uppercase">BERKAS 02</span>
-                        <span className="text-slate-300">•</span>
-                        <span className="text-[10px] font-mono text-slate-400 uppercase">PUBLIKASI DIGITAL RESMI</span>
+                {/* ─── TAHAP 05: MENGAJAR DI SMP ─────────────────────────────── */}
+                {activeStage === 5 && (
+                  <div className="primary-deliverable-card">
+                    <div className="deliverable-header-row">
+                      <div className="deliverable-title-box">
+                        <span className="eyebrow-label">Berkas 05 — Pelaksanaan &amp; Dokumentasi Lapangan</span>
+                        <h2>
+                          <span>Jurnal Mengajar &amp; Presensi ({activeGroup.schoolName})</span>
+                          <span className="tag-mandatory">Wajib Dokumentasi</span>
+                        </h2>
                       </div>
-                      <h2 className="text-lg font-bold text-slate-900 tracking-tight mt-1">
-                        Feed Instagram / Poster Mandiri
-                      </h2>
+                      <div className={`status-chip-file ${stage5Submitted ? 'is-approved' : 'is-review'}`}>
+                        <span>{stage5Submitted ? 'Laporan Terkirim' : 'Siap Pelaksanaan'}</span>
+                      </div>
                     </div>
-                    <span className="text-xs font-bold uppercase px-3 py-1 rounded-lg bg-slate-50 text-slate-700 border border-slate-200">
-                      {validCount} dari {members.length} Anggota Siap
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                        gap: 12,
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>
+                          Tanggal Pelaksanaan
+                        </label>
+                        <input
+                          type="date"
+                          value={teachingDate}
+                          onChange={(e) => setTeachingDate(e.target.value)}
+                          style={{
+                            height: 38,
+                            padding: '0 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border-hairline)',
+                            fontSize: 13,
+                          }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>
+                          Lokasi Ruang / Lab SMP
+                        </label>
+                        <input
+                          type="text"
+                          value={teachingRoom}
+                          onChange={(e) => setTeachingRoom(e.target.value)}
+                          style={{
+                            height: 38,
+                            padding: '0 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border-hairline)',
+                            fontSize: 13,
+                          }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>
+                          Jumlah Siswa SMP Hadir
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={200}
+                          value={attendedStudents}
+                          onChange={(e) => setAttendedStudents(Number(e.target.value))}
+                          style={{
+                            height: 38,
+                            padding: '0 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border-hairline)',
+                            fontSize: 13,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>
+                        Catatan Jurnal &amp; Antusiasme Kelas
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={fieldNotes}
+                        onChange={(e) => setFieldNotes(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: 12,
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid var(--border-hairline)',
+                          fontSize: 13,
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                      <button
+                        type="button"
+                        className="btn-upload-primary"
+                        onClick={() => {
+                          setStage5Submitted(true);
+                          triggerConfetti();
+                          triggerWorkspaceToast(
+                            `Dokumentasi & Berita Acara mengajar di ${activeGroup.schoolName} berhasil dikirim!`
+                          );
+                        }}
+                      >
+                        {stage5Submitted
+                          ? 'Terkirim — Perbarui Laporan Mengajar'
+                          : 'Kirim Berita Acara & Dokumentasi'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── TAHAP 06: EVALUASI & LPJ ──────────────────────────────── */}
+                {activeStage === 6 && (
+                  <div className="primary-deliverable-card">
+                    <div className="deliverable-header-row">
+                      <div className="deliverable-title-box">
+                        <span className="eyebrow-label">Berkas 06 — Evaluasi Akhir &amp; Sertifikat</span>
+                        <h2>
+                          <span>Laporan Pertanggungjawaban (LPJ) &amp; Feedback SMP</span>
+                          <span className="tag-mandatory">Tahap Final</span>
+                        </h2>
+                      </div>
+                      <div className={`status-chip-file ${stage6Submitted ? 'is-approved' : 'is-review'}`}>
+                        <span>{stage6Submitted ? 'LPJ Disetujui' : 'Menunggu LPJ'}</span>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: 16,
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: '#ECFDF3',
+                        border: '1px solid #A7F3D0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 12,
+                      }}
+                    >
+                      <div>
+                        <span className="eyebrow-label" style={{ fontSize: 10, color: '#0F9D58' }}>
+                          Hasil Feedback Sekolah Mitra ({activeGroup.schoolName})
+                        </span>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-ink)', marginTop: 2 }}>
+                          Rating Kepuasan Siswa &amp; Guru Pamong: 4.9 / 5.0 ★
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-body)', marginTop: 2 }}>
+                          "Materi {activeGroup.featuredModule} disampaikan dengan sangat interaktif dan mudah dipahami."
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>
+                        Ringkasan Evaluasi &amp; Refleksi Kelompok {activeGroup.number}
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={reflectionNotes}
+                        onChange={(e) => setReflectionNotes(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: 12,
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid var(--border-hairline)',
+                          fontSize: 13,
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+                      <button
+                        type="button"
+                        className="btn-upload-primary"
+                        onClick={() => {
+                          setLpjFileName(`LPJ_Final_KEL-${activeGroup.number}_${schoolSlug}.pdf`);
+                          setStage6Submitted(true);
+                          triggerConfetti();
+                          triggerWorkspaceToast(
+                            `Selamat! LPJ Final KEL-${activeGroup.number} berhasil dikirim & sertifikat siap diunduh.`
+                          );
+                        }}
+                      >
+                        {stage6Submitted
+                          ? `LPJ Terkirim (${lpjFileName || 'PDF'})`
+                          : 'Unggah & Kirim LPJ Final (PDF)'}
+                      </button>
+
+                      {stage6Submitted && (
+                        <button
+                          type="button"
+                          className="btn-upload-primary"
+                          style={{
+                            backgroundColor: 'var(--stage-done)',
+                            boxShadow: 'none',
+                          }}
+                          onClick={() =>
+                            triggerWorkspaceToast(
+                              `Mengunduh Sertifikat_SkomdaMengajar_KEL-${activeGroup.number}.pdf...`
+                            )
+                          }
+                        >
+                          Unduh Sertifikat Tim
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3b. KARTU CHECKLIST TAHAP (DINAMIS SESUAI TAHAP 01-06) */}
+                <div className="stage-checklist-card">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <span className="eyebrow-label">Checklist Pekerjaan</span>
+                      <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-ink)' }}>
+                        Langkah Pelaksanaan Tahap 0{activeStage} ({currentStageMeta.title}) — KEL-{activeGroup.number}
+                      </h3>
+                    </div>
+                    <span
+                      className="tabular-nums"
+                      style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}
+                    >
+                      {completedCount} dari {totalCount} tuntas
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Setiap anggota diwajibkan mengunggah teaser kampanye individual berformat carousel rasio 4:5 pada akun media sosial masing-masing dengan tag resmi panitia.
-                  </p>
+                  <div className="checklist-rows-container">
+                    {activeStageTasks.map((task) => {
+                      const isDone = task.status === 'selesai';
+                      const isCurrent = task.status === 'sekarang';
 
-                  {/* 8 Members Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-2">
-                    {members.map((m) => {
-                      const isValid = m.status === 'valid';
                       return (
                         <div
-                          key={m.id}
-                          onClick={() => toggleMemberStatus(m.id)}
-                          className={`p-3 rounded-xl border flex items-center gap-3 card-smooth hover:-translate-y-0.5 cursor-pointer shadow-2xs ${
-                            isValid
-                              ? 'bg-slate-50/90 border-slate-200 hover:border-slate-300'
-                              : 'bg-amber-50/40 border-amber-200 hover:border-amber-300'
-                          }`}
-                          title="Klik untuk ubah status verifikasi"
+                          key={task.id}
+                          className={`checklist-row-item ${isCurrent ? 'is-current' : ''}`}
+                          onClick={() => {
+                            if (isCurrent && activeStage === 4) {
+                              dropzoneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                          }}
                         >
-                          <div className="relative shrink-0">
-                            <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-800 flex items-center justify-center font-bold text-xs">
-                              {m.initials}
-                            </div>
-                            <span
-                              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                                isValid ? 'bg-emerald-500' : 'bg-amber-500'
-                              }`}
-                            />
+                          <div className="checklist-left-group">
+                            {isDone ? (
+                              <div className="task-status-symbol is-done">
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2.5"
+                                >
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              </div>
+                            ) : isCurrent ? (
+                              <div className="task-status-symbol is-active-ring">
+                                <span
+                                  style={{
+                                    width: 7,
+                                    height: 7,
+                                    borderRadius: 999,
+                                    background: '#D7141F',
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div className="task-status-symbol is-pending-dot">
+                                <span
+                                  style={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: 999,
+                                    background: '#64748B',
+                                  }}
+                                />
+                              </div>
+                            )}
+                            <span className="task-title-text">{task.title}</span>
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-slate-900 truncate">{m.name}</p>
-                            <span
-                              className={`text-[10px] font-semibold uppercase ${
-                                isValid ? 'text-emerald-700' : 'text-amber-800'
-                              }`}
-                            >
-                              {isValid ? 'Diunggah' : 'Menunggu'}
-                            </span>
-                          </div>
+                          {isCurrent && <span className="badge-task-now">Sekarang</span>}
                         </div>
                       );
                     })}
                   </div>
 
-                  <div className="pt-2 flex items-center justify-between flex-wrap gap-4 border-t border-slate-100">
-                    <p className="text-[11px] text-slate-400">
-                      Pengingat otomatis via WhatsApp dikirimkan tiap 24 jam sebelum batas pengumpulan.
-                    </p>
-                    {pendingCount > 0 && (
-                      <button
-                        type="button"
-                        onClick={handleSendReminder}
-                        className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-slate-900 hover:bg-[#b4000c] text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">
-                          {reminderSent ? 'check' : 'notifications_active'}
+                  {/* Navigasi Antar Tahap (01 s/d 06) */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingTop: 10,
+                      borderTop: '1px solid var(--border-hairline)',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      disabled={activeStage === 1}
+                      onClick={() =>
+                        setActiveStage((prev) => Math.max(1, prev - 1) as 1 | 2 | 3 | 4 | 5 | 6)
+                      }
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: activeStage === 1 ? 'var(--text-muted)' : 'var(--text-ink)',
+                        opacity: activeStage === 1 ? 0.45 : 1,
+                        cursor: activeStage === 1 ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      ← Tahap Sebelumnya
+                    </button>
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+                      Tahap 0{activeStage} dari 06
+                    </span>
+                    <button
+                      type="button"
+                      disabled={activeStage === 6}
+                      onClick={() =>
+                        setActiveStage((prev) => Math.min(6, prev + 1) as 1 | 2 | 3 | 4 | 5 | 6)
+                      }
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: activeStage === 6 ? 'var(--text-muted)' : 'var(--color-brand)',
+                        opacity: activeStage === 6 ? 0.45 : 1,
+                        cursor: activeStage === 6 ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      Tahap Berikutnya →
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3c. KARTU ANGGOTA TIM KELOMPOK */}
+                <div className="stage-checklist-card" ref={membersSectionRef}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <span className="eyebrow-label">Anggota Tim & Publikasi</span>
+                      <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-ink)' }}>
+                        Relawan KEL-{activeGroup.number} ({activeGroup.schoolName})
+                      </h3>
+                    </div>
+                    <span
+                      className="tabular-nums"
+                      style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}
+                    >
+                      {members.filter((m) => m.status === 'valid').length} / {members.length} Terverifikasi
+                    </span>
+                  </div>
+
+                  <div className="checklist-rows-container">
+                    {members.map((member) => (
+                      <div key={member.id} className="checklist-row-item">
+                        <div className="checklist-left-group">
+                          <div
+                            className="user-avatar-circle"
+                            style={{
+                              width: 28,
+                              height: 28,
+                              fontSize: 11,
+                              backgroundColor:
+                                member.status === 'valid' ? 'var(--stage-done)' : 'var(--text-muted)',
+                            }}
+                          >
+                            {member.initials}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
+                            <span className="task-title-text" style={{ fontWeight: 700 }}>
+                              {member.name}
+                            </span>
+                            <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                              {member.role} {member.instagramUrl ? `• ${member.instagramUrl}` : ''}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleMemberStatus(member.id)}
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '4px 10px',
+                            borderRadius: 999,
+                            backgroundColor:
+                              member.status === 'valid' ? 'var(--stage-done-tint)' : 'var(--status-review-bg)',
+                            color:
+                              member.status === 'valid' ? 'var(--stage-done)' : 'var(--status-review-text)',
+                            border: '1px solid',
+                            borderColor:
+                              member.status === 'valid' ? 'var(--stage-done-border)' : '#FDE68A',
+                          }}
+                        >
+                          {member.status === 'valid' ? 'Valid' : 'Verifikasi'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* KOLOM KANAN: STICKY WIDGETS */}
+              <div className="right-widgets-column">
+                {/* 4a. Kartu Ringkasan Tahap */}
+                <div className="summary-stage-card">
+                  <span className="eyebrow-label">Tenggat Waktu Tahap</span>
+
+                  <div className="countdown-radial-box">
+                    <div className="radial-svg-wrap">
+                      <svg width="68" height="68">
+                        <circle cx="34" cy="34" r="28" fill="none" stroke="#E8ECF2" strokeWidth="5" />
+                        <circle
+                          cx="34"
+                          cy="34"
+                          r="28"
+                          fill="none"
+                          stroke="#D7141F"
+                          strokeWidth="5"
+                          strokeDasharray="175"
+                          strokeDashoffset={radialOffset}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <div className="radial-center-number tabular-nums">
+                        {diffDays === 0 ? '✓' : diffDays}
+                      </div>
+                    </div>
+                    <div className="countdown-text-col">
+                      <span className="countdown-days-big">
+                        {diffDays === 0 ? 'Tahap Tuntas' : `${diffDays} hari lagi`}
+                      </span>
+                      <span className="countdown-deadline-sub">
+                        Batas: <strong>{currentStageMeta.deadlineText}</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bar Progres Tunggal */}
+                  <div className="single-progress-wrap">
+                    <div className="progress-bar-label-row">
+                      <span>Progres Tahap Ini</span>
+                      <span className="tabular-nums">{progressPct}%</span>
+                    </div>
+                    <div className="progress-bar-track">
+                      <div className="progress-bar-fill" style={{ width: `${progressPct}%` }} />
+                    </div>
+                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                      {completedCount} dari {totalCount} tugas selesai
+                    </span>
+                  </div>
+
+                  {/* Baris Pembimbing */}
+                  <div className="supervisor-pill-row">
+                    <div className="supervisor-left">
+                      <div className="supervisor-avatar">{mentorInitials}</div>
+                      <div>
+                        <div className="supervisor-name">{activeGroup.mentorName}</div>
+                        <div className="supervisor-role">Guru Pembimbing</div>
+                      </div>
+                    </div>
+                    <a
+                      href={`https://wa.me/6281234567890?text=${encodeURIComponent(
+                        `Halo ${activeGroup.mentorName}, saya ${userDisplayName} dari Kelompok ${activeGroup.number} (${activeGroup.schoolName})...`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-wa-round"
+                      title="WhatsApp Pembimbing"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+
+                {/* 4b. Kartu Info Accordion */}
+                <div className="info-accordion-card">
+                  <div className="accordion-item-row">
+                    <button
+                      type="button"
+                      className="accordion-trigger-btn"
+                      onClick={() => setOpenBriefing(!openBriefing)}
+                    >
+                      <div className="accordion-left-tag">
+                        <span className="eyebrow-label" style={{ fontSize: 10, color: 'var(--color-brand)' }}>
+                          Pengumuman Pusat
                         </span>
-                        <span>{reminderSent ? 'Pengingat Terkirim!' : `Beri Pengingat ${pendingCount} Anggota`}</span>
-                      </button>
+                        <span>Briefing Teknis Mengajar</span>
+                      </div>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                    {openBriefing && (
+                      <div className="accordion-content-panel">
+                        Kamis, 12 Feb 2026, pukul 08.30 WIB di Aula Lt. 3 Skomda. Dihadiri seluruh ketua
+                        kelompok dan divisi kurikulum.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="accordion-item-row">
+                    <button
+                      type="button"
+                      className="accordion-trigger-btn"
+                      onClick={() => {
+                        setOpenMemo(!openMemo);
+                        setUnreadMemo(false);
+                      }}
+                    >
+                      <div className="accordion-left-tag">
+                        <span className="eyebrow-label" style={{ fontSize: 10, color: '#D97706' }}>
+                          Catatan Pembimbing
+                          {unreadMemo && <span className="new-indicator-dot" />}
+                        </span>
+                        <span>Penataan Roll Banner di {activeGroup.schoolName}</span>
+                      </div>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                    {openMemo && (
+                      <div className="accordion-content-panel">
+                        {activeGroup.notes || supervisorMemo}
+                      </div>
                     )}
                   </div>
                 </div>
 
-                {/* Referensi Fisik: Dokumentasi Lokasi */}
-                <div className="p-6 md:p-8 rounded-xl bg-white border border-slate-200 flex flex-col gap-6 shadow-sm">
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-[#b4000c] font-bold uppercase">
-                          REFERENSI FISIK
-                        </span>
-                        <span className="text-slate-300">•</span>
-                        <span className="text-[10px] font-mono text-slate-400 uppercase">VERIFIKASI LAPANGAN</span>
-                      </div>
-                      <h2 className="text-lg font-bold text-slate-900 tracking-tight mt-1">
-                        Dokumentasi Survei Lokasi (SMPN 1 Buduran)
-                      </h2>
-                    </div>
-                    <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 font-semibold">
-                      <span className="material-symbols-outlined text-[16px]">verified</span>
-                      <span>Terverifikasi Guru</span>
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {photosList.map((item) => (
-                      <div key={item.id} className="flex flex-col gap-2 group card-smooth">
-                        <div className="aspect-[4/3] rounded-xl border border-slate-200 overflow-hidden relative bg-slate-100 shadow-2xs">
-                          <img
-                            className="w-full h-full object-cover group-hover:scale-106 transition-transform duration-500"
-                            alt={item.title}
-                            src={item.img}
-                          />
-                          <span className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-xs text-white px-2 py-0.5 rounded text-[9px] font-mono uppercase shadow-2xs">
-                            {item.tag}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-800 font-bold truncate group-hover:text-[#b4000c] transition-colors">{item.title}</p>
-                        <span className="text-[10px] text-slate-400 font-mono">{item.subtext}</span>
-                      </div>
-                    ))}
-
-                    {/* Add Photo Button */}
-                    <button
-                      type="button"
-                      onClick={() => setShowAddPhotoModal(true)}
-                      className="aspect-[4/3] rounded-xl border-2 border-dashed border-slate-300 hover:border-[#b4000c] flex flex-col items-center justify-center gap-1.5 p-3 text-center transition-all duration-300 group cursor-pointer bg-slate-50 hover:bg-red-50/20 card-smooth hover:-translate-y-0.5"
-                    >
-                      <span className="material-symbols-outlined text-[24px] text-slate-400 group-hover:text-[#b4000c] group-hover:scale-110 transition-transform">
-                        add_photo_alternate
-                      </span>
-                      <span className="text-xs uppercase tracking-wider text-slate-700 group-hover:text-[#b4000c] font-bold">
-                        + Tambah Foto
-                      </span>
-                      <span className="text-[9px] text-slate-400">JPG/PNG maks. 5MB</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Task Board: Papan Kerja Langkah 04 */}
-                <div className="p-6 md:p-8 rounded-xl bg-white border border-slate-200 flex flex-col gap-6 shadow-sm">
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                    <div>
-                      <span className="text-[10px] font-mono text-[#b4000c] font-bold uppercase">
-                        MANAJEMEN TUGAS INTERNAL
-                      </span>
-                      <h2 className="text-lg font-bold text-slate-900 tracking-tight mt-1">
-                        Papan Kerja Langkah 04
-                      </h2>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-400 font-bold uppercase">
-                      {sprintTasks.length} TUGAS TERJADWAL
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Todo Column */}
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-3">
-                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                        <span className="text-xs uppercase font-bold text-slate-800">
-                          Akan Dikerjakan ({sprintTasks.filter((t) => t.column === 'todo').length})
-                        </span>
-                        <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                      </div>
-
-                      <div className="space-y-3">
-                        {sprintTasks
-                          .filter((t) => t.column === 'todo')
-                          .map((task) => (
-                            <div
-                              key={task.id}
-                              className="p-3.5 bg-white rounded-xl border border-slate-200/90 flex flex-col gap-2.5 shadow-2xs card-smooth hover:-translate-y-1 hover:shadow-md"
-                            >
-                              <span className="text-[9px] text-[#b4000c] font-bold uppercase tracking-wider">
-                                Prioritas Tinggi
-                              </span>
-                              <p className="text-xs font-bold text-slate-800 leading-snug">{task.title}</p>
-                              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                                <span className="font-semibold text-slate-600">{task.assignee}</span>
-                                <button
-                                  onClick={() => moveTaskColumn(task.id, 'in_progress')}
-                                  className="text-xs text-[#b4000c] font-bold hover:underline cursor-pointer"
-                                >
-                                  Mulai →
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-
-                    {/* In Progress Column */}
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-3">
-                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                        <span className="text-xs uppercase font-bold text-amber-800">
-                          Dalam Proses ({sprintTasks.filter((t) => t.column === 'in_progress').length})
-                        </span>
-                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                      </div>
-
-                      <div className="space-y-3">
-                        {sprintTasks
-                          .filter((t) => t.column === 'in_progress')
-                          .map((task) => (
-                            <div
-                              key={task.id}
-                              className="p-3.5 bg-white rounded-xl border border-slate-200/90 flex flex-col gap-2.5 shadow-2xs card-smooth hover:-translate-y-1 hover:shadow-md"
-                            >
-                              <span className="text-[9px] text-amber-700 font-bold uppercase tracking-wider">
-                                Sedang Direview
-                              </span>
-                              <p className="text-xs font-bold text-slate-800 leading-snug">{task.title}</p>
-                              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                                <span className="font-semibold text-slate-600">{task.assignee}</span>
-                                <button
-                                  onClick={() => moveTaskColumn(task.id, 'done')}
-                                  className="text-xs text-emerald-700 font-bold hover:underline cursor-pointer"
-                                >
-                                  Tandai Selesai ✓
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-
-                    {/* Done Column */}
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-3">
-                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                        <span className="text-xs uppercase font-bold text-emerald-800">
-                          Selesai ({sprintTasks.filter((t) => t.column === 'done').length})
-                        </span>
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      </div>
-
-                      <div className="space-y-3">
-                        {sprintTasks
-                          .filter((t) => t.column === 'done')
-                          .map((task) => (
-                            <div
-                              key={task.id}
-                              className="p-3.5 bg-white rounded-xl border border-slate-200/90 flex flex-col gap-2.5 shadow-2xs opacity-85 card-smooth hover:-translate-y-0.5 hover:opacity-100"
-                            >
-                              <span className="text-[9px] text-emerald-700 font-bold uppercase tracking-wider">
-                                Tuntas
-                              </span>
-                              <p className="text-xs font-semibold text-slate-500 line-through leading-snug">
-                                {task.title}
-                              </p>
-                              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-                                <span>{task.assignee}</span>
-                                <span className="font-mono text-emerald-700 font-bold">10 Feb</span>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* RIGHT SIDEBAR COLUMN (4) */}
-              <div className="lg:col-span-4 flex flex-col gap-6">
-                {/* Announcement Card */}
-                <div className="p-6 rounded-xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-red-100 text-[#b4000c] flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-[20px]">campaign</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-mono text-[#b4000c] font-bold uppercase">PENGUMUMAN PUSAT</span>
-                      <p className="text-xs font-bold text-slate-900 uppercase">Briefing Teknis Mengajar</p>
-                    </div>
-                  </div>
-                  <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-700 leading-relaxed font-medium">
-                    Sabtu, 10 Feb 2026 pukul 08.30 WIB di Aula Lt. 3 Skomda. Dihadiri seluruh ketua kelompok dan divisi kurikulum.
-                  </div>
-                  <button
-                    onClick={() => showToast('Membuka detail pengumuman briefing', 'info')}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-[#b4000c] hover:underline uppercase tracking-wider cursor-pointer"
+                {/* 4c. Baris Bantuan Ringkas */}
+                <div className="support-footer-row">
+                  Butuh bantuan?{' '}
+                  <a
+                    href="#panduan"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setBleedModalOpen(true);
+                    }}
                   >
-                    <span>Lihat detail pengumuman</span>
-                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                  </button>
-                </div>
-
-                {/* Supervisor Memo (Real-time sync from admin!) */}
-                {showMemoToLeader && supervisorMemo && (
-                  <div className="p-6 rounded-xl bg-red-50/70 border border-red-200 flex flex-col gap-3 shadow-xs">
-                    <div className="flex items-center justify-between border-b border-red-200 pb-2">
-                      <span className="text-xs font-bold uppercase text-[#b4000c] flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[16px]">notifications_active</span>
-                        <span>Memo Khusus dari Admin Kurikulum</span>
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-800 leading-relaxed italic">
-                      "{supervisorMemo}"
-                    </p>
-                    <span className="text-[10px] text-slate-400 font-mono text-right">
-                      Sinkronisasi otomatis dengan panel admin
-                    </span>
-                  </div>
-                )}
-
-                {/* Project Assets Downloads */}
-                <div className="p-6 rounded-xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm">
-                  <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                      Aset Resmi Proyek
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400">VERSI 2026.2</span>
-                  </div>
-
-                  <div className="flex flex-col gap-2.5 text-xs">
-                    <button
-                      onClick={() => showToast('Mengunduh Template Slide PPTX (14.2 MB)...', 'info')}
-                      className="p-3 rounded-lg border border-slate-200 hover:border-slate-400 bg-slate-50 flex items-center justify-between transition-colors text-left cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-slate-500 text-[20px]">slideshow</span>
-                        <div>
-                          <p className="font-bold text-slate-900">Template Slide PPTX</p>
-                          <span className="text-[10px] text-slate-400">Rasio 16:9 (14.2 MB)</span>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Unduh ↓</span>
-                    </button>
-
-                    <button
-                      onClick={() => showToast('Mengunduh Logo Vektor Skomda (.SVG & .PNG)...', 'info')}
-                      className="p-3 rounded-lg border border-slate-200 hover:border-slate-400 bg-slate-50 flex items-center justify-between transition-colors text-left cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-slate-500 text-[20px]">palette</span>
-                        <div>
-                          <p className="font-bold text-slate-900">Logo Vektor Skomda</p>
-                          <span className="text-[10px] text-slate-400">.SVG & .PNG Transparan</span>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Unduh ↓</span>
-                    </button>
-
-                    <button
-                      onClick={() => showToast('Mengunduh Standar Visual Cetak PDF (4.8 MB)...', 'info')}
-                      className="p-3 rounded-lg border border-slate-200 hover:border-slate-400 bg-slate-50 flex items-center justify-between transition-colors text-left cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-slate-500 text-[20px]">menu_book</span>
-                        <div>
-                          <p className="font-bold text-slate-900">Standar Visual Cetak</p>
-                          <span className="text-[10px] text-slate-400">Pedoman PDF (4.8 MB)</span>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Unduh ↓</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Mentor Feedback Speech Bubble */}
-                <div className="p-6 rounded-xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                      Catatan Pembimbing
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-[#b4000c]"></span>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800 shrink-0">
-                      SW
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-900">Dra. Sri Wahyuni, M.Pd</p>
-                      <span className="text-[10px] text-slate-400">Guru Pendamping Kelompok 03</span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed italic">
-                    “Pastikan logo Tut Wuri Handayani dan logo SMPN 1 Buduran posisinya sejajar di bagian header banner. Untuk materi presentasi jangan terlalu padat teks, prioritaskan studi kasus visual.”
-                  </div>
-                  <span className="text-[10px] text-slate-400 text-right font-mono">Ditinjau kemarin pada 16.45 WIB</span>
-                </div>
-
-                {/* SMP Coordinator info */}
-                <div className="p-6 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-                  <span className="text-[10px] font-mono uppercase text-slate-400 font-bold">
-                    Koordinator Lokasi SMP:
-                  </span>
-                  <div className="flex items-center justify-between font-bold text-slate-800">
-                    <span>Bpk. Suhartono, S.Kom</span>
-                    <a href="tel:+681234908812" className="text-[#b4000c] hover:underline font-mono">
-                      +6812-3490-XXXX
-                    </a>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-normal">
-                    Silakan konfirmasi teknis penataan sound & proyektor H-2 sebelum hari pelaksanaan.
-                  </p>
+                    Panduan cetak X-Banner
+                  </a>{' '}
+                  •{' '}
+                  <a href="https://wa.me/6281234567890" target="_blank" rel="noreferrer">
+                    Hubungi koordinator
+                  </a>
                 </div>
               </div>
             </div>
-
-            {/* Bottom Step Nav */}
-            <section className="py-6 mt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <button
-                onClick={() => showToast('Kembali ke arsip Langkah 03 (Susun Materi)', 'info')}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-12 px-6 rounded-lg border border-slate-300 text-slate-800 font-bold text-xs uppercase tracking-wider hover:bg-white transition-colors cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-                <span>Langkah sebelumnya (03 Susun Materi)</span>
-              </button>
-
-              <button
-                disabled
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-12 px-6 rounded-lg border border-slate-200 text-slate-400 font-bold text-xs uppercase tracking-wider opacity-60 cursor-not-allowed bg-slate-100"
-              >
-                <span className="material-symbols-outlined text-[18px]">lock</span>
-                <span>Langkah berikutnya (05 Mengajar di SMP) →</span>
-              </button>
-            </section>
           </div>
         </main>
       </div>
 
-      {/* Modal Add Photo */}
-      {showAddPhotoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 border border-slate-200 shadow-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900">Tambah Foto Dokumentasi Lapangan</h3>
+      {/* ─── POPOVER "APA ITU BLEED?" ─────────────────────────────────────────── */}
+      {bleedModalOpen && (
+        <div
+          className="popover-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setBleedModalOpen(false);
+          }}
+        >
+          <div className="popover-card-box" role="dialog" aria-modal="true">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-ink)' }}>
+                Spesifikasi Bleed &amp; Mata Ayam
+              </h3>
               <button
-                onClick={() => setShowAddPhotoModal(false)}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                type="button"
+                onClick={() => setBleedModalOpen(false)}
+                style={{ color: 'var(--text-muted)' }}
               >
-                <span className="material-symbols-outlined text-[18px]">close</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
             </div>
-            <form onSubmit={handleAddPhoto} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">URL Gambar / Foto</label>
-                <input
-                  type="url"
-                  required
-                  placeholder="https://..."
-                  value={newPhotoUrl}
-                  onChange={(e) => setNewPhotoUrl(e.target.value)}
-                  className="w-full p-2.5 border border-slate-300 rounded-lg focus:border-[#b4000c] focus:outline-none"
+
+            <div
+              style={{
+                backgroundColor: 'var(--bg-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: 14,
+                textAlign: 'center',
+              }}
+            >
+              <svg width="100%" height="160" viewBox="0 0 320 160">
+                <rect
+                  x="20"
+                  y="10"
+                  width="280"
+                  height="140"
+                  fill="#FFF1F2"
+                  stroke="#D7141F"
+                  strokeWidth="2"
+                  strokeDasharray="4"
                 />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddPhotoModal(false)}
-                  className="px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
+                <text
+                  x="30"
+                  y="26"
+                  fontSize="9"
+                  fontWeight="700"
+                  fill="#D7141F"
+                  fontFamily="'Plus Jakarta Sans'"
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-[#b4000c] hover:bg-slate-900 text-white font-bold cursor-pointer"
+                  BLEED 1 CM (Area Potong Lebih)
+                </text>
+                <rect x="36" y="24" width="248" height="112" fill="#FFFFFF" stroke="#0B1B3A" strokeWidth="1.5" />
+                <text
+                  x="46"
+                  y="40"
+                  fontSize="9"
+                  fontWeight="700"
+                  fill="#0B1B3A"
+                  fontFamily="'Plus Jakarta Sans'"
                 >
-                  Simpan Foto
-                </button>
+                  UKURAN BERSIH: 60 x 160 CM
+                </text>
+                <rect x="52" y="38" width="216" height="84" fill="#F8FAFC" stroke="#CBD5E1" strokeWidth="1" />
+                <text
+                  x="160"
+                  y="85"
+                  fontSize="11"
+                  fontWeight="700"
+                  fill="#475569"
+                  textAnchor="middle"
+                  fontFamily="'Plus Jakarta Sans'"
+                >
+                  Area Aman Teks &amp; Logo
+                </text>
+                <circle cx="48" cy="36" r="5" fill="#CBD5E1" stroke="#0B1B3A" strokeWidth="1.5" />
+                <circle cx="272" cy="36" r="5" fill="#CBD5E1" stroke="#0B1B3A" strokeWidth="1.5" />
+                <circle cx="48" cy="124" r="5" fill="#CBD5E1" stroke="#0B1B3A" strokeWidth="1.5" />
+                <circle cx="272" cy="124" r="5" fill="#CBD5E1" stroke="#0B1B3A" strokeWidth="1.5" />
+              </svg>
+            </div>
+
+            <p style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.5 }}>
+              <strong>Bleed 1 cm</strong> adalah area lebihan di luar ukuran bersih agar tidak timbul tepi
+              putih saat banner dipotong oleh mesin percetakan.
+            </p>
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              <strong>Mata ayam</strong> adalah lubang cincin besi di 4 sudut banner untuk dikaitkan ke
+              tiang penyangga. Pastikan teks dan logo tidak diletakkan terlalu mepet ke sudut (beri jarak
+              aman 3 cm).
+            </p>
+
+            <button
+              type="button"
+              className="btn-upload-primary"
+              onClick={() => setBleedModalOpen(false)}
+              style={{ justifyContent: 'center', marginTop: 4 }}
+            >
+              Saya Mengerti
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── RIWAYAT VERSI DRAWER ─────────────────────────────────────────────── */}
+      {versionDrawerOpen && (
+        <>
+          <div className="version-drawer-backdrop" onClick={() => setVersionDrawerOpen(false)} />
+          <aside className="version-drawer-panel">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-ink)' }}>
+                Riwayat Versi Berkas
+              </h3>
+              <button
+                type="button"
+                onClick={() => setVersionDrawerOpen(false)}
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+              <div
+                style={{
+                  padding: 12,
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-hairline)',
+                  backgroundColor: 'var(--bg-subtle)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    color: 'var(--text-ink)',
+                  }}
+                >
+                  <span>Versi 2 (Aktif)</span>
+                  <span style={{ color: 'var(--color-brand)' }}>Terbaru</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                  X-Banner_{schoolSlug}_v2.pdf • 14.8 MB
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-body)', marginTop: 6 }}>
+                  Perbaikan ukuran margin bleed dan logo SMK Telkom.
+                </div>
               </div>
-            </form>
+
+              <div
+                style={{
+                  padding: 12,
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-hairline)',
+                  backgroundColor: '#FFFFFF',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    color: 'var(--text-ink)',
+                  }}
+                >
+                  <span>Versi 1</span>
+                  <span style={{ color: 'var(--text-muted)' }}>9 Feb 2026</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                  Draf_Banner_{schoolSlug}.pdf • 12.1 MB
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-body)', marginTop: 6 }}>
+                  Draf awal konsep materi {activeGroup.featuredModule}.
+                </div>
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
+
+      {/* ─── TOAST NOTIFICATION DENGAN 5s UNDO ────────────────────────────────── */}
+      {localToast && (
+        <div className="toast-container">
+          <div className="toast-card">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F9D58" strokeWidth="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span style={{ flex: 1 }}>{localToast.message}</span>
+            {localToast.withUndo && (
+              <>
+                <button type="button" className="toast-undo-action" onClick={handleUndoSubmit}>
+                  Urungkan
+                </button>
+                <div className="toast-progress-line" />
+              </>
+            )}
           </div>
         </div>
       )}

@@ -1626,25 +1626,30 @@
     }
 
     .matrix-cell-node {
-      display: inline-block;
-      width: 32px;
-      height: 24px;
-      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 26px;
+      border-radius: 7px;
       cursor: pointer;
+      font-size: 10.5px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
       transition: transform var(--duration-fast);
       position: relative;
     }
 
     .matrix-cell-node:hover {
-      transform: scale(1.18);
+      transform: scale(1.12);
       z-index: 5;
     }
 
-    .matrix-cell-done { background-color: #D1FAE5; border: 1px solid #A7F3D0; }
-    .matrix-cell-progress { background-color: #DBEAFE; border: 1px solid #BFDBFE; }
-    .matrix-cell-review { background-color: #FEF3C7; border: 1px solid #FDE68A; }
-    .matrix-cell-overdue { background-color: #FEE2E2; border: 1px solid #FECACA; }
-    .matrix-cell-empty { background-color: #F1F5F9; border: 1px solid #E2E8F0; }
+    .matrix-cell-done { background-color: #10B981; border: 1px solid #059669; color: #FFFFFF; box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3); }
+    .matrix-cell-progress { background-color: #2563EB; border: 1px solid #1D4ED8; color: #FFFFFF; box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3); }
+    .matrix-cell-review { background-color: #F59E0B; border: 1px solid #D97706; color: #FFFFFF; box-shadow: 0 1px 3px rgba(245, 158, 11, 0.32); }
+    .matrix-cell-overdue { background-color: #E11D48; border: 1px solid #BE123C; color: #FFFFFF; box-shadow: 0 1px 3px rgba(225, 29, 72, 0.32); }
+    .matrix-cell-empty { background-color: #CBD5E1; border: 1px solid #94A3B8; color: #475569; }
 
     /* ─── SECTION 5: DRAWER DETAIL KELOMPOK (SLIDE 480px) ────────────────── */
     .drawer-backdrop {
@@ -3503,9 +3508,16 @@
             }
           }
 
+          let innerContent = '<span style="opacity:0.7;">—</span>';
+          if (stgNo < grp.tahap || (stgNo === grp.tahap && grp.status === 'selesai')) {
+            innerContent = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+          } else if (stgNo === grp.tahap) {
+            innerContent = `<span>${grp.tugasSelesai}/${grp.tugasTotal}</span>`;
+          }
+
           return `
             <td>
-              <div class="matrix-cell-node ${cellClass}" title="${cellTitle}" onclick="openGroupDrawer('${grp.id}')"></div>
+              <div class="matrix-cell-node ${cellClass}" title="${cellTitle}" onclick="openGroupDrawer('${grp.id}')">${innerContent}</div>
             </td>
           `;
         }).join('');

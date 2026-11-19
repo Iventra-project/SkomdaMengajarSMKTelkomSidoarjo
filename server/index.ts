@@ -239,6 +239,132 @@ app.get('/api/groups/:id', (req, res) => {
   res.json(mapGroupRow(row));
 });
 
+app.post('/api/groups', requireAuth, requireRole('admin'), (req, res) => {
+  const {
+    number,
+    schoolName,
+    schoolAddress = '',
+    district = 'Sidoarjo',
+    leaderName = '—',
+    mentorName = 'Pak Indra, S.Kom',
+    memberCount = 5,
+    featuredModule = 'Literasi Digital & AI',
+    status = 'ontrack',
+    statusLabel = 'Berjalan',
+    targetDate = '21 Feb 2026',
+    progressPercent = 66,
+    currentStep = 4,
+    notes = '',
+  } = req.body as Record<string, unknown>;
+
+  if (!number || !schoolName) {
+    res.status(400).json({ error: 'Nomor kelompok dan nama SMP wajib diisi.' });
+    return;
+  }
+
+  const numStr = normalizeGroupNumber(String(number));
+  const db = getDb();
+
+  const existing = db.prepare('SELECT id FROM groups WHERE id = ? OR number = ?').get(numStr, numStr);
+  if (existing) {
+    res.status(409).json({ error: `Kelompok ${numStr} sudah terdaftar.` });
+    return;
+  }
+
+  const dbStatus =
+    status === 'review' || status === 'revisi' || status === 'overdue' || status === 'ontrack'
+      ? status
+      : 'ontrack';
+
+  db.prepare(
+    `INSERT INTO groups (
+      id, number, school_name, school_address, district, leader_name, mentor_name,
+      member_count, featured_module, status, status_label, target_date, progress_percent,
+      current_step, notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    numStr,
+    numStr,
+    String(schoolName).trim(),
+    String(schoolAddress || `Jl. Raya ${district}, Sidoarjo`).trim(),
+    String(district).trim(),
+    String(leaderName || '—').trim(),
+    String(mentorName).trim(),
+    Number(memberCount) || 5,
+    String(featuredModule).trim(),
+    dbStatus,
+    String(statusLabel),
+    String(targetDate),
+    Number(progressPercent) || 0,
+    Number(currentStep) || 1,
+    notes ? String(notes) : null
+  );
+
+  const created = db.prepare('SELECT * FROM groups WHERE id = ?').get(numStr) as unknown as GroupRow;
+  res.status(201).json(mapGroupRow(created));
+});
+
+app.put('/api/groups/:id', requireAuth, requireRole('admin'), (req, res) => {
+  const groupId = normalizeGroupNumber(req.params.id);
+  const db = getDb();
+  const existing = db.prepare('SELECT * FROM groups WHERE id = ?').get(groupId) as unknown as GroupRow | undefined;
+
+  const {
+    schoolName,
+    district,
+    leaderName,
+    memberCount,
+    status,
+    statusLabel,
+    currentStep,
+    progressPercent,
+  } = req.body as Record<string, unknown>;
+
+  const dbStatus =
+    status === 'review' || status === 'revisi' || status === 'overdue' || status === 'ontrack'
+      ? status
+      : existing?.status || 'ontrack';
+
+  if (existing) {
+    db.prepare(
+      `UPDATE groups
+       SET school_name = ?,
+           district = ?,
+           leader_name = ?,
+           member_count = ?,
+           status = ?,
+           status_label = ?,
+           current_step = ?,
+           progress_percent = ?,
+           updated_at = datetime('now')
+       WHERE id = ?`
+    ).run(
+      schoolName ? String(schoolName).trim() : existing.school_name,
+      district ? String(district).trim() : existing.district,
+      leaderName !== undefined ? String(leaderName).trim() : existing.leader_name,
+      memberCount !== undefined ? Number(memberCount) : existing.member_count,
+      dbStatus,
+      statusLabel ? String(statusLabel) : existing.status_label,
+      currentStep !== undefined ? Number(currentStep) : existing.current_step,
+      progressPercent !== undefined ? Number(progressPercent) : existing.progress_percent,
+      groupId
+    );
+    const updated = db.prepare('SELECT * FROM groups WHERE id = ?').get(groupId) as unknown as GroupRow;
+    res.json(mapGroupRow(updated));
+    return;
+  }
+
+  res.json({ id: groupId, updated: true });
+});
+
+app.delete('/api/groups/:id', requireAuth, requireRole('admin'), (req, res) => {
+  const rawId = req.params.id.replace(/^KEL-/i, '');
+  const groupId = normalizeGroupNumber(rawId);
+  const db = getDb();
+  db.prepare('DELETE FROM groups WHERE id = ? OR number = ?').run(groupId, groupId);
+  res.json({ ok: true, id: groupId });
+});
+
 app.patch('/api/groups/:id/banner-decision', requireAuth, requireRole('admin'), (req, res) => {
   const { decision, notes } = req.body as { decision?: 'approved' | 'revision'; notes?: string };
   if (decision !== 'approved' && decision !== 'revision') {
