@@ -1751,65 +1751,131 @@ export const WorkspacePage: React.FC = () => {
               </div>
             </section>
 
-            {/* ─── 2) STEPPER RINGKAS (6 TAHAP INTERAKTIF) ──────────────────── */}
-            <section className="stage-stepper-card" aria-label="Alur 6 Tahap Skomda Mengajar">
-              <div className="stepper-nodes-row">
-                <div className="stepper-track-underlay" />
-                <div
-                  className="stepper-track-fill"
-                  style={{ width: `${Math.round(((activeStage - 1) / 5) * 92)}%` }}
-                />
+            {/* ─── 2) ALUR SKOMDA MENGAJAR (6-NODE WAVY SERPENTINE TRACK) ──── */}
+            <section
+              className="stage-stepper-card"
+              style={{ padding: '28px 20px 22px 20px', overflowX: 'auto' }}
+              aria-label="Alur 6 Tahap Skomda Mengajar"
+            >
+              <div className="min-w-[860px] relative px-4 select-none">
+                {/* Dashed Wave Connector SVG */}
+                <svg
+                  className="absolute inset-x-4 top-0 w-[calc(100%-2rem)] h-[120px] pointer-events-none z-0"
+                  viewBox="0 0 1000 120"
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    d="M 83 34 C 166 34, 166 74, 250 74 C 333 74, 333 34, 417 34 C 500 34, 500 74, 583 74 C 667 74, 667 34, 750 34 C 833 34, 833 74, 917 74"
+                    fill="none"
+                    stroke="#475569"
+                    strokeWidth="1.6"
+                    strokeDasharray="4 5"
+                  />
+                </svg>
 
-                {STAGES.map((stg) => {
-                  const isCompleted =
-                    stg.id < 4 ||
-                    (stg.id === 4 && fileStatus === 'review') ||
-                    (stg.id === 5 && stage5Submitted) ||
-                    (stg.id === 6 && stage6Submitted);
-                  const isActive = stg.id === activeStage;
-
-                  return (
-                    <div
-                      key={stg.id}
-                      onClick={() => setActiveStage(stg.id as 1 | 2 | 3 | 4 | 5 | 6)}
-                      className={`step-node-col ${
-                        isActive ? 'is-active' : isCompleted ? 'is-completed' : ''
-                      }`}
-                      title={`Klik untuk membuka Tahap ${stg.no}: ${stg.name}`}
-                    >
+                <div className="grid grid-cols-6 gap-4 relative z-10 items-start">
+                  {[
+                    {
+                      step: 1 as const,
+                      num: '01',
+                      icon: 'group_add',
+                      title: 'Bentuk kelompok',
+                      subtitle: 'Penentuan anggota tim',
+                      shiftDown: false,
+                    },
+                    {
+                      step: 2 as const,
+                      num: '02',
+                      icon: 'person_check',
+                      title: 'Pilih ketua',
+                      subtitle: 'Koordinator lapangan',
+                      shiftDown: true,
+                    },
+                    {
+                      step: 3 as const,
+                      num: '03',
+                      icon: 'menu_book',
+                      title: 'Susun materi',
+                      subtitle: 'Modul & silabus ajar',
+                      shiftDown: false,
+                    },
+                    {
+                      step: 4 as const,
+                      num: '04',
+                      icon: 'palette',
+                      title: 'Siapkan desain',
+                      subtitle: 'Media visual & slide',
+                      shiftDown: true,
+                    },
+                    {
+                      step: 5 as const,
+                      num: '05',
+                      icon: 'school',
+                      title: 'Mengajar di SMP',
+                      subtitle: 'Sesi kelas interaktif',
+                      shiftDown: false,
+                    },
+                    {
+                      step: 6 as const,
+                      num: '06',
+                      icon: 'check_circle',
+                      title: 'Laporan & feedback',
+                      subtitle: 'Refleksi & publikasi',
+                      shiftDown: true,
+                      isFinish: true,
+                    },
+                  ].map((item) => {
+                    const isActive = activeStage === item.step;
+                    return (
                       <div
-                        className="step-circle tabular-nums"
-                        style={
-                          !isActive && !isCompleted
-                            ? {
-                                backgroundColor: '#F8FAFC',
-                                border: '1.5px solid #CBD5E1',
-                                color: '#475569',
-                              }
-                            : undefined
-                        }
+                        key={item.step}
+                        onClick={() => setActiveStage(item.step)}
+                        className={`flex flex-col items-center text-center cursor-pointer group relative ${
+                          item.shiftDown ? 'mt-10' : 'mt-0'
+                        }`}
+                        title={`Klik untuk membuka Tahap ${item.num}: ${item.title}`}
                       >
-                        {isCompleted && !isActive ? (
-                          <svg
-                            width="15"
-                            height="15"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        ) : (
-                          stg.id
+                        {item.isFinish && (
+                          <span className="absolute -top-6 right-1/2 translate-x-9 bg-[#e20113] text-white text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-xs transform -rotate-6 shadow-xs">
+                            FINISH
+                          </span>
                         )}
+
+                        <div
+                          className={`w-[68px] h-[68px] rounded-2xl flex flex-col items-center justify-center mb-3 transition-all ${
+                            isActive
+                              ? 'bg-[#e20113] text-white shadow-lg shadow-red-500/20 border border-[#e20113]'
+                              : 'bg-white text-slate-800 border border-slate-200/90 shadow-xs group-hover:border-slate-300'
+                          }`}
+                        >
+                          <span
+                            className={`text-[10px] font-semibold leading-none mb-1 ${
+                              isActive ? 'text-white/90' : 'text-slate-400'
+                            }`}
+                          >
+                            {item.num}
+                          </span>
+                          <span
+                            className={`material-symbols-outlined text-[20px] leading-none ${
+                              isActive ? 'text-white' : 'text-slate-800'
+                            }`}
+                          >
+                            {item.icon}
+                          </span>
+                        </div>
+
+                        <span
+                          className={`text-xs font-extrabold ${
+                            isActive ? 'text-[#e20113]' : 'text-slate-900'
+                          }`}
+                        >
+                          {item.title}
+                        </span>
+                        <span className="text-[11px] text-slate-400 mt-0.5">{item.subtitle}</span>
                       </div>
-                      <span className="step-node-label">{stg.name}</span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </section>
 
