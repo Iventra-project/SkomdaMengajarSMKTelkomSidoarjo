@@ -1,4407 +1,2194 @@
 "use client";
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import {
+  Clock,
+  X,
+  Check,
+  Search,
+  Upload,
+  FileText,
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
+} from 'lucide-react';
 
-export interface AdminGroupItem {
+// ─── Data Structures ────────────────────────────────────────────────────────
+export interface ActionRowItem {
   id: string;
-  number: string;
-  smp: string;
-  kecamatan: string;
-  ketua: string;
-  wa: string;
-  jumlahSiswa: number;
-  tahap: number;
-  tahapName: string;
-  tugasSelesai: number;
-  tugasTotal: number;
-  status: 'menunggu' | 'terlambat' | 'berjalan' | 'selesai' | 'belumKetua';
-  menungguSejak: string;
-  menungguHari: number;
-  berkas: Array<{ nama: string; ukuran: string; waktu: string; versi: string }>;
-  diperbaruiPada: string;
+  groupId: string;
+  groupNumber: string;
+  schoolName: string;
+  itemName: string;
+  stageName: string;
+  status: 'review' | 'overdue' | 'revisi';
+  statusLabel: string;
+  statusHint: string;
+  ageText: string;
+  isLate?: boolean;
+  lateDays?: number;
+  leaderName: string;
+  memberCount: number;
+  reminderNote?: string;
 }
 
-const STAGES_LIST = [
-  { id: 1, no: '01', name: 'Bentuk Tim' },
-  { id: 2, no: '02', name: 'Pilih Ketua' },
-  { id: 3, no: '03', name: 'Susun Modul' },
-  { id: 4, no: '04', name: 'Siapkan Desain' },
-  { id: 5, no: '05', name: 'Mengajar SMP' },
-  { id: 6, no: '06', name: 'Evaluasi & Nilai' },
+export interface GroupProgressRow {
+  id: string;
+  number: string;
+  schoolName: string;
+  leaderName: string;
+  hasLeader: boolean;
+  currentStage: string;
+  completedStages: number; // 0..6
+  currentStageIndex: number; // 1..6
+  approvedItemsText: string;
+  urgentStatus: 'review' | 'overdue' | 'revisi' | 'approved' | 'waiting';
+  urgentStatusLabel: string;
+  urgentStatusHint: string;
+  lateDays?: number;
+  members: { name: string; role: string; nis?: string }[];
+}
+
+export const SIX_STAGES = [
+  'Atur peran',
+  'Rancang materi',
+  'Buat desain',
+  'Pelaksanaan di SMP',
+  'Kumpulkan laporan',
+  'Terima feedback',
 ];
 
-const INITIAL_GROUPS: AdminGroupItem[] = [
+// Initial 24 Groups Data (Realistic Indonesian Names, strictly zero "mitra", "binaan", "konsol", "tuntas")
+const INITIAL_GROUPS: GroupProgressRow[] = [
   {
-    id: 'KEL-03',
+    id: '03',
     number: '03',
-    smp: 'SMPN 1 Buduran',
-    kecamatan: 'Buduran',
-    ketua: 'Nabila Putri Ramadhani',
-    wa: '6281234567890',
-    jumlahSiswa: 5,
-    tahap: 4,
-    tahapName: '04 Siapkan Desain',
-    tugasSelesai: 4,
-    tugasTotal: 6,
-    status: 'menunggu',
-    menungguSejak: '2 jam lalu',
-    menungguHari: 0,
-    berkas: [{ nama: 'X-Banner_SMPN1Buduran_v2.pdf', ukuran: '14.8 MB', waktu: '45 menit lalu', versi: 'v2' }],
-    diperbaruiPada: 'Hari ini, 13:45',
+    schoolName: 'SMPN 1 Buduran',
+    leaderName: 'Nabila Putri Ramadhani',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 2,
+    currentStageIndex: 3,
+    approvedItemsText: '3 dari 5 disetujui',
+    urgentStatus: 'review',
+    urgentStatusLabel: 'Menunggu review',
+    urgentStatusHint: 'Berkas baru diunggah dan menunggu persetujuan Anda',
+    members: [
+      { name: 'Nabila Putri Ramadhani', role: 'Ketua kelompok', nis: '2024.11.0301' },
+      { name: 'Ahmad Rizky', role: 'Notulen & koordinasi', nis: '2024.11.0302' },
+      { name: 'Rafi Fadillah', role: 'Desain grafis', nis: '2024.11.0303' },
+      { name: 'Dinda Salsabila', role: 'Koordinator materi', nis: '2024.11.0304' },
+      { name: 'M. Arya Bima', role: 'Dokumentasi', nis: '2024.11.0305' },
+      { name: 'Siti Aisyah', role: 'Logistik', nis: '2024.11.0306' },
+      { name: 'Bagas Pratama', role: 'Pengajar lab', nis: '2024.11.0307' },
+      { name: 'Zahra Amelia', role: 'Pengajar lab', nis: '2024.11.0308' },
+    ],
   },
   {
-    id: 'KEL-02',
+    id: '02',
     number: '02',
-    smp: 'SMPN 1 Waru',
-    kecamatan: 'Waru',
-    ketua: 'Dimas Bagus Wicaksono',
-    wa: '6281388991122',
-    jumlahSiswa: 6,
-    tahap: 3,
-    tahapName: '03 Susun Modul',
-    tugasSelesai: 5,
-    tugasTotal: 5,
-    status: 'menunggu',
-    menungguSejak: '2 hari lalu',
-    menungguHari: 2,
-    berkas: [{ nama: 'RPP_Informatika_Waru.pdf', ukuran: '2.1 MB', waktu: '2 hari lalu', versi: 'v2' }],
-    diperbaruiPada: 'Kemarin, 11:20',
+    schoolName: 'SMPN 1 Waru',
+    leaderName: 'Dimas Bagus Wicaksono',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 2,
+    currentStageIndex: 3,
+    approvedItemsText: '3 dari 5 disetujui',
+    urgentStatus: 'review',
+    urgentStatusLabel: 'Menunggu review',
+    urgentStatusHint: 'Berkas baru diunggah dan menunggu persetujuan Anda',
+    members: [
+      { name: 'Dimas Bagus Wicaksono', role: 'Ketua kelompok', nis: '2024.11.0201' },
+      { name: 'Arum Sekar', role: 'Materi Scratch', nis: '2024.11.0202' },
+      { name: 'Candra Wijaya', role: 'Desain modul', nis: '2024.11.0203' },
+      { name: 'Dwi Prasetyo', role: 'Anggota', nis: '2024.11.0204' },
+      { name: 'Fitriani', role: 'Anggota', nis: '2024.11.0205' },
+      { name: 'Galih Rakasiwi', role: 'Anggota', nis: '2024.11.0206' },
+      { name: 'Helmi Yahya', role: 'Anggota', nis: '2024.11.0207' },
+      { name: 'Intan Permata', role: 'Anggota', nis: '2024.11.0208' },
+    ],
   },
   {
-    id: 'KEL-06',
+    id: '06',
     number: '06',
-    smp: 'SMPN 1 Tulangan',
-    kecamatan: 'Tulangan',
-    ketua: 'Bagus Pratama Putra',
-    wa: '6282144556677',
-    jumlahSiswa: 6,
-    tahap: 4,
-    tahapName: '04 Siapkan Desain',
-    tugasSelesai: 3,
-    tugasTotal: 6,
-    status: 'menunggu',
-    menungguSejak: '3 hari lalu',
-    menungguHari: 3,
-    berkas: [{ nama: 'Draf_Infografis_Materi.pptx', ukuran: '7.5 MB', waktu: '3 hari lalu', versi: 'v2' }],
-    diperbaruiPada: '15 Feb 2026',
+    schoolName: 'SMPN 1 Tulangan',
+    leaderName: 'Bagus Pratama Putra',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 2,
+    currentStageIndex: 3,
+    approvedItemsText: '3 dari 5 disetujui',
+    urgentStatus: 'review',
+    urgentStatusLabel: 'Menunggu review',
+    urgentStatusHint: 'Berkas baru diunggah dan menunggu persetujuan Anda',
+    members: [
+      { name: 'Bagus Pratama Putra', role: 'Ketua kelompok', nis: '2024.11.0601' },
+      { name: 'Vina Panduwinata', role: 'Desain infografis', nis: '2024.11.0602' },
+      { name: 'Wahyu Hidayat', role: 'Materi visual', nis: '2024.11.0603' },
+      { name: 'Xena Putri', role: 'Anggota', nis: '2024.11.0604' },
+      { name: 'Yoga Pratama', role: 'Anggota', nis: '2024.11.0605' },
+      { name: 'Zulham Zamrun', role: 'Anggota', nis: '2024.11.0606' },
+      { name: 'Anindya Kusuma', role: 'Anggota', nis: '2024.11.0607' },
+      { name: 'Bayu Gatra', role: 'Anggota', nis: '2024.11.0608' },
+    ],
   },
   {
-    id: 'KEL-12',
+    id: '12',
     number: '12',
-    smp: 'SMPN 2 Taman',
-    kecamatan: 'Taman',
-    ketua: 'Kevin Alamsyah',
-    wa: '6285733221100',
-    jumlahSiswa: 6,
-    tahap: 4,
-    tahapName: '04 Siapkan Desain',
-    tugasSelesai: 2,
-    tugasTotal: 6,
-    status: 'menunggu',
-    menungguSejak: '4 hari lalu',
-    menungguHari: 4,
-    berkas: [{ nama: 'Slide_Canva_WebDasar.pdf', ukuran: '9.3 MB', waktu: '4 hari lalu', versi: 'v2' }],
-    diperbaruiPada: '14 Feb 2026',
+    schoolName: 'SMPN 2 Taman',
+    leaderName: 'Kevin Alamsyah',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 2,
+    currentStageIndex: 3,
+    approvedItemsText: '3 dari 5 disetujui',
+    urgentStatus: 'review',
+    urgentStatusLabel: 'Menunggu review',
+    urgentStatusHint: 'Berkas baru diunggah dan menunggu persetujuan Anda',
+    members: [
+      { name: 'Kevin Alamsyah', role: 'Ketua kelompok', nis: '2024.11.1201' },
+      { name: 'Ika Putri', role: 'Materi presentasi', nis: '2024.11.1202' },
+      { name: 'Junaedi', role: 'Desain banner', nis: '2024.11.1203' },
+      { name: 'Kurniawan', role: 'Anggota', nis: '2024.11.1204' },
+      { name: 'Lestari Indah', role: 'Anggota', nis: '2024.11.1205' },
+      { name: 'Mulyadi', role: 'Anggota', nis: '2024.11.1206' },
+      { name: 'Nurul Huda', role: 'Anggota', nis: '2024.11.1207' },
+    ],
   },
   {
-    id: 'KEL-04',
-    number: '04',
-    smp: 'SMPN 2 Krian',
-    kecamatan: 'Krian',
-    ketua: 'Siti Nurhaliza',
-    wa: '6282233445566',
-    jumlahSiswa: 5,
-    tahap: 3,
-    tahapName: '03 Susun Modul',
-    tugasSelesai: 2,
-    tugasTotal: 5,
-    status: 'terlambat',
-    menungguSejak: '4 hari lalu',
-    menungguHari: 4,
-    berkas: [],
-    diperbaruiPada: '14 Feb 2026',
-  },
-  {
-    id: 'KEL-07',
+    id: '07',
     number: '07',
-    smp: 'SMP Telkom Sidoarjo',
-    kecamatan: 'Sidoarjo',
-    ketua: 'Fahri Ramadhan',
-    wa: '6281977889900',
-    jumlahSiswa: 6,
-    tahap: 4,
-    tahapName: '04 Siapkan Desain',
-    tugasSelesai: 2,
-    tugasTotal: 6,
-    status: 'terlambat',
-    menungguSejak: '2 hari lalu',
-    menungguHari: 2,
-    berkas: [],
-    diperbaruiPada: '16 Feb 2026',
+    schoolName: 'SMP Telkom Sidoarjo',
+    leaderName: 'Fahri Ramadhan',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 2,
+    currentStageIndex: 3,
+    approvedItemsText: '2 dari 5 disetujui',
+    urgentStatus: 'overdue',
+    urgentStatusLabel: 'Terlambat 2 hari',
+    urgentStatusHint: 'Batas waktu pengumpulan draf desain sudah lewat 2 hari',
+    lateDays: 2,
+    members: [
+      { name: 'Fahri Ramadhan', role: 'Ketua kelompok', nis: '2024.11.0701' },
+      { name: 'Aldi Firmansyah', role: 'Materi robotika', nis: '2024.11.0702' },
+      { name: 'Rani Maharani', role: 'Desain banner', nis: '2024.11.0703' },
+      { name: 'Budi Santoso', role: 'Dokumentasi', nis: '2024.11.0704' },
+      { name: 'Eka Lestari', role: 'Anggota', nis: '2024.11.0705' },
+      { name: 'Gilang Pratama', role: 'Anggota', nis: '2024.11.0706' },
+      { name: 'Hana Safitri', role: 'Anggota', nis: '2024.11.0707' },
+      { name: 'Ilham Jaya', role: 'Anggota', nis: '2024.11.0708' },
+    ],
   },
   {
-    id: 'KEL-09',
+    id: '04',
+    number: '04',
+    schoolName: 'SMPN 2 Krian',
+    leaderName: 'Siti Nurhaliza',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 2,
+    currentStageIndex: 3,
+    approvedItemsText: '2 dari 5 disetujui',
+    urgentStatus: 'overdue',
+    urgentStatusLabel: 'Terlambat 1 hari',
+    urgentStatusHint: 'Batas waktu pengumpulan draf poster sudah lewat 1 hari',
+    lateDays: 1,
+    members: [
+      { name: 'Siti Nurhaliza', role: 'Ketua kelompok', nis: '2024.11.0401' },
+      { name: 'Joko Susilo', role: 'Desain poster', nis: '2024.11.0402' },
+      { name: 'Kartika Sari', role: 'Materi etika', nis: '2024.11.0403' },
+      { name: 'Lukman Hakim', role: 'Anggota', nis: '2024.11.0404' },
+      { name: 'Maya Indah', role: 'Anggota', nis: '2024.11.0405' },
+      { name: 'Nanang Qosim', role: 'Anggota', nis: '2024.11.0406' },
+      { name: 'Okta Viana', role: 'Anggota', nis: '2024.11.0407' },
+    ],
+  },
+  {
+    id: '09',
     number: '09',
-    smp: 'SMPN 1 Taman',
-    kecamatan: 'Taman',
-    ketua: 'Rian Hidayat',
-    wa: '6285611223344',
-    jumlahSiswa: 5,
-    tahap: 3,
-    tahapName: '03 Susun Modul',
-    tugasSelesai: 1,
-    tugasTotal: 5,
-    status: 'terlambat',
-    menungguSejak: '5 hari lalu',
-    menungguHari: 5,
-    berkas: [],
-    diperbaruiPada: '13 Feb 2026',
+    schoolName: 'SMPN 1 Taman',
+    leaderName: 'Rian Hidayat',
+    hasLeader: true,
+    currentStage: 'Tahap 2: Rancang materi',
+    completedStages: 1,
+    currentStageIndex: 2,
+    approvedItemsText: '1 dari 5 disetujui',
+    urgentStatus: 'overdue',
+    urgentStatusLabel: 'Terlambat 3 hari',
+    urgentStatusHint: 'Batas waktu modul lab lewat 3 hari',
+    lateDays: 3,
+    members: [
+      { name: 'Rian Hidayat', role: 'Ketua kelompok', nis: '2024.11.0901' },
+      { name: 'Citra Kirana', role: 'Modul literasi', nis: '2024.11.0902' },
+      { name: 'Dodi Sudrajat', role: 'Desain', nis: '2024.11.0903' },
+      { name: 'Erna Sari', role: 'Anggota', nis: '2024.11.0904' },
+      { name: 'Fandi Ahmad', role: 'Anggota', nis: '2024.11.0905' },
+      { name: 'Gita Gutawa', role: 'Anggota', nis: '2024.11.0906' },
+      { name: 'Heri Kiswanto', role: 'Anggota', nis: '2024.11.0907' },
+    ],
   },
   {
-    id: 'KEL-05',
+    id: '05',
     number: '05',
-    smp: 'SMPN 2 Candi',
-    kecamatan: 'Candi',
-    ketua: 'Dewi Maharani',
-    wa: '6287855667788',
-    jumlahSiswa: 5,
-    tahap: 3,
-    tahapName: '03 Susun Modul',
-    tugasSelesai: 2,
-    tugasTotal: 5,
-    status: 'terlambat',
-    menungguSejak: '1 hari lalu',
-    menungguHari: 1,
-    berkas: [],
-    diperbaruiPada: 'Kemarin',
+    schoolName: 'SMPN 2 Candi',
+    leaderName: 'Dewi Maharani',
+    hasLeader: true,
+    currentStage: 'Tahap 2: Rancang materi',
+    completedStages: 1,
+    currentStageIndex: 2,
+    approvedItemsText: '2 dari 5 disetujui',
+    urgentStatus: 'revisi',
+    urgentStatusLabel: 'Perlu revisi',
+    urgentStatusHint: 'Catatan revisi sudah dikirim, kelompok belum mengunggah perbaikan',
+    members: [
+      { name: 'Dewi Maharani', role: 'Ketua kelompok', nis: '2024.11.0501' },
+      { name: 'Pandu Dewanata', role: 'Modul praktikum', nis: '2024.11.0502' },
+      { name: 'Qori Sandioriva', role: 'Desain slide', nis: '2024.11.0503' },
+      { name: 'Rendra Karno', role: 'Anggota', nis: '2024.11.0504' },
+      { name: 'Siska Dewi', role: 'Anggota', nis: '2024.11.0505' },
+      { name: 'Taufik Hidayat', role: 'Anggota', nis: '2024.11.0506' },
+      { name: 'Umar Bakri', role: 'Anggota', nis: '2024.11.0507' },
+    ],
   },
   {
-    id: 'KEL-23',
-    number: '23',
-    smp: 'SMPN 2 Sedati',
-    kecamatan: 'Sedati',
-    ketua: '—',
-    wa: '',
-    jumlahSiswa: 6,
-    tahap: 2,
-    tahapName: '02 Pilih Ketua',
-    tugasSelesai: 0,
-    tugasTotal: 3,
-    status: 'belumKetua',
-    menungguSejak: '6 hari lalu',
-    menungguHari: 6,
-    berkas: [],
-    diperbaruiPada: '12 Feb 2026',
-  },
-  {
-    id: 'KEL-24',
-    number: '24',
-    smp: 'SMPN 4 Sidoarjo',
-    kecamatan: 'Sidoarjo',
-    ketua: '—',
-    wa: '',
-    jumlahSiswa: 6,
-    tahap: 2,
-    tahapName: '02 Pilih Ketua',
-    tugasSelesai: 0,
-    tugasTotal: 3,
-    status: 'belumKetua',
-    menungguSejak: '6 hari lalu',
-    menungguHari: 6,
-    berkas: [],
-    diperbaruiPada: '12 Feb 2026',
-  },
-  {
-    id: 'KEL-01',
+    id: '01',
     number: '01',
-    smp: 'SMPN 1 Sidoarjo',
-    kecamatan: 'Sidoarjo',
-    ketua: 'Raffi Akbar Pratama',
-    wa: '6281122334455',
-    jumlahSiswa: 5,
-    tahap: 4,
-    tahapName: '04 Siapkan Desain',
-    tugasSelesai: 5,
-    tugasTotal: 6,
-    status: 'berjalan',
-    menungguSejak: 'Kemarin',
-    menungguHari: 1,
-    berkas: [],
-    diperbaruiPada: 'Kemarin',
+    schoolName: 'SMPN 1 Sidoarjo',
+    leaderName: 'Raffi Akbar Pratama',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Raffi Akbar Pratama', role: 'Ketua kelompok', nis: '2024.11.0101' },
+      { name: 'Bambang Pamungkas', role: 'Materi HTML', nis: '2024.11.0102' },
+      { name: 'Chairul Tanjung', role: 'Desain web', nis: '2024.11.0103' },
+      { name: 'Dewi Sandra', role: 'Anggota', nis: '2024.11.0104' },
+      { name: 'Eko Patrio', role: 'Anggota', nis: '2024.11.0105' },
+      { name: 'Fatin Shidqia', role: 'Anggota', nis: '2024.11.0106' },
+      { name: 'Giring Ganesha', role: 'Anggota', nis: '2024.11.0107' },
+      { name: 'Hesti Purwadinata', role: 'Anggota', nis: '2024.11.0108' },
+    ],
   },
   {
-    id: 'KEL-08',
+    id: '08',
     number: '08',
-    smp: 'SMPN 2 Sukodono',
-    kecamatan: 'Sukodono',
-    ketua: 'Putri Ayu Wandira',
-    wa: '6281377665544',
-    jumlahSiswa: 5,
-    tahap: 4,
-    tahapName: '04 Siapkan Desain',
-    tugasSelesai: 5,
-    tugasTotal: 6,
-    status: 'berjalan',
-    menungguSejak: 'Kemarin',
-    menungguHari: 1,
-    berkas: [],
-    diperbaruiPada: 'Kemarin',
+    schoolName: 'SMPN 2 Sukodono',
+    leaderName: 'Putri Ayu Wandira',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Putri Ayu Wandira', role: 'Ketua kelompok', nis: '2024.11.0801' },
+      { name: 'Indra Bekti', role: 'Desain', nis: '2024.11.0802' },
+      { name: 'Judika Sihotang', role: 'Materi', nis: '2024.11.0803' },
+      { name: 'Krisdayanti', role: 'Anggota', nis: '2024.11.0804' },
+      { name: 'Luna Maya', role: 'Anggota', nis: '2024.11.0805' },
+      { name: 'Mulan Jameela', role: 'Anggota', nis: '2024.11.0806' },
+      { name: 'Najwa Shihab', role: 'Anggota', nis: '2024.11.0807' },
+      { name: 'Olla Ramlan', role: 'Anggota', nis: '2024.11.0808' },
+    ],
   },
   {
-    id: 'KEL-10',
+    id: '10',
     number: '10',
-    smp: 'SMP Hang Tuah 5',
-    kecamatan: 'Candi',
-    ketua: 'Kevin Sanjaya',
-    wa: '6285299887766',
-    jumlahSiswa: 5,
-    tahap: 4,
-    tahapName: '04 Siapkan Desain',
-    tugasSelesai: 4,
-    tugasTotal: 6,
-    status: 'berjalan',
-    menungguSejak: 'Kemarin',
-    menungguHari: 1,
-    berkas: [],
-    diperbaruiPada: 'Kemarin',
+    schoolName: 'SMP Hang Tuah 5',
+    leaderName: 'Kevin Sanjaya',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Kevin Sanjaya', role: 'Ketua kelompok', nis: '2024.11.1001' },
+      { name: 'Marcus Gideon', role: 'Materi', nis: '2024.11.1002' },
+      { name: 'Anthony Ginting', role: 'Desain', nis: '2024.11.1003' },
+      { name: 'Jonatan Christie', role: 'Anggota', nis: '2024.11.1004' },
+      { name: 'Fajar Alfian', role: 'Anggota', nis: '2024.11.1005' },
+      { name: 'Rian Ardianto', role: 'Anggota', nis: '2024.11.1006' },
+      { name: 'Hendra Setiawan', role: 'Anggota', nis: '2024.11.1007' },
+      { name: 'Mohammad Ahsan', role: 'Anggota', nis: '2024.11.1008' },
+    ],
   },
   {
-    id: 'KEL-11',
+    id: '11',
     number: '11',
-    smp: 'SMPN 3 Porong',
-    kecamatan: 'Porong',
-    ketua: 'Zidan Maulana',
-    wa: '6282311447788',
-    jumlahSiswa: 5,
-    tahap: 4,
-    tahapName: '04 Siapkan Desain',
-    tugasSelesai: 4,
-    tugasTotal: 6,
-    status: 'berjalan',
-    menungguSejak: 'Kemarin',
-    menungguHari: 1,
-    berkas: [],
-    diperbaruiPada: 'Kemarin',
+    schoolName: 'SMPN 3 Porong',
+    leaderName: 'Zidan Maulana',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Zidan Maulana', role: 'Ketua kelompok', nis: '2024.11.1101' },
+      { name: 'Rizky Febian', role: 'Materi etika', nis: '2024.11.1102' },
+      { name: 'Tiara Andini', role: 'Desain', nis: '2024.11.1103' },
+      { name: 'Lyodra Ginting', role: 'Anggota', nis: '2024.11.1104' },
+      { name: 'Ziva Magnolya', role: 'Anggota', nis: '2024.11.1105' },
+      { name: 'Mahalini Raharja', role: 'Anggota', nis: '2024.11.1106' },
+      { name: 'Keisya Levronka', role: 'Anggota', nis: '2024.11.1107' },
+      { name: 'Novia Bachmid', role: 'Anggota', nis: '2024.11.1108' },
+    ],
   },
   {
-    id: 'KEL-13',
+    id: '13',
     number: '13',
-    smp: 'SMP Proklamasi Porong',
-    kecamatan: 'Porong',
-    ketua: 'Aulia Rahman',
-    wa: '6289533445566',
-    jumlahSiswa: 5,
-    tahap: 4,
-    tahapName: '04 Siapkan Desain',
-    tugasSelesai: 4,
-    tugasTotal: 6,
-    status: 'berjalan',
-    menungguSejak: 'Kemarin',
-    menungguHari: 1,
-    berkas: [],
-    diperbaruiPada: 'Kemarin',
+    schoolName: 'SMP Proklamasi Porong',
+    leaderName: 'Aulia Rahman',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Aulia Rahman', role: 'Ketua kelompok', nis: '2024.11.1301' },
+      { name: 'Bayu Saputra', role: 'Materi', nis: '2024.11.1302' },
+      { name: 'Cinta Laura', role: 'Desain', nis: '2024.11.1303' },
+      { name: 'Desta Mahendra', role: 'Anggota', nis: '2024.11.1304' },
+      { name: 'Enzy Storia', role: 'Anggota', nis: '2024.11.1305' },
+      { name: 'Fero Walandouw', role: 'Anggota', nis: '2024.11.1306' },
+      { name: 'Gading Marten', role: 'Anggota', nis: '2024.11.1307' },
+    ],
   },
   {
-    id: 'KEL-14',
+    id: '14',
     number: '14',
-    smp: 'SMPN 1 Sedati',
-    kecamatan: 'Sedati',
-    ketua: 'Anisa Rahmawati',
-    wa: '6281277882233',
-    jumlahSiswa: 5,
-    tahap: 5,
-    tahapName: '05 Mengajar SMP',
-    tugasSelesai: 1,
-    tugasTotal: 4,
-    status: 'berjalan',
-    menungguSejak: 'Kemarin',
-    menungguHari: 1,
-    berkas: [],
-    diperbaruiPada: 'Kemarin',
+    schoolName: 'SMPN 1 Sedati',
+    leaderName: 'Anisa Rahmawati',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Anisa Rahmawati', role: 'Ketua kelompok', nis: '2024.11.1401' },
+      { name: 'Bambang Soesatyo', role: 'Materi', nis: '2024.11.1402' },
+      { name: 'Cucun Syamsurijal', role: 'Desain', nis: '2024.11.1403' },
+      { name: 'Doli Kurnia', role: 'Anggota', nis: '2024.11.1404' },
+      { name: 'Edhie Baskoro', role: 'Anggota', nis: '2024.11.1405' },
+      { name: 'Fadli Zon', role: 'Anggota', nis: '2024.11.1406' },
+      { name: 'Grace Natalie', role: 'Anggota', nis: '2024.11.1407' },
+    ],
   },
   {
-    id: 'KEL-15',
+    id: '15',
     number: '15',
-    smp: 'SMPN 2 Gedangan',
-    kecamatan: 'Gedangan',
-    ketua: 'Rizal Fauzi',
-    wa: '6281344559900',
-    jumlahSiswa: 5,
-    tahap: 5,
-    tahapName: '05 Mengajar SMP',
-    tugasSelesai: 2,
-    tugasTotal: 4,
-    status: 'berjalan',
-    menungguSejak: 'Kemarin',
-    menungguHari: 1,
-    berkas: [],
-    diperbaruiPada: 'Kemarin',
+    schoolName: 'SMPN 2 Gedangan',
+    leaderName: 'Rizal Fauzi',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Rizal Fauzi', role: 'Ketua kelompok', nis: '2024.11.1501' },
+      { name: 'Hafiz Prasetyo', role: 'Materi', nis: '2024.11.1502' },
+      { name: 'Indah Kusuma', role: 'Desain', nis: '2024.11.1503' },
+      { name: 'Jihan Audy', role: 'Anggota', nis: '2024.11.1504' },
+      { name: 'Koko Ardiansyah', role: 'Anggota', nis: '2024.11.1505' },
+      { name: 'Lia Ananta', role: 'Anggota', nis: '2024.11.1506' },
+      { name: 'Mirza Malik', role: 'Anggota', nis: '2024.11.1507' },
+    ],
   },
   {
-    id: 'KEL-16',
+    id: '16',
     number: '16',
-    smp: 'SMP PGRI 1 Buduran',
-    kecamatan: 'Buduran',
-    ketua: 'Doni Firmansyah',
-    wa: '6285866778899',
-    jumlahSiswa: 5,
-    tahap: 5,
-    tahapName: '05 Mengajar SMP',
-    tugasSelesai: 2,
-    tugasTotal: 4,
-    status: 'berjalan',
-    menungguSejak: 'Kemarin',
-    menungguHari: 1,
-    berkas: [],
-    diperbaruiPada: 'Kemarin',
+    schoolName: 'SMP PGRI 1 Buduran',
+    leaderName: 'Doni Firmansyah',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Doni Firmansyah', role: 'Ketua kelompok', nis: '2024.11.1601' },
+      { name: 'Nadia Saphira', role: 'Materi', nis: '2024.11.1602' },
+      { name: 'Oscar Lawalata', role: 'Desain', nis: '2024.11.1603' },
+      { name: 'Pevita Pearce', role: 'Anggota', nis: '2024.11.1604' },
+      { name: 'Qausar Harta', role: 'Anggota', nis: '2024.11.1605' },
+      { name: 'Reza Rahadian', role: 'Anggota', nis: '2024.11.1606' },
+      { name: 'Sherina Munaf', role: 'Anggota', nis: '2024.11.1607' },
+    ],
   },
   {
-    id: 'KEL-17',
+    id: '17',
     number: '17',
-    smp: 'SMPN 1 Krembung',
-    kecamatan: 'Krembung',
-    ketua: 'Fandi Ahmad',
-    wa: '6281299001122',
-    jumlahSiswa: 5,
-    tahap: 5,
-    tahapName: '05 Mengajar SMP',
-    tugasSelesai: 3,
-    tugasTotal: 4,
-    status: 'berjalan',
-    menungguSejak: 'Kemarin',
-    menungguHari: 1,
-    berkas: [],
-    diperbaruiPada: 'Kemarin',
+    schoolName: 'SMPN 1 Krembung',
+    leaderName: 'Fandi Ahmad',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Fandi Ahmad', role: 'Ketua kelompok', nis: '2024.11.1701' },
+      { name: 'Titi Kamal', role: 'Materi', nis: '2024.11.1702' },
+      { name: 'Uus Wijaksana', role: 'Desain', nis: '2024.11.1703' },
+      { name: 'Vino Bastian', role: 'Anggota', nis: '2024.11.1704' },
+      { name: 'Wulan Guritno', role: 'Anggota', nis: '2024.11.1705' },
+      { name: 'Yayan Ruhian', role: 'Anggota', nis: '2024.11.1706' },
+      { name: 'Zaskia Adya Mecca', role: 'Anggota', nis: '2024.11.1707' },
+    ],
   },
   {
-    id: 'KEL-18',
+    id: '18',
     number: '18',
-    smp: 'SMPN 2 Porong',
-    kecamatan: 'Porong',
-    ketua: 'Hendra Setiawan',
-    wa: '6282133448899',
-    jumlahSiswa: 5,
-    tahap: 6,
-    tahapName: '06 Evaluasi & Nilai',
-    tugasSelesai: 4,
-    tugasTotal: 4,
-    status: 'selesai',
-    menungguSejak: '2 hari lalu',
-    menungguHari: 2,
-    berkas: [],
-    diperbaruiPada: '16 Feb 2026',
+    schoolName: 'SMPN 2 Porong',
+    leaderName: 'Hendra Setiawan',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Hendra Setiawan', role: 'Ketua kelompok', nis: '2024.11.1801' },
+      { name: 'Agung Hercules', role: 'Materi', nis: '2024.11.1802' },
+      { name: 'Baim Wong', role: 'Desain', nis: '2024.11.1803' },
+      { name: 'Cut Tari', role: 'Anggota', nis: '2024.11.1804' },
+      { name: 'Deddy Mizwar', role: 'Anggota', nis: '2024.11.1805' },
+      { name: 'Epy Kusnandar', role: 'Anggota', nis: '2024.11.1806' },
+      { name: 'Ferry Maryadi', role: 'Anggota', nis: '2024.11.1807' },
+    ],
   },
   {
-    id: 'KEL-19',
+    id: '19',
     number: '19',
-    smp: 'SMPN 1 Tarik',
-    kecamatan: 'Tarik',
-    ketua: 'Indra Djati',
-    wa: '6285744332211',
-    jumlahSiswa: 5,
-    tahap: 6,
-    tahapName: '06 Evaluasi & Nilai',
-    tugasSelesai: 4,
-    tugasTotal: 4,
-    status: 'selesai',
-    menungguSejak: '3 hari lalu',
-    menungguHari: 3,
-    berkas: [],
-    diperbaruiPada: '15 Feb 2026',
+    schoolName: 'SMPN 1 Tarik',
+    leaderName: 'Indra Sjafri',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Indra Sjafri', role: 'Ketua kelompok', nis: '2024.11.1901' },
+      { name: 'Gilang Dirga', role: 'Materi', nis: '2024.11.1902' },
+      { name: 'Hesti Purwadinata', role: 'Desain', nis: '2024.11.1903' },
+      { name: 'Irfan Bachdim', role: 'Anggota', nis: '2024.11.1904' },
+      { name: 'Julie Estelle', role: 'Anggota', nis: '2024.11.1905' },
+      { name: 'Kunto Aji', role: 'Anggota', nis: '2024.11.1906' },
+      { name: 'Luna Maya', role: 'Anggota', nis: '2024.11.1907' },
+    ],
   },
   {
-    id: 'KEL-20',
+    id: '20',
     number: '20',
-    smp: 'SMPN 2 Prambon',
-    kecamatan: 'Prambon',
-    ketua: 'Joko Anwar',
-    wa: '6281322119988',
-    jumlahSiswa: 5,
-    tahap: 3,
-    tahapName: '03 Susun Modul',
-    tugasSelesai: 4,
-    tugasTotal: 5,
-    status: 'berjalan',
-    menungguSejak: 'Kemarin',
-    menungguHari: 1,
-    berkas: [],
-    diperbaruiPada: 'Kemarin',
+    schoolName: 'SMPN 2 Prambon',
+    leaderName: 'Joko Anwar',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Joko Anwar', role: 'Ketua kelompok', nis: '2024.11.2001' },
+      { name: 'Marsha Timothy', role: 'Materi', nis: '2024.11.2002' },
+      { name: 'Nicholas Saputra', role: 'Desain', nis: '2024.11.2003' },
+      { name: 'Oka Antara', role: 'Anggota', nis: '2024.11.2004' },
+      { name: 'Prisia Nasution', role: 'Anggota', nis: '2024.11.2005' },
+      { name: 'Rio Dewanto', role: 'Anggota', nis: '2024.11.2006' },
+      { name: 'Slamet Rahardjo', role: 'Anggota', nis: '2024.11.2007' },
+    ],
   },
   {
-    id: 'KEL-21',
+    id: '21',
     number: '21',
-    smp: 'SMP Muhammadiyah 1',
-    kecamatan: 'Sidoarjo',
-    ketua: 'Kiki Narendra',
-    wa: '6287811224455',
-    jumlahSiswa: 5,
-    tahap: 3,
-    tahapName: '03 Susun Modul',
-    tugasSelesai: 4,
-    tugasTotal: 5,
-    status: 'berjalan',
-    menungguSejak: 'Kemarin',
-    menungguHari: 1,
-    berkas: [],
-    diperbaruiPada: 'Kemarin',
+    schoolName: 'SMP Muhammadiyah 1',
+    leaderName: 'Kiki Narendra',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Kiki Narendra', role: 'Ketua kelompok', nis: '2024.11.2101' },
+      { name: 'Tara Basro', role: 'Materi', nis: '2024.11.2102' },
+      { name: 'Upi Avianto', role: 'Desain', nis: '2024.11.2103' },
+      { name: 'Vanesha Prescilla', role: 'Anggota', nis: '2024.11.2104' },
+      { name: 'Wafda Saifan', role: 'Anggota', nis: '2024.11.2105' },
+      { name: 'Yayu Unru', role: 'Anggota', nis: '2024.11.2106' },
+      { name: 'Zara Adhisty', role: 'Anggota', nis: '2024.11.2107' },
+    ],
   },
   {
-    id: 'KEL-22',
+    id: '22',
     number: '22',
-    smp: 'SMP YPM 1 Taman',
-    kecamatan: 'Taman',
-    ketua: 'Lukman Sardi',
-    wa: '6281244668800',
-    jumlahSiswa: 5,
-    tahap: 4,
-    tahapName: '04 Siapkan Desain',
-    tugasSelesai: 3,
-    tugasTotal: 6,
-    status: 'berjalan',
-    menungguSejak: 'Kemarin',
-    menungguHari: 1,
-    berkas: [],
-    diperbaruiPada: 'Kemarin',
+    schoolName: 'SMP YPM 1 Taman',
+    leaderName: 'Lukman Sardi',
+    hasLeader: true,
+    currentStage: 'Tahap 3: Buat desain',
+    completedStages: 3,
+    currentStageIndex: 3,
+    approvedItemsText: '4 dari 5 disetujui',
+    urgentStatus: 'approved',
+    urgentStatusLabel: 'Disetujui',
+    urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+    members: [
+      { name: 'Lukman Sardi', role: 'Ketua kelompok', nis: '2024.11.2201' },
+      { name: 'Abimana Aryasatya', role: 'Materi', nis: '2024.11.2202' },
+      { name: 'Bront Palarae', role: 'Desain', nis: '2024.11.2203' },
+      { name: 'Christine Hakim', role: 'Anggota', nis: '2024.11.2204' },
+      { name: 'Dian Sastrowardoyo', role: 'Anggota', nis: '2024.11.2205' },
+      { name: 'Eva Celia', role: 'Anggota', nis: '2024.11.2206' },
+      { name: 'Fachri Albar', role: 'Anggota', nis: '2024.11.2207' },
+    ],
+  },
+  {
+    id: '23',
+    number: '23',
+    schoolName: 'SMPN 2 Sedati',
+    leaderName: '',
+    hasLeader: false,
+    currentStage: 'Tahap 1: Atur peran',
+    completedStages: 0,
+    currentStageIndex: 1,
+    approvedItemsText: '0 dari 5 disetujui',
+    urgentStatus: 'waiting',
+    urgentStatusLabel: 'Belum dikumpulkan',
+    urgentStatusHint: 'Belum ada berkas yang dikumpulkan karena ketua belum ditentukan',
+    members: [
+      { name: 'Fiona Anggraeni', role: 'Calon ketua', nis: '2024.11.2301' },
+      { name: 'Genta Buana', role: 'Anggota', nis: '2024.11.2302' },
+      { name: 'Hesti Wulandari', role: 'Anggota', nis: '2024.11.2303' },
+      { name: 'Irfan Hakim', role: 'Anggota', nis: '2024.11.2304' },
+      { name: 'Jihan Fahira', role: 'Anggota', nis: '2024.11.2305' },
+      { name: 'Kiki Amalia', role: 'Anggota', nis: '2024.11.2306' },
+      { name: 'Lucky Hakim', role: 'Anggota', nis: '2024.11.2307' },
+    ],
+  },
+  {
+    id: '24',
+    number: '24',
+    schoolName: 'SMPN 4 Sidoarjo',
+    leaderName: '',
+    hasLeader: false,
+    currentStage: 'Tahap 1: Atur peran',
+    completedStages: 0,
+    currentStageIndex: 1,
+    approvedItemsText: '0 dari 5 disetujui',
+    urgentStatus: 'waiting',
+    urgentStatusLabel: 'Belum dikumpulkan',
+    urgentStatusHint: 'Belum ada berkas yang dikumpulkan karena ketua belum ditentukan',
+    members: [
+      { name: 'Tegar Wicaksono', role: 'Calon ketua', nis: '2024.11.2401' },
+      { name: 'Umi Kalsum', role: 'Anggota', nis: '2024.11.2402' },
+      { name: 'Vicky Prasetyo', role: 'Anggota', nis: '2024.11.2403' },
+      { name: 'Wulan Guritno', role: 'Anggota', nis: '2024.11.2404' },
+      { name: 'Xaverius', role: 'Anggota', nis: '2024.11.2405' },
+      { name: 'Yeyen Lidya', role: 'Anggota', nis: '2024.11.2406' },
+      { name: 'Zaskia Gotik', role: 'Anggota', nis: '2024.11.2407' },
+      { name: 'Arman Maulana', role: 'Anggota', nis: '2024.11.2408' },
+    ],
   },
 ];
 
-const RECENT_ACTIVITIES = [
-  { group: 'KEL-03', text: 'mengunggah X-Banner v2', time: '45m lalu', icon: 'file' },
-  { group: 'KEL-02', text: 'mengajukan RPP modul ajar', time: '2j lalu', icon: 'file' },
-  { group: 'KEL-06', text: 'memperbarui draf infografis', time: '3j lalu', icon: 'file' },
-  { group: 'KEL-12', text: 'mengunggah slide Canva', time: '4j lalu', icon: 'file' },
-  { group: 'Pak Indra', text: 'menyetujui modul KEL-01', time: 'Kemarin', icon: 'check' },
+// Initial Items for Tab "Menunggu Anda" (4 items)
+const INITIAL_WAITING_ADMIN: ActionRowItem[] = [
+  {
+    id: 'act-1',
+    groupId: '03',
+    groupNumber: 'Kelompok 03',
+    schoolName: 'SMPN 1 Buduran',
+    itemName: 'X-Banner v2',
+    stageName: 'Tahap 3: Buat desain',
+    status: 'review',
+    statusLabel: 'Menunggu review',
+    statusHint: 'Diajukan 45 menit lalu oleh Nabila Putri Ramadhani',
+    ageText: 'diajukan 45 menit lalu',
+    leaderName: 'Nabila Putri Ramadhani',
+    memberCount: 8,
+  },
+  {
+    id: 'act-3',
+    groupId: '02',
+    groupNumber: 'Kelompok 02',
+    schoolName: 'SMPN 1 Waru',
+    itemName: 'RPP pertemuan 2 & modul Scratch',
+    stageName: 'Tahap 3: Buat desain',
+    status: 'review',
+    statusLabel: 'Menunggu review',
+    statusHint: 'Diajukan 2 jam lalu oleh Dimas Bagus Wicaksono',
+    ageText: 'diajukan 2 jam lalu',
+    leaderName: 'Dimas Bagus Wicaksono',
+    memberCount: 8,
+  },
+  {
+    id: 'act-6',
+    groupId: '06',
+    groupNumber: 'Kelompok 06',
+    schoolName: 'SMPN 1 Tulangan',
+    itemName: 'Draf infografis materi',
+    stageName: 'Tahap 3: Buat desain',
+    status: 'review',
+    statusLabel: 'Menunggu review',
+    statusHint: 'Diajukan 3 jam lalu oleh Bagus Pratama Putra',
+    ageText: 'diajukan 3 jam lalu',
+    leaderName: 'Bagus Pratama Putra',
+    memberCount: 8,
+  },
+  {
+    id: 'act-8',
+    groupId: '12',
+    groupNumber: 'Kelompok 12',
+    schoolName: 'SMPN 2 Taman',
+    itemName: 'Slide presentasi Canva',
+    stageName: 'Tahap 3: Buat desain',
+    status: 'review',
+    statusLabel: 'Menunggu review',
+    statusHint: 'Diajukan 4 jam lalu oleh Kevin Alamsyah',
+    ageText: 'diajukan 4 jam lalu',
+    leaderName: 'Kevin Alamsyah',
+    memberCount: 7,
+  },
 ];
 
-type TabKey = 'semua' | 'review' | 'overdue' | 'unassigned';
-type SortColumn = 'id' | 'ketua' | 'tahap' | 'menungguHari';
+// Initial Items for Tab "Menunggu kelompok" (4 items: 3 late + 1 revisi)
+const INITIAL_WAITING_GROUP: ActionRowItem[] = [
+  {
+    id: 'grp-1',
+    groupId: '07',
+    groupNumber: 'Kelompok 07',
+    schoolName: 'SMP Telkom Sidoarjo',
+    itemName: 'Draf X-Banner fisik',
+    stageName: 'Tahap 3: Buat desain',
+    status: 'overdue',
+    statusLabel: 'Belum dikumpulkan',
+    statusHint: 'Batas pengumpulan lewat 2 hari',
+    ageText: 'Terlambat 2 hari',
+    isLate: true,
+    lateDays: 2,
+    leaderName: 'Fahri Ramadhan',
+    memberCount: 8,
+  },
+  {
+    id: 'grp-2',
+    groupId: '04',
+    groupNumber: 'Kelompok 04',
+    schoolName: 'SMPN 2 Krian',
+    itemName: 'Draf poster materi',
+    stageName: 'Tahap 3: Buat desain',
+    status: 'overdue',
+    statusLabel: 'Belum dikumpulkan',
+    statusHint: 'Batas pengumpulan lewat 1 hari',
+    ageText: 'Terlambat 1 hari',
+    isLate: true,
+    lateDays: 1,
+    leaderName: 'Siti Nurhaliza',
+    memberCount: 7,
+  },
+  {
+    id: 'grp-3',
+    groupId: '09',
+    groupNumber: 'Kelompok 09',
+    schoolName: 'SMPN 1 Taman',
+    itemName: 'Revisi lembar kerja lab',
+    stageName: 'Tahap 2: Rancang materi',
+    status: 'overdue',
+    statusLabel: 'Belum dikumpulkan',
+    statusHint: 'Batas pengumpulan lewat 3 hari',
+    ageText: 'Terlambat 3 hari',
+    isLate: true,
+    lateDays: 3,
+    leaderName: 'Rian Hidayat',
+    memberCount: 7,
+  },
+  {
+    id: 'grp-4',
+    groupId: '05',
+    groupNumber: 'Kelompok 05',
+    schoolName: 'SMPN 2 Candi',
+    itemName: 'Revisi RPP alokasi lab',
+    stageName: 'Tahap 2: Rancang materi',
+    status: 'revisi',
+    statusLabel: 'Perlu revisi',
+    statusHint: 'Catatan dikirim kemarin, menunggu unggahan ulang',
+    ageText: 'Revisi belum diunggah ulang',
+    leaderName: 'Dewi Maharani',
+    memberCount: 7,
+  },
+];
 
 export const AdminMonitoringPage: React.FC = () => {
-  const { navigate, currentUser, authToken, logout, setIsBannerModalOpen, submitBannerDecision } = useApp();
+  const { navigate, showToast } = useApp();
 
-  const adminDisplayName =
-    currentUser?.name && currentUser.name !== 'Admin Kurikulum'
-      ? currentUser.name
-      : 'Pak Indra';
-  const adminInitials = adminDisplayName
-    .split(' ')
-    .slice(0, 2)
-    .map((w) => w[0] || '')
-    .join('')
-    .toUpperCase();
+  // Navigation: 'beranda' | 'kelompok' | 'feedback' | 'pengaturan'
+  const [activeScreen, setActiveScreen] = useState<'beranda' | 'kelompok' | 'feedback' | 'pengaturan'>('beranda');
 
-  // Sidebar & navigation state
-  const [isRail, setIsRail] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [sidebarRoute, setSidebarRoute] = useState<string>('kelompok');
+  // Groups and Action Data State
+  const [groupsList, setGroupsList] = useState<GroupProgressRow[]>(INITIAL_GROUPS);
+  const [waitingAdminItems, setWaitingAdminItems] = useState<ActionRowItem[]>(INITIAL_WAITING_ADMIN);
+  const [waitingGroupItems, setWaitingGroupItems] = useState<ActionRowItem[]>(INITIAL_WAITING_GROUP);
 
-  // Master groups state
-  const [groups, setGroups] = useState<AdminGroupItem[]>(INITIAL_GROUPS);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [currentTab, setCurrentTab] = useState<TabKey>('semua');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStage, setFilterStage] = useState<number | null>(null);
-  const [sortCol, setSortCol] = useState<SortColumn>('id');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [viewMode, setViewMode] = useState<'table' | 'matrix'>('table');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  // Screen 1: Whose turn it is tab ('admin' | 'kelompok')
+  const [turnTab, setTurnTab] = useState<'admin' | 'kelompok'>('admin');
+  const [showAllActions, setShowAllActions] = useState(false);
 
-  // Sync chip state
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncText, setSyncText] = useState('Tersinkron 2 menit lalu');
+  // Screen 1: Progres Kelompok Search & Chips
+  const [progressSearch, setProgressSearch] = useState('');
+  const [progressChip, setProgressChip] = useState<'all' | 'attention' | 'done'>('all');
 
-  // Drawer state
-  const [drawerGroupId, setDrawerGroupId] = useState<string | null>(null);
-  const [drawerNotes, setDrawerNotes] = useState('');
+  // Screen 2: Slide-over Review Panel
+  const [reviewQueue, setReviewQueue] = useState<GroupProgressRow[]>([]);
+  const [currentReviewIdx, setCurrentReviewIdx] = useState<number>(0);
+  const [isReviewPanelOpen, setIsReviewPanelOpen] = useState(false);
+  const [isAllReviewsFinished, setIsAllReviewsFinished] = useState(false);
+  const [isRevisionBoxOpen, setIsRevisionBoxOpen] = useState(false);
+  const [revisionComment, setRevisionComment] = useState('');
 
-  // Command palette state
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [paletteQuery, setPaletteQuery] = useState('');
+  // Screen 3: "Kelompok" Impor CSV 3-Step Dialog
+  const [isImportCsvOpen, setIsImportCsvOpen] = useState(false);
+  const [importCsvStep, setImportCsvStep] = useState<1 | 2 | 3>(1);
 
-  // CRUD Modal State (Create / Edit / Delete)
-  const [crudModalOpen, setCrudModalOpen] = useState(false);
-  const [crudMode, setCrudMode] = useState<'create' | 'edit'>('create');
-  const [editingOriginalId, setEditingOriginalId] = useState<string | null>(null);
-  const [crudForm, setCrudForm] = useState<{
-    number: string;
-    smp: string;
-    kecamatan: string;
-    ketua: string;
-    wa: string;
-    jumlahSiswa: number;
-    tahap: number;
-    tugasSelesai: number;
-    tugasTotal: number;
-    status: AdminGroupItem['status'];
-  }>({
-    number: '25',
-    smp: '',
-    kecamatan: 'Sidoarjo',
-    ketua: '',
-    wa: '',
-    jumlahSiswa: 6,
-    tahap: 1,
-    tugasSelesai: 0,
-    tugasTotal: 6,
-    status: 'berjalan',
-  });
-  const [deleteConfirmGroup, setDeleteConfirmGroup] = useState<AdminGroupItem | null>(null);
-
-  // Local Toast with 5s Undo
-  const [adminToast, setAdminToast] = useState<{
-    id: number;
-    message: string;
-    undoFn?: () => void;
+  // Screen 3: Tandai Ketua Dialog
+  const [assignLeaderGroup, setAssignLeaderGroup] = useState<GroupProgressRow | null>(null);
+  const [selectedLeaderMember, setSelectedLeaderMember] = useState<string>('');
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    name: string;
+    groupNum: string;
+    username: string;
+    pass: string;
   } | null>(null);
 
-  const tableSectionRef = useRef<HTMLElement | null>(null);
+  // Clipboard reminder helper note indicator
+  const [copiedReminderId, setCopiedReminderId] = useState<string | null>(null);
 
-  const triggerAdminToast = (message: string, undoFn?: () => void) => {
-    const id = Date.now();
-    setAdminToast({ id, message, undoFn });
-    setTimeout(() => {
-      setAdminToast((prev) => (prev?.id === id ? null : prev));
-    }, 5000);
+  // Count groups with leader (persiapan phase)
+  const groupsWithLeaderCount = useMemo(() => {
+    return groupsList.filter((g) => g.hasLeader).length;
+  }, [groupsList]);
+
+  // Is "Persiapan" unfinished?
+  const isPersiapanUnfinished = groupsWithLeaderCount < groupsList.length;
+
+  // Filtered Progres Kelompok Rows
+  const filteredProgressRows = useMemo(() => {
+    return groupsList.filter((g) => {
+      if (progressChip === 'attention') {
+        const needsAttention =
+          g.urgentStatus === 'review' || g.urgentStatus === 'overdue' || g.urgentStatus === 'revisi';
+        if (!needsAttention) return false;
+      }
+      if (progressChip === 'done') {
+        if (g.urgentStatus !== 'approved') return false;
+      }
+
+      const q = progressSearch.toLowerCase().trim();
+      if (!q) return true;
+      return (
+        g.number.includes(q) ||
+        g.schoolName.toLowerCase().includes(q) ||
+        g.leaderName.toLowerCase().includes(q) ||
+        g.currentStage.toLowerCase().includes(q)
+      );
+    });
+  }, [groupsList, progressChip, progressSearch]);
+
+  // ─── HANDLER: Copy Reminder ───────────────────────────────────────────────
+  const handleCopyReminder = (item: ActionRowItem) => {
+    const text = `Halo Ketua ${item.groupNumber} (${item.schoolName}), mohon segera mengunggah berkas "${item.itemName}" untuk program Skomda Mengajar. Terima kasih.`;
+    navigator.clipboard?.writeText(text);
+    setCopiedReminderId(item.id);
+    showToast('Teks pengingat disalin, tinggal tempel di WhatsApp.', 'success');
   };
 
-  // Global Ctrl+K / Escape listener
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setPaletteOpen(true);
-      } else if (e.key === 'Escape') {
-        setPaletteOpen(false);
-        setDrawerGroupId(null);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
-
-  const currentDateIndo = useMemo(() => {
-    return new Intl.DateTimeFormat('id-ID', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }).format(new Date());
-  }, []);
-
-  // KPI Counts
-  const totalCount = groups.length;
-  const reviewCount = groups.filter((g) => g.status === 'menunggu').length;
-  const overdueCount = groups.filter((g) => g.status === 'terlambat').length;
-  const unassignedCount = groups.filter((g) => g.status === 'belumKetua').length;
-
-  // Filtered & Sorted Groups
-  const filteredGroups = useMemo(() => {
-    const list = groups.filter((grp) => {
-      if (currentTab === 'review' && grp.status !== 'menunggu') return false;
-      if (currentTab === 'overdue' && grp.status !== 'terlambat') return false;
-      if (currentTab === 'unassigned' && grp.status !== 'belumKetua') return false;
-      if (filterStage !== null && grp.tahap !== filterStage) return false;
-      if (searchTerm.trim()) {
-        const q = searchTerm.toLowerCase().trim();
-        const match =
-          grp.id.toLowerCase().includes(q) ||
-          grp.smp.toLowerCase().includes(q) ||
-          grp.kecamatan.toLowerCase().includes(q) ||
-          grp.ketua.toLowerCase().includes(q);
-        if (!match) return false;
-      }
-      return true;
-    });
-
-    list.sort((a, b) => {
-      const valA = a[sortCol];
-      const valB = b[sortCol];
-      if (typeof valA === 'string' && typeof valB === 'string') {
-        return sortDir === 'asc'
-          ? valA.localeCompare(valB)
-          : valB.localeCompare(valA);
-      }
-      return sortDir === 'asc'
-        ? Number(valA) - Number(valB)
-        : Number(valB) - Number(valA);
-    });
-    return list;
-  }, [groups, currentTab, filterStage, searchTerm, sortCol, sortDir]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredGroups.length / rowsPerPage));
-  const safePage = Math.min(currentPage, totalPages);
-  const startIndex = (safePage - 1) * rowsPerPage;
-  const paginatedGroups = filteredGroups.slice(startIndex, startIndex + rowsPerPage);
-
-  const activeDrawerGroup = useMemo(
-    () => (drawerGroupId ? groups.find((g) => g.id === drawerGroupId) || null : null),
-    [groups, drawerGroupId]
-  );
-
-  const handleSort = (col: SortColumn) => {
-    if (sortCol === col) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortCol(col);
-      setSortDir('asc');
+  // ─── HANDLER: Open Review Panel ───────────────────────────────────────────
+  const handleOpenReview = (groupId?: string) => {
+    // Collect all pending review groups
+    const pendingReviews = groupsList.filter((g) => g.urgentStatus === 'review');
+    if (pendingReviews.length === 0) {
+      showToast('Semua review sudah selesai.', 'info');
+      return;
     }
-  };
+    setReviewQueue(pendingReviews);
 
-  const toggleRowSelection = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredGroups.length && filteredGroups.length > 0) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredGroups.map((g) => g.id)));
+    // Find requested group index, or default to 0
+    let targetIdx = 0;
+    if (groupId) {
+      const idx = pendingReviews.findIndex((g) => g.id === groupId);
+      if (idx !== -1) targetIdx = idx;
     }
+    setCurrentReviewIdx(targetIdx);
+    setIsAllReviewsFinished(false);
+    setIsRevisionBoxOpen(false);
+    setRevisionComment('');
+    setIsReviewPanelOpen(true);
   };
 
-  const handleDrawerDecision = (decision: 'approved' | 'revision') => {
-    if (!activeDrawerGroup) return;
-    const grpId = activeDrawerGroup.id;
-    const prevStatus = activeDrawerGroup.status;
-    const prevTugas = activeDrawerGroup.tugasSelesai;
-    const nextStatus = decision === 'approved' ? 'selesai' : 'terlambat';
+  // ─── HANDLER: Approve and Next in Review Panel ────────────────────────────
+  const handleApproveAndNext = () => {
+    const currentGroup = reviewQueue[currentReviewIdx];
+    if (!currentGroup) return;
 
-    setGroups((prev) =>
+    // Mark current group as approved
+    setGroupsList((prev) =>
       prev.map((g) =>
-        g.id === grpId
+        g.id === currentGroup.id
           ? {
               ...g,
-              status: nextStatus,
-              tugasSelesai:
-                decision === 'approved' ? Math.min(g.tugasTotal, g.tugasSelesai + 1) : g.tugasSelesai,
+              urgentStatus: 'approved',
+              urgentStatusLabel: 'Disetujui',
+              urgentStatusHint: 'Semua berkas tahap ini sudah diperiksa dan disetujui',
+              approvedItemsText: '4 dari 5 disetujui',
             }
           : g
       )
     );
 
-    if (grpId === 'KEL-03') {
-      submitBannerDecision(decision, drawerNotes);
-    }
+    // Remove from waitingAdminItems
+    setWaitingAdminItems((prev) => prev.filter((item) => item.groupId !== currentGroup.id));
 
-    setDrawerGroupId(null);
-    setDrawerNotes('');
+    showToast(`Berkas Kelompok ${currentGroup.number} disetujui.`, 'success');
 
-    triggerAdminToast(
-      decision === 'approved'
-        ? `Berkas ${grpId} berhasil disetujui!`
-        : `Catatan revisi dikirim ke ketua ${grpId}.`,
-      () => {
-        setGroups((prev) =>
-          prev.map((g) =>
-            g.id === grpId ? { ...g, status: prevStatus, tugasSelesai: prevTugas } : g
-          )
-        );
-        triggerAdminToast(`Status ${grpId} dikembalikan.`);
-      }
-    );
-  };
-
-  const handleBulkApprove = () => {
-    const count = selectedIds.size;
-    if (count === 0) return;
-    setGroups((prev) =>
-      prev.map((g) => (selectedIds.has(g.id) ? { ...g, status: 'selesai' } : g))
-    );
-    setSelectedIds(new Set());
-    triggerAdminToast(`${count} berkas kelompok disetujui sekaligus!`);
-  };
-
-  // ─── CRUD HANDLERS (CREATE, UPDATE, DELETE) ─────────────────────────────────
-  const openCreateModal = () => {
-    const maxNum = groups.reduce((max, g) => {
-      const n = Number.parseInt(g.number, 10);
-      return Number.isNaN(n) ? max : Math.max(max, n);
-    }, 0);
-    const nextNum = String(maxNum + 1).padStart(2, '0');
-    setCrudMode('create');
-    setEditingOriginalId(null);
-    setCrudForm({
-      number: nextNum,
-      smp: '',
-      kecamatan: 'Sidoarjo',
-      ketua: '',
-      wa: '',
-      jumlahSiswa: 6,
-      tahap: 1,
-      tugasSelesai: 0,
-      tugasTotal: 6,
-      status: 'berjalan',
-    });
-    setCrudModalOpen(true);
-  };
-
-  const openEditModal = (grp: AdminGroupItem) => {
-    setCrudMode('edit');
-    setEditingOriginalId(grp.id);
-    setCrudForm({
-      number: grp.number,
-      smp: grp.smp,
-      kecamatan: grp.kecamatan,
-      ketua: grp.ketua === '—' ? '' : grp.ketua,
-      wa: grp.wa,
-      jumlahSiswa: grp.jumlahSiswa,
-      tahap: grp.tahap,
-      tugasSelesai: grp.tugasSelesai,
-      tugasTotal: grp.tugasTotal,
-      status: grp.status,
-    });
-    setCrudModalOpen(true);
-  };
-
-  const handleSaveCrudForm = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanNum = String(Number.parseInt(crudForm.number.trim() || '1', 10) || 1).padStart(2, '0');
-    const newId = `KEL-${cleanNum}`;
-    const stageObj = STAGES_LIST.find((s) => s.id === Number(crudForm.tahap)) || STAGES_LIST[0];
-    const tahapName = `${stageObj.no} ${stageObj.name}`;
-    const leaderVal = crudForm.ketua.trim() || '—';
-    const finalStatus: AdminGroupItem['status'] =
-      leaderVal === '—' && crudForm.status !== 'belumKetua' ? 'belumKetua' : crudForm.status;
-
-    if (crudMode === 'create') {
-      if (groups.some((g) => g.id === newId || g.number === cleanNum)) {
-        triggerAdminToast(`Gagal: ${newId} sudah terdaftar!`);
-        return;
-      }
-      const createdItem: AdminGroupItem = {
-        id: newId,
-        number: cleanNum,
-        smp: crudForm.smp.trim(),
-        kecamatan: crudForm.kecamatan.trim() || 'Sidoarjo',
-        ketua: leaderVal,
-        wa: crudForm.wa.trim().replace(/^\+/, ''),
-        jumlahSiswa: Number(crudForm.jumlahSiswa) || 5,
-        tahap: stageObj.id,
-        tahapName,
-        tugasSelesai: Number(crudForm.tugasSelesai) || 0,
-        tugasTotal: Math.max(1, Number(crudForm.tugasTotal) || 6),
-        status: finalStatus,
-        menungguSejak: 'Baru saja',
-        menungguHari: 0,
-        berkas: [],
-        diperbaruiPada: 'Baru saja',
-      };
-      setGroups((prev) => [createdItem, ...prev]);
-      setCrudModalOpen(false);
-      triggerAdminToast(`${newId} (${createdItem.smp}) berhasil ditambahkan!`);
-
-      if (authToken) {
-        try {
-          await fetch('/api/groups', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${authToken}`,
-            },
-            body: JSON.stringify({
-              number: cleanNum,
-              schoolName: createdItem.smp,
-              district: createdItem.kecamatan,
-              leaderName: createdItem.ketua,
-              memberCount: createdItem.jumlahSiswa,
-              currentStep: createdItem.tahap,
-              status:
-                finalStatus === 'menunggu'
-                  ? 'review'
-                  : finalStatus === 'terlambat'
-                  ? 'overdue'
-                  : 'ontrack',
-              statusLabel:
-                finalStatus === 'menunggu'
-                  ? 'Menunggu Review'
-                  : finalStatus === 'terlambat'
-                  ? 'Terlambat'
-                  : 'Sesuai Jadwal',
-            }),
-          });
-        } catch {
-          // Local state already updated
-        }
-      }
+    // Move to next review or finish
+    if (currentReviewIdx + 1 < reviewQueue.length) {
+      setCurrentReviewIdx(currentReviewIdx + 1);
+      setIsRevisionBoxOpen(false);
+      setRevisionComment('');
     } else {
-      setGroups((prev) =>
-        prev.map((g) =>
-          g.id === editingOriginalId
-            ? {
-                ...g,
-                id: newId,
-                number: cleanNum,
-                smp: crudForm.smp.trim(),
-                kecamatan: crudForm.kecamatan.trim() || 'Sidoarjo',
-                ketua: leaderVal,
-                wa: crudForm.wa.trim().replace(/^\+/, ''),
-                jumlahSiswa: Number(crudForm.jumlahSiswa) || 5,
-                tahap: stageObj.id,
-                tahapName,
-                tugasSelesai: Number(crudForm.tugasSelesai) || 0,
-                tugasTotal: Math.max(1, Number(crudForm.tugasTotal) || 6),
-                status: finalStatus,
-                diperbaruiPada: 'Baru saja',
-              }
-            : g
-        )
-      );
-      if (drawerGroupId === editingOriginalId) {
-        setDrawerGroupId(newId);
-      }
-      setCrudModalOpen(false);
-      triggerAdminToast(`Data ${newId} (${crudForm.smp.trim()}) berhasil diperbarui!`);
-
-      if (authToken) {
-        try {
-          await fetch(`/api/groups/${cleanNum}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${authToken}`,
-            },
-            body: JSON.stringify({
-              schoolName: crudForm.smp.trim(),
-              district: crudForm.kecamatan.trim(),
-              leaderName: leaderVal,
-              memberCount: Number(crudForm.jumlahSiswa) || 5,
-              currentStep: stageObj.id,
-              status:
-                finalStatus === 'menunggu'
-                  ? 'review'
-                  : finalStatus === 'terlambat'
-                  ? 'overdue'
-                  : 'ontrack',
-            }),
-          });
-        } catch {
-          // Local state already updated
-        }
-      }
+      setIsAllReviewsFinished(true);
     }
   };
 
-  const handleConfirmDeleteGroup = async (grp: AdminGroupItem) => {
-    const deletedSnapshot = grp;
-    setGroups((prev) => prev.filter((g) => g.id !== grp.id));
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.delete(grp.id);
-      return next;
-    });
-    if (drawerGroupId === grp.id) {
-      setDrawerGroupId(null);
-    }
-    setDeleteConfirmGroup(null);
-
-    if (authToken) {
-      try {
-        await fetch(`/api/groups/${grp.number}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${authToken}` },
-        });
-      } catch {
-        // Local state already updated
-      }
+  // ─── HANDLER: Submit Revision in Review Panel ─────────────────────────────
+  const handleSubmitRevision = () => {
+    const currentGroup = reviewQueue[currentReviewIdx];
+    if (!currentGroup) return;
+    if (!revisionComment.trim()) {
+      showToast('Tulis catatan revisi sebelum mengirim.', 'warning');
+      return;
     }
 
-    triggerAdminToast(`${grp.id} (${grp.smp}) telah dihapus.`, () => {
-      setGroups((prev) => [deletedSnapshot, ...prev]);
-      triggerAdminToast(`Penghapusan ${deletedSnapshot.id} dibatalkan.`);
-    });
-  };
-
-  const handleBulkDelete = () => {
-    if (selectedIds.size === 0) return;
-    const removedItems = groups.filter((g) => selectedIds.has(g.id));
-    const count = removedItems.length;
-    setGroups((prev) => prev.filter((g) => !selectedIds.has(g.id)));
-    setSelectedIds(new Set());
-
-    if (authToken) {
-      for (const item of removedItems) {
-        void fetch(`/api/groups/${item.number}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${authToken}` },
-        });
-      }
-    }
-
-    triggerAdminToast(`${count} kelompok telah dihapus.`, () => {
-      setGroups((prev) => [...removedItems, ...prev]);
-      triggerAdminToast(`${count} kelompok dikembalikan.`);
-    });
-  };
-
-  const handleExportCsv = () => {
-    const headers = ['ID', 'SMP', 'Kecamatan', 'Ketua', 'Tahap', 'Progres', 'Status'];
-    const rows = filteredGroups.map((g) => [
-      g.id,
-      g.smp,
-      g.kecamatan,
-      g.ketua,
-      g.tahapName,
-      `${g.tugasSelesai}/${g.tugasTotal}`,
-      g.status,
-    ]);
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'Rekap_Kelompok_Skomda_Mengajar_2026.csv';
-    link.click();
-    URL.revokeObjectURL(url);
-    triggerAdminToast('File CSV rekapitulasi kelompok berhasil diunduh!');
-  };
-
-  const paletteMatches = useMemo(() => {
-    const q = paletteQuery.toLowerCase().trim();
-    return groups
-      .filter(
-        (g) =>
-          !q ||
-          g.id.toLowerCase().includes(q) ||
-          g.smp.toLowerCase().includes(q) ||
-          g.ketua.toLowerCase().includes(q)
+    // Update group to revisi
+    setGroupsList((prev) =>
+      prev.map((g) =>
+        g.id === currentGroup.id
+          ? {
+              ...g,
+              urgentStatus: 'revisi',
+              urgentStatusLabel: 'Perlu revisi',
+              urgentStatusHint: 'Catatan revisi sudah dikirim, kelompok belum mengunggah ulang',
+            }
+          : g
       )
-      .slice(0, 6);
-  }, [groups, paletteQuery]);
+    );
+
+    // Remove from waitingAdminItems and add to waitingGroupItems
+    setWaitingAdminItems((prev) => prev.filter((item) => item.groupId !== currentGroup.id));
+    setWaitingGroupItems((prev) => [
+      ...prev,
+      {
+        id: `revisi-${currentGroup.id}`,
+        groupId: currentGroup.id,
+        groupNumber: `Kelompok ${currentGroup.number}`,
+        schoolName: currentGroup.schoolName,
+        itemName: 'X-Banner v2 (Revisi)',
+        stageName: currentGroup.currentStage,
+        status: 'revisi',
+        statusLabel: 'Perlu revisi',
+        statusHint: 'Menunggu ketua mengunggah ulang draf revisi',
+        ageText: 'Revisi belum diunggah ulang',
+        leaderName: currentGroup.leaderName,
+        memberCount: currentGroup.members.length,
+      },
+    ]);
+
+    showToast(`Catatan revisi dikirim ke Ketua Kelompok ${currentGroup.number}.`, 'info');
+
+    // Move to next or finish
+    if (currentReviewIdx + 1 < reviewQueue.length) {
+      setCurrentReviewIdx(currentReviewIdx + 1);
+      setIsRevisionBoxOpen(false);
+      setRevisionComment('');
+    } else {
+      setIsAllReviewsFinished(true);
+    }
+  };
+
+  // ─── HANDLER: Confirm Leader Assignment (Screen 3) ─────────────────────────
+  const handleConfirmLeaderAssignment = () => {
+    if (!assignLeaderGroup || !selectedLeaderMember) return;
+    const memberObj = assignLeaderGroup.members.find((m) => m.name === selectedLeaderMember);
+    const nis = memberObj?.nis || `2024.11.${assignLeaderGroup.number}01`;
+    const randomInitialPass = `skm-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    setGroupsList((prev) =>
+      prev.map((g) =>
+        g.id === assignLeaderGroup.id
+          ? {
+              ...g,
+              hasLeader: true,
+              leaderName: selectedLeaderMember,
+              currentStage: 'Tahap 2: Rancang materi',
+              completedStages: 1,
+              currentStageIndex: 2,
+              urgentStatus: 'waiting',
+              urgentStatusLabel: 'Belum dikumpulkan',
+              urgentStatusHint: 'Ketua sudah ditetapkan, menunggu penyusunan materi',
+            }
+          : g
+      )
+    );
+
+    setCreatedCredentials({
+      name: selectedLeaderMember,
+      groupNum: assignLeaderGroup.number,
+      username: nis,
+      pass: randomInitialPass,
+    });
+    setAssignLeaderGroup(null);
+    setSelectedLeaderMember('');
+  };
+
+  const currentReviewGroup = reviewQueue[currentReviewIdx];
 
   return (
-    <div className="admin2026-root">
-      <style>{`
-        .admin2026-root {
-          --bg-canvas: #FFFFFF;
-          --bg-subtle: #F8FAFC;
-          --bg-hover: #F1F5F9;
-          --bg-active: #E2E8F0;
-          --border-hairline: #E8ECF2;
-          --border-focus: #D7141F;
-          --color-brand: #D7141F;
-          --color-brand-hover: #B80F1A;
-          --color-brand-active: #9A0D16;
-          --color-brand-tint: #FFF1F2;
-          --color-brand-border: #FFE4E6;
-          --text-ink: #0B1B3A;
-          --text-body: #475569;
-          --text-muted: #64748B;
-          --text-white: #FFFFFF;
-          --status-review-bg: #FFF7E6;
-          --status-review-text: #92400E;
-          --status-review-dot: #D97706;
-          --status-overdue-bg: #FEF2F2;
-          --status-overdue-text: #B42318;
-          --status-overdue-dot: #DC2626;
-          --status-done-bg: #ECFDF3;
-          --status-done-text: #067647;
-          --status-done-dot: #16A34A;
-          --status-progress-bg: #EFF6FF;
-          --status-progress-text: #1D4ED8;
-          --status-progress-dot: #2563EB;
-          --status-unassigned-bg: #F1F5F9;
-          --status-unassigned-text: #475569;
-          --status-unassigned-dot: #94A3B8;
-          --radius-sm: 8px;
-          --radius-md: 10px;
-          --radius-lg: 12px;
-          --radius-card: 16px;
-          --radius-pill: 9999px;
-          --shadow-sm: 0 1px 2px rgba(11, 27, 58, 0.04);
-          --shadow-hover: 0 4px 12px rgba(11, 27, 58, 0.06);
-          --shadow-elevation: 0 20px 40px -8px rgba(11, 27, 58, 0.12), 0 0 0 1px rgba(232, 236, 242, 0.8);
-          --shadow-toast: 0 12px 28px -4px rgba(11, 27, 58, 0.16);
-          --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
-          --duration-fast: 150ms;
-          --duration-normal: 250ms;
-          --sidebar-width: 248px;
-          --sidebar-rail-width: 72px;
-          --topbar-height: 64px;
-
-          font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-          font-size: 14px;
-          line-height: 1.5;
-          color: var(--text-body);
-          background-color: var(--bg-canvas);
-          min-height: 100vh;
-        }
-        .admin2026-root *, .admin2026-root *::before, .admin2026-root *::after {
-          box-sizing: border-box;
-        }
-        .admin2026-root button {
-          background: none;
-          border: none;
-          cursor: pointer;
-          user-select: none;
-          font: inherit;
-        }
-        .admin2026-root .tabular-nums {
-          font-variant-numeric: tabular-nums;
-        }
-        .admin2026-root .app-shell {
-          display: flex;
-          min-height: 100vh;
-          background-color: var(--bg-canvas);
-        }
-        .admin2026-root .app-sidebar {
-          width: var(--sidebar-width);
-          flex-shrink: 0;
-          background-color: var(--bg-canvas);
-          border-right: 1px solid var(--border-hairline);
-          display: flex;
-          flex-direction: column;
-          position: sticky;
-          top: 0;
-          height: 100vh;
-          z-index: 40;
-          transition: width var(--duration-normal) var(--ease-standard);
-        }
-        .admin2026-root .app-sidebar.is-rail {
-          width: var(--sidebar-rail-width);
-        }
-        .admin2026-root .sidebar-header {
-          height: var(--topbar-height);
-          padding: 0 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          border-bottom: 1px solid var(--border-hairline);
-        }
-        .admin2026-root .brand-mark {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          overflow: hidden;
-          white-space: nowrap;
-          cursor: pointer;
-        }
-        .admin2026-root .brand-logo-box {
-          width: 34px;
-          height: 34px;
-          border-radius: var(--radius-md);
-          background-color: var(--color-brand);
-          color: #FFFFFF;
-          font-weight: 800;
-          font-size: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        .admin2026-root .brand-details {
-          display: flex;
-          flex-direction: column;
-          line-height: 1.2;
-        }
-        .admin2026-root .app-sidebar.is-rail .brand-details {
-          display: none;
-        }
-        .admin2026-root .brand-name {
-          font-weight: 700;
-          font-size: 14px;
-          color: var(--text-ink);
-        }
-        .admin2026-root .brand-badge {
-          font-size: 11px;
-          color: var(--text-muted);
-          font-weight: 500;
-        }
-        .admin2026-root .btn-collapse-sidebar {
-          width: 28px;
-          height: 28px;
-          border-radius: var(--radius-sm);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--text-muted);
-          border: 1px solid var(--border-hairline);
-          background-color: var(--bg-canvas);
-        }
-        .admin2026-root .sidebar-nav-container {
-          flex: 1;
-          padding: 16px 10px;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-        .admin2026-root .nav-group-title {
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.6px;
-          color: var(--text-muted);
-          padding: 0 10px 4px 10px;
-        }
-        .admin2026-root .app-sidebar.is-rail .nav-group-title {
-          display: none;
-        }
-        .admin2026-root .nav-list {
-          list-style: none;
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          margin: 0;
-          padding: 0;
-        }
-        .admin2026-root .nav-item-link {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 9px 12px;
-          border-radius: var(--radius-md);
-          color: var(--text-body);
-          font-size: 13px;
-          font-weight: 600;
-          position: relative;
-          transition: all var(--duration-fast);
-          cursor: pointer;
-          text-align: left;
-        }
-        .admin2026-root .nav-item-link:hover {
-          background-color: var(--bg-subtle);
-          color: var(--text-ink);
-        }
-        .admin2026-root .nav-item-link.is-active {
-          background-color: var(--color-brand-tint);
-          color: var(--color-brand);
-          font-weight: 700;
-        }
-        .admin2026-root .nav-item-link.is-active::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          top: 6px;
-          bottom: 6px;
-          width: 3px;
-          border-radius: 0 3px 3px 0;
-          background-color: var(--color-brand);
-        }
-        .admin2026-root .nav-left-content {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-width: 0;
-        }
-        .admin2026-root .nav-icon {
-          width: 18px;
-          height: 18px;
-          flex-shrink: 0;
-          stroke-width: 1.75;
-        }
-        .admin2026-root .app-sidebar.is-rail .nav-label,
-        .admin2026-root .app-sidebar.is-rail .nav-badge {
-          display: none;
-        }
-        .admin2026-root .nav-badge {
-          font-size: 11px;
-          font-weight: 700;
-          padding: 1px 7px;
-          border-radius: var(--radius-pill);
-          background-color: var(--bg-hover);
-          color: var(--text-muted);
-        }
-        .admin2026-root .nav-badge.badge-amber {
-          background-color: var(--status-review-bg);
-          color: var(--status-review-text);
-        }
-        .admin2026-root .sidebar-footer {
-          padding: 12px 14px;
-          border-top: 1px solid var(--border-hairline);
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          background-color: var(--bg-canvas);
-        }
-        .admin2026-root .user-profile-card {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-          padding: 6px 4px;
-        }
-        .admin2026-root .user-avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: var(--radius-pill);
-          background-color: var(--text-ink);
-          color: #FFFFFF;
-          font-size: 12px;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          position: relative;
-        }
-        .admin2026-root .user-avatar::after {
-          content: '';
-          position: absolute;
-          bottom: 0;
-          right: 0;
-          width: 8px;
-          height: 8px;
-          border-radius: var(--radius-pill);
-          background-color: #10B981;
-          border: 1.5px solid #FFFFFF;
-        }
-        .admin2026-root .user-info {
-          display: flex;
-          flex-direction: column;
-          line-height: 1.25;
-          overflow: hidden;
-        }
-        .admin2026-root .app-sidebar.is-rail .user-info {
-          display: none;
-        }
-        .admin2026-root .user-name {
-          font-size: 13px;
-          font-weight: 700;
-          color: var(--text-ink);
-          white-space: nowrap;
-          text-overflow: ellipsis;
-          overflow: hidden;
-        }
-        .admin2026-root .user-role {
-          font-size: 11px;
-          color: var(--text-muted);
-        }
-        .admin2026-root .btn-return-home {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 12px;
-          color: var(--text-muted);
-          font-weight: 600;
-          padding: 6px 4px;
-          border-radius: var(--radius-sm);
-        }
-        .admin2026-root .btn-return-home:hover {
-          color: var(--color-brand);
-        }
-        .admin2026-root .app-sidebar.is-rail .btn-return-home span {
-          display: none;
-        }
-        .admin2026-root .app-main {
-          flex: 1;
-          min-width: 0;
-          display: flex;
-          flex-direction: column;
-          background-color: var(--bg-canvas);
-        }
-        .admin2026-root .app-topbar {
-          height: var(--topbar-height);
-          position: sticky;
-          top: 0;
-          z-index: 30;
-          background-color: rgba(255, 255, 255, 0.94);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid var(--border-hairline);
-          padding: 0 32px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 24px;
-        }
-        .admin2026-root .topbar-left {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-width: 180px;
-        }
-        .admin2026-root .mobile-nav-toggle {
-          display: none;
-          width: 36px;
-          height: 36px;
-          border-radius: var(--radius-md);
-          align-items: center;
-          justify-content: center;
-          color: var(--text-ink);
-          border: 1px solid var(--border-hairline);
-        }
-        .admin2026-root .breadcrumb {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text-muted);
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .admin2026-root .breadcrumb strong {
-          color: var(--text-ink);
-          font-weight: 700;
-        }
-        .admin2026-root .topbar-center {
-          flex: 1;
-          max-width: 480px;
-        }
-        .admin2026-root .global-search-btn {
-          width: 100%;
-          height: 40px;
-          border: 1px solid var(--border-hairline);
-          border-radius: var(--radius-lg);
-          background-color: var(--bg-subtle);
-          padding: 0 14px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          color: var(--text-muted);
-          font-size: 13px;
-        }
-        .admin2026-root .global-search-btn:hover {
-          background-color: #FFFFFF;
-          border-color: #CBD5E1;
-          color: var(--text-body);
-        }
-        .admin2026-root .search-left-hint {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .admin2026-root .search-kbd-hint {
-          font-size: 11px;
-          font-weight: 700;
-          padding: 2px 6px;
-          border-radius: var(--radius-sm);
-          background-color: #FFFFFF;
-          border: 1px solid var(--border-hairline);
-          color: var(--text-muted);
-        }
-        .admin2026-root .topbar-right {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .admin2026-root .sync-chip {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 12px;
-          font-weight: 600;
-          color: var(--text-muted);
-          background-color: var(--bg-subtle);
-          border: 1px solid var(--border-hairline);
-          padding: 6px 10px;
-          border-radius: var(--radius-pill);
-        }
-        .admin2026-root .btn-refresh-sync.is-spinning svg {
-          animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-          100% { transform: rotate(360deg); }
-        }
-        .admin2026-root .topbar-icon-btn {
-          width: 38px;
-          height: 38px;
-          border-radius: var(--radius-md);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--text-body);
-          border: 1px solid var(--border-hairline);
-          background-color: var(--bg-canvas);
-          position: relative;
-        }
-        .admin2026-root .icon-badge-dot {
-          position: absolute;
-          top: 7px;
-          right: 7px;
-          width: 8px;
-          height: 8px;
-          border-radius: var(--radius-pill);
-          background-color: var(--color-brand);
-          border: 1.5px solid #FFFFFF;
-        }
-        .admin2026-root .dashboard-content {
-          padding: 32px;
-          max-width: 1440px;
-          width: 100%;
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-        }
-        .admin2026-root .welcome-header {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 20px;
-          flex-wrap: wrap;
-        }
-        .admin2026-root .welcome-title-group h1 {
-          font-size: 28px;
-          font-weight: 800;
-          color: var(--text-ink);
-          letter-spacing: -0.6px;
-          line-height: 1.2;
-          margin: 0;
-        }
-        .admin2026-root .welcome-meta {
-          font-size: 13px;
-          color: var(--text-muted);
-          font-weight: 500;
-          margin-top: 4px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-        .admin2026-root .welcome-meta-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          font-weight: 700;
-          color: var(--status-review-text);
-          background-color: var(--status-review-bg);
-          padding: 2px 8px;
-          border-radius: var(--radius-pill);
-          font-size: 12px;
-        }
-        .admin2026-root .btn-primary {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background-color: var(--color-brand);
-          color: #FFFFFF;
-          font-size: 13px;
-          font-weight: 700;
-          padding: 10px 18px;
-          border-radius: var(--radius-md);
-          transition: all var(--duration-fast) var(--ease-standard);
-          box-shadow: 0 2px 4px rgba(215, 20, 31, 0.2);
-        }
-        .admin2026-root .btn-primary:hover {
-          background-color: var(--color-brand-hover);
-          transform: translateY(-1px);
-        }
-        .admin2026-root .kpi-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 16px;
-        }
-        .admin2026-root .kpi-card {
-          background-color: var(--bg-canvas);
-          border: 1px solid var(--border-hairline);
-          border-radius: var(--radius-card);
-          padding: 18px 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          cursor: pointer;
-          transition: all var(--duration-fast) var(--ease-standard);
-        }
-        .admin2026-root .kpi-card:hover {
-          transform: translateY(-2px);
-          border-color: #CBD5E1;
-          box-shadow: var(--shadow-hover);
-        }
-        .admin2026-root .kpi-card-top {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .admin2026-root .kpi-icon-wrap {
-          width: 36px;
-          height: 36px;
-          border-radius: var(--radius-md);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .admin2026-root .kpi-card.kpi-total .kpi-icon-wrap { background-color: #EFF6FF; color: #1D4ED8; }
-        .admin2026-root .kpi-card.kpi-review .kpi-icon-wrap { background-color: var(--status-review-bg); color: var(--status-review-dot); }
-        .admin2026-root .kpi-card.kpi-overdue .kpi-icon-wrap { background-color: var(--status-overdue-bg); color: var(--status-overdue-dot); }
-        .admin2026-root .kpi-card.kpi-unassigned .kpi-icon-wrap { background-color: var(--status-unassigned-bg); color: var(--status-unassigned-dot); }
-        .admin2026-root .kpi-sparkline {
-          width: 64px;
-          height: 24px;
-        }
-        .admin2026-root .kpi-label {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text-muted);
-        }
-        .admin2026-root .kpi-number-wrap {
-          display: flex;
-          align-items: baseline;
-          gap: 6px;
-        }
-        .admin2026-root .kpi-number {
-          font-size: 32px;
-          font-weight: 800;
-          color: var(--text-ink);
-          line-height: 1;
-        }
-        .admin2026-root .kpi-subtext {
-          font-size: 12px;
-          color: var(--text-muted);
-          font-weight: 500;
-        }
-        .admin2026-root .row-pipeline-widgets {
-          display: grid;
-          grid-template-columns: 8fr 4fr;
-          gap: 20px;
-        }
-        .admin2026-root .dashboard-card {
-          background-color: var(--bg-canvas);
-          border: 1px solid var(--border-hairline);
-          border-radius: var(--radius-card);
-          padding: 20px 24px;
-          display: flex;
-          flex-direction: column;
-        }
-        .admin2026-root .card-header-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 18px;
-        }
-        .admin2026-root .card-title {
-          font-size: 16px;
-          font-weight: 700;
-          color: var(--text-ink);
-          margin: 0;
-        }
-        .admin2026-root .card-subtitle-small {
-          font-size: 12px;
-          color: var(--text-muted);
-        }
-        .admin2026-root .pipeline-container {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          position: relative;
-          padding-top: 10px;
-          gap: 8px;
-        }
-        .admin2026-root .pipeline-track-line {
-          position: absolute;
-          top: 32px;
-          left: 36px;
-          right: 36px;
-          height: 2px;
-          background-color: var(--border-hairline);
-          z-index: 1;
-        }
-        .admin2026-root .pipeline-step-node {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          position: relative;
-          z-index: 2;
-          flex: 1;
-          cursor: pointer;
-          transition: transform var(--duration-fast);
-        }
-        .admin2026-root .pipeline-step-node:hover {
-          transform: translateY(-2px);
-        }
-        .admin2026-root .step-circle-badge {
-          width: 44px;
-          height: 44px;
-          border-radius: var(--radius-pill);
-          background-color: #FFFFFF;
-          border: 2px solid var(--border-hairline);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 15px;
-          font-weight: 800;
-          color: var(--text-ink);
-          box-shadow: 0 2px 4px rgba(11, 27, 58, 0.04);
-        }
-        .admin2026-root .pipeline-step-node.is-active .step-circle-badge,
-        .admin2026-root .pipeline-step-node:hover .step-circle-badge {
-          border-color: var(--color-brand);
-          color: var(--color-brand);
-        }
-        .admin2026-root .pipeline-step-node.is-active .step-circle-badge {
-          background-color: var(--color-brand-tint);
-        }
-        .admin2026-root .step-index-label {
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--text-muted);
-          margin-top: 8px;
-        }
-        .admin2026-root .step-name-label {
-          font-size: 12px;
-          font-weight: 700;
-          color: var(--text-ink);
-          line-height: 1.3;
-          margin-top: 2px;
-          max-width: 100px;
-        }
-        .admin2026-root .step-mini-bars {
-          width: 60px;
-          height: 4px;
-          border-radius: var(--radius-pill);
-          background-color: var(--border-hairline);
-          margin-top: 8px;
-          overflow: hidden;
-          display: flex;
-        }
-        .admin2026-root .bar-seg-done { background-color: var(--status-done-dot); height: 100%; }
-        .admin2026-root .bar-seg-progress { background-color: var(--status-progress-dot); height: 100%; }
-        .admin2026-root .bar-seg-overdue { background-color: var(--status-overdue-dot); height: 100%; }
-        .admin2026-root .widgets-stack {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .admin2026-root .deadline-card {
-          background: linear-gradient(135deg, #FFF1F2 0%, #FFFFFF 100%);
-          border: 1px solid var(--color-brand-border);
-          border-radius: var(--radius-card);
-          padding: 16px 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-        .admin2026-root .deadline-tag-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .admin2026-root .deadline-chip {
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--color-brand);
-          background-color: #FFFFFF;
-          border: 1px solid var(--color-brand-border);
-          padding: 2px 8px;
-          border-radius: var(--radius-pill);
-        }
-        .admin2026-root .deadline-title {
-          font-size: 15px;
-          font-weight: 800;
-          color: var(--text-ink);
-          margin: 0;
-        }
-        .admin2026-root .deadline-date-info {
-          font-size: 12px;
-          color: var(--text-muted);
-          font-weight: 500;
-        }
-        .admin2026-root .activity-feed-card {
-          background-color: var(--bg-canvas);
-          border: 1px solid var(--border-hairline);
-          border-radius: var(--radius-card);
-          padding: 18px 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        .admin2026-root .activity-feed-list {
-          list-style: none;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          margin: 0;
-          padding: 0;
-        }
-        .admin2026-root .activity-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 10px;
-          font-size: 12px;
-          line-height: 1.4;
-        }
-        .admin2026-root .activity-dot-icon {
-          width: 20px;
-          height: 20px;
-          border-radius: var(--radius-pill);
-          background-color: var(--bg-subtle);
-          border: 1px solid var(--border-hairline);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          margin-top: 1px;
-          color: var(--text-muted);
-        }
-        .admin2026-root .activity-text-wrap {
-          flex: 1;
-          color: var(--text-body);
-        }
-        .admin2026-root .activity-text-wrap strong {
-          color: var(--text-ink);
-          font-weight: 700;
-        }
-        .admin2026-root .activity-timestamp {
-          color: var(--text-muted);
-          font-size: 11px;
-          white-space: nowrap;
-        }
-        .admin2026-root .groups-master-card {
-          background-color: var(--bg-canvas);
-          border: 1px solid var(--border-hairline);
-          border-radius: var(--radius-card);
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-        }
-        .admin2026-root .master-toolbar {
-          padding: 16px 20px;
-          border-bottom: 1px solid var(--border-hairline);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          flex-wrap: wrap;
-        }
-        .admin2026-root .table-tabs-nav {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          flex-wrap: wrap;
-        }
-        .admin2026-root .tab-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text-muted);
-          padding: 8px 4px 10px 4px;
-          cursor: pointer;
-          border-bottom: 2px solid transparent;
-          white-space: nowrap;
-        }
-        .admin2026-root .tab-btn.is-active {
-          color: var(--text-ink);
-          font-weight: 700;
-          border-bottom-color: var(--color-brand);
-        }
-        .admin2026-root .tab-counter-badge {
-          font-size: 11px;
-          font-weight: 700;
-          padding: 2px 7px;
-          border-radius: var(--radius-pill);
-          background-color: var(--bg-hover);
-          color: var(--text-muted);
-        }
-        .admin2026-root .tab-btn.is-active .tab-counter-badge {
-          background-color: var(--text-ink);
-          color: #FFFFFF;
-        }
-        .admin2026-root .toolbar-actions-group {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex-wrap: wrap;
-        }
-        .admin2026-root .view-segmented-toggle {
-          display: flex;
-          align-items: center;
-          padding: 3px;
-          background-color: var(--bg-subtle);
-          border: 1px solid var(--border-hairline);
-          border-radius: var(--radius-md);
-        }
-        .admin2026-root .view-toggle-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 5px 10px;
-          font-size: 12px;
-          font-weight: 600;
-          color: var(--text-muted);
-          border-radius: 6px;
-        }
-        .admin2026-root .view-toggle-btn.is-active {
-          background-color: #FFFFFF;
-          color: var(--text-ink);
-          font-weight: 700;
-          box-shadow: 0 1px 2px rgba(11, 27, 58, 0.06);
-        }
-        .admin2026-root .input-search-wrap {
-          position: relative;
-          width: 220px;
-        }
-        .admin2026-root .input-search-wrap input {
-          width: 100%;
-          height: 36px;
-          padding: 0 12px 0 32px;
-          border-radius: var(--radius-md);
-          border: 1px solid var(--border-hairline);
-          background-color: var(--bg-canvas);
-          font-size: 13px;
-          color: var(--text-ink);
-        }
-        .admin2026-root .input-search-icon {
-          position: absolute;
-          left: 10px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: var(--text-muted);
-          pointer-events: none;
-        }
-        .admin2026-root .btn-secondary {
-          height: 36px;
-          padding: 0 12px;
-          border: 1px solid var(--border-hairline);
-          border-radius: var(--radius-md);
-          background-color: var(--bg-canvas);
-          color: var(--text-body);
-          font-size: 12px;
-          font-weight: 600;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .admin2026-root .btn-secondary:hover {
-          background-color: var(--bg-subtle);
-          color: var(--text-ink);
-        }
-        .admin2026-root .active-filter-chips-bar {
-          padding: 8px 20px;
-          background-color: var(--bg-subtle);
-          border-bottom: 1px solid var(--border-hairline);
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-        .admin2026-root .filter-chip-item {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          background-color: #FFFFFF;
-          border: 1px solid var(--border-hairline);
-          padding: 3px 8px;
-          border-radius: var(--radius-pill);
-          font-size: 12px;
-          color: var(--text-body);
-          font-weight: 600;
-        }
-        .admin2026-root .table-responsive-wrapper {
-          width: 100%;
-          overflow-x: auto;
-        }
-        .admin2026-root .master-data-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 13px;
-        }
-        .admin2026-root .master-data-table tr {
-          height: 64px;
-        }
-        .admin2026-root .master-data-table thead th {
-          background-color: var(--bg-subtle);
-          color: var(--text-muted);
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          padding: 0 16px;
-          text-align: left;
-          border-bottom: 1px solid var(--border-hairline);
-          user-select: none;
-        }
-        .admin2026-root .master-data-table thead th.is-sortable {
-          cursor: pointer;
-        }
-        .admin2026-root .th-sort-inner {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-        }
-        .admin2026-root .master-data-table tbody tr {
-          border-bottom: 1px solid var(--border-hairline);
-          cursor: pointer;
-        }
-        .admin2026-root .master-data-table tbody tr:hover {
-          background-color: var(--bg-subtle);
-        }
-        .admin2026-root .master-data-table tbody td {
-          padding: 0 16px;
-          vertical-align: middle;
-        }
-        .admin2026-root .custom-checkbox {
-          width: 16px;
-          height: 16px;
-          border-radius: 4px;
-          border: 1.5px solid var(--border-hairline);
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          background-color: #FFFFFF;
-        }
-        .admin2026-root .custom-checkbox.is-checked {
-          background-color: var(--color-brand);
-          border-color: var(--color-brand);
-          color: #FFFFFF;
-        }
-        .admin2026-root .group-ident {
-          display: flex;
-          flex-direction: column;
-          line-height: 1.25;
-        }
-        .admin2026-root .group-code {
-          font-weight: 800;
-          color: var(--text-ink);
-          font-size: 13px;
-        }
-        .admin2026-root .group-school {
-          color: var(--text-body);
-          font-size: 13px;
-          font-weight: 600;
-        }
-        .admin2026-root .group-students-sub {
-          color: var(--text-muted);
-          font-size: 11px;
-        }
-        .admin2026-root .leader-cell {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .admin2026-root .leader-avatar {
-          width: 28px;
-          height: 28px;
-          border-radius: var(--radius-pill);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 11px;
-          font-weight: 700;
-          color: #FFFFFF;
-          flex-shrink: 0;
-        }
-        .admin2026-root .leader-name-wrap {
-          display: flex;
-          flex-direction: column;
-          line-height: 1.2;
-        }
-        .admin2026-root .leader-name-text {
-          font-weight: 600;
-          color: var(--text-ink);
-        }
-        .admin2026-root .btn-wa-round {
-          width: 24px;
-          height: 24px;
-          border-radius: var(--radius-pill);
-          background-color: #ECFDF3;
-          color: #067647;
-          border: 1px solid #A7F3D0;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        .admin2026-root .stage-progress-cell {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .admin2026-root .stepper-dots-row {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-        .admin2026-root .mini-stepper-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: var(--radius-pill);
-          background-color: #E2E8F0;
-        }
-        .admin2026-root .mini-stepper-dot.is-completed { background-color: var(--status-done-dot); }
-        .admin2026-root .mini-stepper-dot.is-current { background-color: var(--text-ink); transform: scale(1.2); }
-        .admin2026-root .stage-title-text {
-          font-size: 12px;
-          font-weight: 700;
-          color: var(--text-ink);
-        }
-        .admin2026-root .stage-tasks-text {
-          font-size: 11px;
-          color: var(--text-muted);
-        }
-        .admin2026-root .status-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 4px 10px;
-          border-radius: var(--radius-pill);
-          font-size: 12px;
-          font-weight: 700;
-          white-space: nowrap;
-        }
-        .admin2026-root .status-badge-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: var(--radius-pill);
-        }
-        .admin2026-root .badge-review { background-color: var(--status-review-bg); color: var(--status-review-text); }
-        .admin2026-root .badge-review .status-badge-dot { background-color: var(--status-review-dot); }
-        .admin2026-root .badge-overdue { background-color: var(--status-overdue-bg); color: var(--status-overdue-text); }
-        .admin2026-root .badge-overdue .status-badge-dot { background-color: var(--status-overdue-dot); }
-        .admin2026-root .badge-done { background-color: var(--status-done-bg); color: var(--status-done-text); }
-        .admin2026-root .badge-done .status-badge-dot { background-color: var(--status-done-dot); }
-        .admin2026-root .badge-progress { background-color: var(--status-progress-bg); color: var(--status-progress-text); }
-        .admin2026-root .badge-progress .status-badge-dot { background-color: var(--status-progress-dot); }
-        .admin2026-root .badge-unassigned { background-color: var(--status-unassigned-bg); color: var(--status-unassigned-text); }
-        .admin2026-root .badge-unassigned .status-badge-dot { background-color: var(--status-unassigned-dot); }
-        .admin2026-root .row-actions-cell {
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          gap: 8px;
-        }
-        .admin2026-root .btn-row-action {
-          height: 32px;
-          padding: 0 12px;
-          border-radius: var(--radius-sm);
-          font-size: 12px;
-          font-weight: 700;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .admin2026-root .btn-row-action.btn-review-outline {
-          border: 1px solid var(--text-ink);
-          color: var(--text-ink);
-        }
-        .admin2026-root .btn-row-action.btn-review-outline:hover {
-          background-color: var(--color-brand);
-          border-color: var(--color-brand);
-          color: #FFFFFF;
-        }
-        .admin2026-root .btn-row-action.btn-view-ghost {
-          border: 1px solid var(--border-hairline);
-          color: var(--text-body);
-        }
-        .admin2026-root .table-footer {
-          padding: 12px 20px;
-          border-top: 1px solid var(--border-hairline);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          font-size: 12px;
-          color: var(--text-muted);
-          flex-wrap: wrap;
-        }
-        .admin2026-root .pager-controls {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .admin2026-root .btn-pager {
-          width: 30px;
-          height: 30px;
-          border-radius: var(--radius-sm);
-          border: 1px solid var(--border-hairline);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          color: var(--text-body);
-        }
-        .admin2026-root .btn-pager.is-current {
-          background-color: var(--text-ink);
-          color: #FFFFFF;
-          border-color: var(--text-ink);
-        }
-        .admin2026-root .btn-pager:disabled {
-          opacity: 0.35;
-          cursor: not-allowed;
-        }
-        .admin2026-root .matrix-wrapper {
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          overflow-x: auto;
-        }
-        .admin2026-root .matrix-legend {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          font-size: 12px;
-          color: var(--text-muted);
-          flex-wrap: wrap;
-        }
-        .admin2026-root .legend-item {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .admin2026-root .legend-box {
-          width: 14px;
-          height: 14px;
-          border-radius: 4px;
-        }
-        .admin2026-root .matrix-grid-table {
-          width: 100%;
-          border-collapse: collapse;
-          min-width: 680px;
-        }
-        .admin2026-root .matrix-grid-table th {
-          padding: 10px 12px;
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          color: var(--text-muted);
-          border-bottom: 1px solid var(--border-hairline);
-          text-align: center;
-        }
-        .admin2026-root .matrix-grid-table th:first-child {
-          text-align: left;
-          width: 180px;
-        }
-        .admin2026-root .matrix-grid-table td {
-          padding: 9px 12px;
-          border-bottom: 1px solid var(--border-hairline);
-          text-align: center;
-        }
-        .admin2026-root .matrix-grid-table td:first-child {
-          text-align: left;
-          font-weight: 700;
-          color: var(--text-ink);
-        }
-        .admin2026-root .matrix-cell-node {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 44px;
-          height: 26px;
-          border-radius: 7px;
-          cursor: pointer;
-          font-size: 10.5px;
-          font-weight: 800;
-          font-variant-numeric: tabular-nums;
-          transition: transform var(--duration-fast), box-shadow var(--duration-fast);
-        }
-        .admin2026-root .matrix-cell-node:hover {
-          transform: scale(1.12);
-          z-index: 5;
-        }
-        .admin2026-root .matrix-cell-done {
-          background-color: #10B981;
-          border: 1px solid #059669;
-          color: #FFFFFF;
-          box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
-        }
-        .admin2026-root .matrix-cell-progress {
-          background-color: #2563EB;
-          border: 1px solid #1D4ED8;
-          color: #FFFFFF;
-          box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
-        }
-        .admin2026-root .matrix-cell-review {
-          background-color: #F59E0B;
-          border: 1px solid #D97706;
-          color: #FFFFFF;
-          box-shadow: 0 1px 3px rgba(245, 158, 11, 0.32);
-        }
-        .admin2026-root .matrix-cell-overdue {
-          background-color: #E11D48;
-          border: 1px solid #BE123C;
-          color: #FFFFFF;
-          box-shadow: 0 1px 3px rgba(225, 29, 72, 0.32);
-        }
-        .admin2026-root .matrix-cell-empty {
-          background-color: #CBD5E1;
-          border: 1px solid #94A3B8;
-          color: #475569;
-        }
-        .admin2026-root .drawer-backdrop {
-          position: fixed;
-          inset: 0;
-          background-color: rgba(11, 27, 58, 0.4);
-          backdrop-filter: blur(4px);
-          z-index: 50;
-        }
-        .admin2026-root .detail-drawer {
-          position: fixed;
-          top: 0;
-          right: 0;
-          bottom: 0;
-          width: 480px;
-          max-width: 100vw;
-          background-color: var(--bg-canvas);
-          z-index: 51;
-          box-shadow: -10px 0 30px rgba(11, 27, 58, 0.15);
-          display: flex;
-          flex-direction: column;
-        }
-        .admin2026-root .drawer-header {
-          padding: 20px 24px;
-          border-bottom: 1px solid var(--border-hairline);
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 16px;
-        }
-        .admin2026-root .drawer-title-group h2 {
-          font-size: 18px;
-          font-weight: 800;
-          color: var(--text-ink);
-          margin: 0;
-        }
-        .admin2026-root .drawer-school-sub {
-          font-size: 13px;
-          color: var(--text-muted);
-          margin-top: 2px;
-        }
-        .admin2026-root .drawer-body-scroll {
-          flex: 1;
-          overflow-y: auto;
-          padding: 24px;
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-        }
-        .admin2026-root .drawer-section-heading {
-          font-size: 12px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          color: var(--text-muted);
-          margin-bottom: 10px;
-        }
-        .admin2026-root .drawer-leader-card {
-          padding: 14px 16px;
-          border-radius: var(--radius-md);
-          background-color: var(--bg-subtle);
-          border: 1px solid var(--border-hairline);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .admin2026-root .drawer-stepper-vert {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          position: relative;
-        }
-        .admin2026-root .drawer-step-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 14px;
-        }
-        .admin2026-root .drawer-step-circle {
-          width: 28px;
-          height: 28px;
-          border-radius: var(--radius-pill);
-          background-color: #FFFFFF;
-          border: 2px solid var(--border-hairline);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--text-muted);
-        }
-        .admin2026-root .drawer-step-item.is-completed .drawer-step-circle {
-          border-color: var(--status-done-dot);
-          background-color: #ECFDF3;
-          color: var(--status-done-dot);
-        }
-        .admin2026-root .drawer-step-item.is-current .drawer-step-circle {
-          border-color: var(--color-brand);
-          background-color: var(--color-brand-tint);
-          color: var(--color-brand);
-        }
-        .admin2026-root .drawer-deliverable-card {
-          padding: 14px 16px;
-          border-radius: var(--radius-md);
-          border: 1px solid var(--border-hairline);
-          background-color: #FFFFFF;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .admin2026-root .deliverable-top {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .admin2026-root .deliverable-name {
-          font-size: 13px;
-          font-weight: 700;
-          color: var(--text-ink);
-        }
-        .admin2026-root .deliverable-meta {
-          font-size: 12px;
-          color: var(--text-muted);
-        }
-        .admin2026-root .drawer-feedback-textarea {
-          width: 100%;
-          height: 90px;
-          border-radius: var(--radius-md);
-          border: 1px solid var(--border-hairline);
-          padding: 10px 12px;
-          font-size: 13px;
-          color: var(--text-ink);
-          resize: vertical;
-        }
-        .admin2026-root .drawer-footer-sticky {
-          padding: 16px 24px;
-          border-top: 1px solid var(--border-hairline);
-          background-color: var(--bg-canvas);
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .admin2026-root .btn-approve-solid {
-          flex: 1;
-          height: 42px;
-          border-radius: var(--radius-md);
-          background-color: var(--status-done-dot);
-          color: #FFFFFF;
-          font-size: 13px;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-        }
-        .admin2026-root .btn-revision-outline {
-          flex: 1;
-          height: 42px;
-          border-radius: var(--radius-md);
-          border: 1px solid #CBD5E1;
-          color: var(--text-body);
-          font-size: 13px;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-        }
-        .admin2026-root .bulk-action-bar {
-          position: fixed;
-          bottom: 24px;
-          left: 50%;
-          transform: translateX(-50%);
-          background-color: var(--text-ink);
-          color: #FFFFFF;
-          padding: 10px 20px;
-          border-radius: var(--radius-pill);
-          box-shadow: var(--shadow-toast);
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          z-index: 45;
-          font-size: 13px;
-          font-weight: 600;
-        }
-        .admin2026-root .bulk-btn {
-          color: #FFFFFF;
-          font-size: 12px;
-          font-weight: 700;
-          padding: 6px 12px;
-          border-radius: var(--radius-pill);
-          background-color: rgba(255, 255, 255, 0.12);
-        }
-        .admin2026-root .palette-modal-backdrop {
-          position: fixed;
-          inset: 0;
-          background-color: rgba(11, 27, 58, 0.45);
-          backdrop-filter: blur(4px);
-          z-index: 60;
-          display: flex;
-          align-items: flex-start;
-          justify-content: center;
-          padding-top: 15vh;
-        }
-        .admin2026-root .palette-container {
-          width: 560px;
-          max-width: 90vw;
-          background-color: #FFFFFF;
-          border-radius: var(--radius-card);
-          box-shadow: var(--shadow-elevation);
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-        }
-        .admin2026-root .palette-input-wrap {
-          padding: 16px 20px;
-          border-bottom: 1px solid var(--border-hairline);
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .admin2026-root .palette-search-input {
-          flex: 1;
-          border: none;
-          outline: none;
-          font-size: 15px;
-          font-weight: 600;
-          color: var(--text-ink);
-        }
-        .admin2026-root .palette-results-list {
-          max-height: 320px;
-          overflow-y: auto;
-          padding: 8px;
-          list-style: none;
-          margin: 0;
-        }
-        .admin2026-root .palette-group-label {
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          color: var(--text-muted);
-          padding: 8px 12px 4px 12px;
-        }
-        .admin2026-root .palette-result-item {
-          padding: 10px 12px;
-          border-radius: var(--radius-md);
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text-ink);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          cursor: pointer;
-        }
-        .admin2026-root .palette-result-item:hover {
-          background-color: var(--bg-subtle);
-        }
-        .admin2026-root .toast-container {
-          position: fixed;
-          bottom: 24px;
-          right: 24px;
-          z-index: 70;
-        }
-        .admin2026-root .toast-card {
-          background-color: var(--text-ink);
-          color: #FFFFFF;
-          border-radius: var(--radius-md);
-          padding: 12px 18px;
-          box-shadow: var(--shadow-toast);
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          font-size: 13px;
-          font-weight: 600;
-          position: relative;
-          overflow: hidden;
-        }
-        .admin2026-root .toast-undo-btn {
-          color: #F87171;
-          font-weight: 700;
-          font-size: 12px;
-          text-transform: uppercase;
-          cursor: pointer;
-        }
-        .admin2026-root .toast-progress-bar {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          height: 3px;
-          background-color: var(--color-brand);
-          width: 100%;
-          animation: undoProgress 5s linear forwards;
-        }
-        @keyframes undoProgress {
-          0% { width: 100%; }
-          100% { width: 0%; }
-        }
-        @media (max-width: 1200px) {
-          .admin2026-root .kpi-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-          .admin2026-root .row-pipeline-widgets {
-            grid-template-columns: 1fr;
-          }
-        }
-        @media (max-width: 768px) {
-          .admin2026-root .app-sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            transform: translateX(-100%);
-            width: 260px !important;
-            box-shadow: var(--shadow-elevation);
-          }
-          .admin2026-root .app-sidebar.mobile-open {
-            transform: translateX(0);
-          }
-          .admin2026-root .mobile-nav-toggle {
-            display: flex;
-          }
-          .admin2026-root .topbar-center {
-            display: none;
-          }
-          .admin2026-root .dashboard-content {
-            padding: 16px;
-          }
-          .admin2026-root .kpi-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
-
-      <div className="app-shell">
-        {/* ─── SIDEBAR (248px COLLAPSIBLE TO 72px RAIL) ───────────────────────── */}
-        <aside
-          className={`app-sidebar ${isRail ? 'is-rail' : ''} ${mobileOpen ? 'mobile-open' : ''}`}
-          aria-label="Navigasi Utama"
-        >
-          <div className="sidebar-header">
-            <div className="brand-mark" onClick={() => navigate('/')}>
-              <div className="brand-logo-box">SM</div>
-              <div className="brand-details">
-                <span className="brand-name">Skomda Mengajar</span>
-                <span className="brand-badge">Admin Panel</span>
-              </div>
-            </div>
+    <div className="w-full min-h-screen bg-[#F7F5F2] text-[#21201E] font-['Poppins'] antialiased selection:bg-[#E20113] selection:text-white">
+      {/* ══════════════════════════════════════════════════════════════════════════
+          TOP BAR (NO SIDEBAR, PLAIN INDONESIAN, GURU PEMBIMBING)
+      ══════════════════════════════════════════════════════════════════════════ */}
+      <header className="w-full bg-white border-b border-[#E6E2DE] sticky top-0 z-30">
+        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+          {/* Logo & Tilted Motif */}
+          <div className="flex items-center gap-6">
             <button
-              type="button"
-              className="btn-collapse-sidebar"
-              onClick={() => setIsRail(!isRail)}
-              title="Ciutkan Sidebar"
+              onClick={() => {
+                setActiveScreen('beranda');
+                navigate('/admin');
+              }}
+              className="flex items-center gap-2 cursor-pointer text-left"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
+              <span className="text-sm font-extrabold tracking-tight text-[#21201E]">
+                Skomda Mengajar
+              </span>
+              <span className="bg-[#E20113] text-white text-[10px] font-bold px-1.5 py-0.2 rounded-[2px] -rotate-3 inline-block">
+                #Skomda
+              </span>
+            </button>
+
+            {/* Top Navigation Links */}
+            <nav className="flex items-center gap-5 text-xs font-medium">
+              <button
+                onClick={() => setActiveScreen('beranda')}
+                className={`py-1 transition-colors cursor-pointer ${
+                  activeScreen === 'beranda'
+                    ? 'text-[#21201E] font-semibold border-b-2 border-[#21201E]'
+                    : 'text-[#6B6560] hover:text-[#21201E]'
+                }`}
               >
-                <polyline points={isRail ? '9 18 15 12 9 6' : '15 18 9 12 15 6'} />
-              </svg>
+                Beranda
+              </button>
+              <button
+                onClick={() => setActiveScreen('kelompok')}
+                className={`py-1 transition-colors cursor-pointer ${
+                  activeScreen === 'kelompok'
+                    ? 'text-[#21201E] font-semibold border-b-2 border-[#21201E]'
+                    : 'text-[#6B6560] hover:text-[#21201E]'
+                }`}
+              >
+                Kelompok
+              </button>
+              <button
+                onClick={() => setActiveScreen('feedback')}
+                className={`py-1 transition-colors cursor-pointer ${
+                  activeScreen === 'feedback'
+                    ? 'text-[#21201E] font-semibold border-b-2 border-[#21201E]'
+                    : 'text-[#6B6560] hover:text-[#21201E]'
+                }`}
+              >
+                Feedback
+              </button>
+              <button
+                onClick={() => setActiveScreen('pengaturan')}
+                className={`py-1 transition-colors cursor-pointer ${
+                  activeScreen === 'pengaturan'
+                    ? 'text-[#21201E] font-semibold border-b-2 border-[#21201E]'
+                    : 'text-[#6B6560] hover:text-[#21201E]'
+                }`}
+              >
+                Pengaturan
+              </button>
+            </nav>
+          </div>
+
+          {/* Right Role Chip & Keluar */}
+          <div className="flex items-center gap-3 text-xs">
+            <span
+              className="bg-[#E6E2DE]/60 text-[#21201E] px-2.5 py-1 rounded-[4px] font-medium text-[11px]"
+              title="Peran login Anda saat ini"
+            >
+              Guru pembimbing
+            </span>
+            <button
+              onClick={() => {
+                navigate('/');
+                showToast('Keluar dari sesi guru pembimbing.', 'info');
+              }}
+              className="text-[#6B6560] hover:text-[#21201E] transition-colors cursor-pointer font-medium"
+            >
+              Keluar
             </button>
           </div>
+        </div>
+      </header>
 
-          <div className="sidebar-nav-container">
-            <div>
-              <div className="nav-group-title">Utama</div>
-              <ul className="nav-list">
-                <li>
-                  <button
-                    type="button"
-                    className={`nav-item-link ${sidebarRoute === 'dashboard' ? 'is-active' : ''}`}
-                    onClick={() => {
-                      setSidebarRoute('dashboard');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                  >
-                    <div className="nav-left-content">
-                      <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect width="7" height="7" x="3" y="3" rx="1" />
-                        <rect width="7" height="7" x="14" y="3" rx="1" />
-                        <rect width="7" height="7" x="14" y="14" rx="1" />
-                        <rect width="7" height="7" x="3" y="14" rx="1" />
-                      </svg>
-                      <span className="nav-label">Dashboard</span>
+      {/* ══════════════════════════════════════════════════════════════════════════
+          MAIN CONTENT AREA
+      ══════════════════════════════════════════════════════════════════════════ */}
+      <main className="max-w-6xl mx-auto px-6 py-8">
+        {/* ────────────────────────────────────────────────────────────────────
+            SCREEN 1: BERANDA (ADMIN HOME)
+        ──────────────────────────────────────────────────────────────────── */}
+        {activeScreen === 'beranda' && (
+          <div className="space-y-6">
+            {/* Persiapan Panel: While Persiapan is unfinished, sits above everything */}
+            {isPersiapanUnfinished && (
+              <div className="bg-white border border-[#E6E2DE] rounded-[4px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider block">
+                    Tahap Persiapan
+                  </span>
+                  <div className="flex flex-wrap items-center gap-4 text-xs">
+                    {/* Item 1: Impor data (done) */}
+                    <div className="flex items-center gap-1.5 text-[#21201E] font-medium">
+                      <span className="w-4 h-4 rounded-[2px] bg-[#3DBE7A] text-white flex items-center justify-center shrink-0">
+                        <Check className="w-3 h-3" />
+                      </span>
+                      <span>1. Impor data</span>
                     </div>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    className={`nav-item-link ${sidebarRoute === 'kelompok' ? 'is-active' : ''}`}
-                    onClick={() => {
-                      setSidebarRoute('kelompok');
-                      setCurrentTab('semua');
-                      tableSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                  >
-                    <div className="nav-left-content">
-                      <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                      </svg>
-                      <span className="nav-label">Kelompok</span>
-                    </div>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    className={`nav-item-link ${sidebarRoute === 'review' ? 'is-active' : ''}`}
-                    onClick={() => {
-                      setSidebarRoute('review');
-                      setCurrentTab('review');
-                      tableSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                  >
-                    <div className="nav-left-content">
-                      <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                        <polyline points="14 2 14 8 20 8" />
-                        <path d="m9 15 2 2 4-4" />
-                      </svg>
-                      <span className="nav-label">Review Berkas</span>
-                    </div>
-                    <span className="nav-badge badge-amber">{reviewCount}</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    className={`nav-item-link ${sidebarRoute === 'persiapan' ? 'is-active' : ''}`}
-                    onClick={() => {
-                      setSidebarRoute('persiapan');
-                      setCurrentTab('unassigned');
-                      tableSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                  >
-                    <div className="nav-left-content">
-                      <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-                        <path d="M12 8v4" />
-                        <path d="M12 16h.01" />
-                      </svg>
-                      <span className="nav-label">Persiapan &amp; Ketua</span>
-                    </div>
-                    <span className="nav-badge">{unassignedCount}</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    className={`nav-item-link ${sidebarRoute === 'feedback' ? 'is-active' : ''}`}
-                    onClick={() => {
-                      setSidebarRoute('feedback');
-                      setDrawerGroupId('KEL-03');
-                    }}
-                  >
-                    <div className="nav-left-content">
-                      <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                      </svg>
-                      <span className="nav-label">Feedback SMP</span>
-                    </div>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    className="nav-item-link"
-                    onClick={handleExportCsv}
-                  >
-                    <div className="nav-left-content">
-                      <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-                        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-                        <path d="M8 13h2" />
-                        <path d="M14 13h2" />
-                        <path d="M8 17h2" />
-                        <path d="M14 17h2" />
-                      </svg>
-                      <span className="nav-label">Laporan &amp; Ekspor</span>
-                    </div>
-                  </button>
-                </li>
-              </ul>
-            </div>
 
-            <div>
-              <div className="nav-group-title">Sistem</div>
-              <ul className="nav-list">
-                <li>
-                  <button
-                    type="button"
-                    className="nav-item-link"
-                    onClick={() => triggerAdminToast('Pengaturan sinkronisasi kurikulum aktif.')}
-                  >
-                    <div className="nav-left-content">
-                      <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                      </svg>
-                      <span className="nav-label">Pengaturan</span>
-                    </div>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    className="nav-item-link"
-                    onClick={() => triggerAdminToast('Bantuan: Tekan Ctrl+K untuk pencarian cepat.')}
-                  >
-                    <div className="nav-left-content">
-                      <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                        <path d="M12 17h.01" />
-                      </svg>
-                      <span className="nav-label">Bantuan</span>
-                    </div>
-                  </button>
-                </li>
-              </ul>
-            </div>
-          </div>
+                    <span className="text-[#E6E2DE]">•</span>
 
-          <div className="sidebar-footer">
-            <div className="user-profile-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                <div className="user-avatar" title={adminDisplayName}>
-                  {adminInitials}
+                    {/* Item 2: Tandai ketua (current count) */}
+                    <div className="flex items-center gap-1.5 text-[#21201E] font-medium">
+                      <span className="w-4 h-4 rounded-[2px] border border-[#21201E] text-[#21201E] flex items-center justify-center shrink-0 text-[10px] font-bold">
+                        2
+                      </span>
+                      <span>
+                        Tandai ketua ({groupsWithLeaderCount} dari {groupsList.length} kelompok sudah punya ketua)
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="user-info">
-                  <span className="user-name">{adminDisplayName}</span>
-                  <span className="user-role">Koordinator Guru</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => void logout()}
-                title="Keluar Sesi Admin"
-                style={{ color: 'var(--text-muted)', padding: 4 }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-              </button>
-            </div>
-            <button
-              type="button"
-              className="btn-return-home"
-              onClick={() => navigate('/')}
-              title="Kembali ke Beranda Utama"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="19" y1="12" x2="5" y2="12" />
-                <polyline points="12 19 5 12 12 5" />
-              </svg>
-              <span>Kembali ke Beranda</span>
-            </button>
-          </div>
-        </aside>
 
-        {/* ─── MAIN VIEWPORT ──────────────────────────────────────────────────── */}
-        <main className="app-main">
-          <header className="app-topbar">
-            <div className="topbar-left">
-              <button
-                type="button"
-                className="mobile-nav-toggle"
-                onClick={() => setMobileOpen(!mobileOpen)}
-                aria-label="Buka Menu"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="3" y1="12" x2="21" y2="12" />
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-              </button>
-              <div className="breadcrumb">
-                <span>Skomda Mengajar</span>
-                <span>/</span>
-                <strong>Dashboard Admin</strong>
-              </div>
-            </div>
-
-            <div className="topbar-center">
-              <button
-                type="button"
-                className="global-search-btn"
-                onClick={() => setPaletteOpen(true)}
-                title="Buka Pencarian Cepat (Ctrl+K)"
-              >
-                <div className="search-left-hint">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
-                  <span>Cari kelompok, SMP, ketua...</span>
-                </div>
-                <kbd className="search-kbd-hint">Ctrl K</kbd>
-              </button>
-            </div>
-
-            <div className="topbar-right">
-              <div className="sync-chip">
-                <span>{syncText}</span>
+                {/* The single primary button on Screen 1 while Persiapan is unfinished */}
                 <button
-                  type="button"
-                  className={`btn-refresh-sync ${isSyncing ? 'is-spinning' : ''}`}
-                  onClick={() => {
-                    setIsSyncing(true);
-                    setSyncText('Menyinkronkan...');
-                    setTimeout(() => {
-                      setIsSyncing(false);
-                      setSyncText('Baru saja tersinkron');
-                      triggerAdminToast('Data kelompok berhasil disinkronkan dengan database!');
-                    }, 900);
-                  }}
-                  title="Sinkronkan Data"
+                  onClick={() => setActiveScreen('kelompok')}
+                  className="px-4 py-2 bg-[#E20113] hover:bg-[#b4000c] text-white text-xs font-semibold rounded-[4px] transition-colors cursor-pointer shrink-0"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                    <path d="M21 3v5h-5" />
-                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                    <path d="M8 16H3v5" />
-                  </svg>
+                  Tandai ketua
                 </button>
               </div>
+            )}
 
-              <button
-                type="button"
-                className="topbar-icon-btn"
-                onClick={() => triggerAdminToast('Tenggat Tahap 04 (Siapkan Desain): Sabtu, 21 Februari 2026.')}
-                title="Tenggat Jadwal Milestones"
-              >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                  <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-              </button>
+            {/* Header: Title with mandatory one sentence opening */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-[#E6E2DE]">
+              <div>
+                <h1 className="text-2xl font-extrabold text-[#21201E] tracking-tight">
+                  Pantau kelompok
+                </h1>
+                <p className="text-xs text-[#6B6560] mt-1 leading-relaxed">
+                  Ini yang perlu Anda tindak hari ini dan kelompok mana yang tertinggal.
+                </p>
+              </div>
 
-              <button
-                type="button"
-                className="topbar-icon-btn"
-                onClick={() => {
-                  const firstReview = groups.find((g) => g.status === 'menunggu');
-                  if (firstReview) setDrawerGroupId(firstReview.id);
-                  else triggerAdminToast('Tidak ada berkas baru yang menunggu review.');
-                }}
-                title={`Notifikasi Pengajuan (${reviewCount})`}
-              >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                </svg>
-                {reviewCount > 0 && <span className="icon-badge-dot" />}
-              </button>
+              {/* One line stage info & Thin 6-Part Progress Line */}
+              <div className="flex flex-col md:items-end gap-1.5 shrink-0">
+                <span className="text-xs text-[#6B6560] font-medium">
+                  Tahap 3 dari 6: Buat desain, tenggat 15 Feb (4 hari lagi)
+                </span>
+                <div className="flex items-center gap-1 w-56 h-1.5">
+                  <span className="h-full flex-1 bg-[#21201E] rounded-[2px]" title="Tahap 1: Atur peran (Selesai)" />
+                  <span className="h-full flex-1 bg-[#21201E] rounded-[2px]" title="Tahap 2: Rancang materi (Selesai)" />
+                  <span className="h-full flex-1 border border-[#21201E] bg-white rounded-[2px]" title="Tahap 3: Buat desain (Aktif berjalan)" />
+                  <span className="h-full flex-1 bg-[#E6E2DE] rounded-[2px]" title="Tahap 4: Pelaksanaan di SMP" />
+                  <span className="h-full flex-1 bg-[#E6E2DE] rounded-[2px]" title="Tahap 5: Kumpulkan laporan" />
+                  <span className="h-full flex-1 bg-[#E6E2DE] rounded-[2px]" title="Tahap 6: Terima feedback" />
+                </div>
+              </div>
             </div>
-          </header>
 
-          {/* Dashboard Body Content */}
-          <div className="dashboard-content">
-            {/* ─── 1) SAMBUTAN & PRIMARY ACTION ───────────────────────────────── */}
-            <section className="welcome-header">
-              <div className="welcome-title-group">
-                <h1>Selamat datang, {adminDisplayName}</h1>
-                <div className="welcome-meta">
-                  <span>{currentDateIndo}</span>
-                  <span>•</span>
-                  <span className="welcome-meta-pill">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10" />
-                      <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                    <span>{reviewCount} berkas menunggu review</span>
-                  </span>
+            {/* Block 1: Perlu Tindakan */}
+            <section className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h2 className="text-sm font-extrabold text-[#21201E]">Perlu tindakan</h2>
+
+                {/* Two tabs that say whose turn it is */}
+                <div className="flex items-center gap-1.5 text-xs">
+                  <button
+                    onClick={() => setTurnTab('admin')}
+                    className={`px-3 py-1 rounded-[4px] border transition-colors cursor-pointer font-medium ${
+                      turnTab === 'admin'
+                        ? 'bg-white border-[#21201E] text-[#21201E] font-semibold'
+                        : 'bg-white border-[#E6E2DE] text-[#6B6560] hover:text-[#21201E]'
+                    }`}
+                  >
+                    Menunggu Anda {waitingAdminItems.length}
+                  </button>
+                  <button
+                    onClick={() => setTurnTab('kelompok')}
+                    className={`px-3 py-1 rounded-[4px] border transition-colors cursor-pointer font-medium ${
+                      turnTab === 'kelompok'
+                        ? 'bg-white border-[#21201E] text-[#21201E] font-semibold'
+                        : 'bg-white border-[#E6E2DE] text-[#6B6560] hover:text-[#21201E]'
+                    }`}
+                  >
+                    Menunggu kelompok {waitingGroupItems.length}
+                  </button>
                 </div>
               </div>
 
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => {
-                  const firstReview = groups.find((g) => g.status === 'menunggu');
-                  if (firstReview) {
-                    setDrawerGroupId(firstReview.id);
-                  } else {
-                    triggerAdminToast('Semua pengajuan telah tuntas direview!');
-                  }
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polygon points="5 3 19 12 5 21 5 3" />
-                </svg>
-                <span>Mulai Review ({reviewCount})</span>
-              </button>
-            </section>
-
-            {/* ─── 2) 4 KPI CARDS ─────────────────────────────────────────────── */}
-            <section className="kpi-grid" aria-label="Ringkasan Kinerja Kelompok">
-              <div
-                className="kpi-card kpi-total"
-                onClick={() => {
-                  setCurrentTab('semua');
-                  tableSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                <div className="kpi-card-top">
-                  <div className="kpi-icon-wrap">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                  </div>
-                  <svg className="kpi-sparkline" viewBox="0 0 64 24" fill="none">
-                    <path d="M2 18 L16 14 L30 16 L44 8 L62 4" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="kpi-label">Total Kelompok</div>
-                  <div className="kpi-number-wrap">
-                    <span className="kpi-number tabular-nums">{totalCount}</span>
-                    <span className="kpi-subtext">kelompok</span>
-                  </div>
-                </div>
-                <span className="kpi-subtext">24 SMP mitra di Sidoarjo</span>
-              </div>
-
-              <div
-                className="kpi-card kpi-review"
-                onClick={() => {
-                  setCurrentTab('review');
-                  tableSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                <div className="kpi-card-top">
-                  <div className="kpi-icon-wrap">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                      <circle cx="12" cy="12" r="10" />
-                      <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                  </div>
-                  <svg className="kpi-sparkline" viewBox="0 0 64 24" fill="none">
-                    <path d="M2 20 L20 18 L38 10 L50 8 L62 4" stroke="#D97706" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="kpi-label">Menunggu Review</div>
-                  <div className="kpi-number-wrap">
-                    <span className="kpi-number tabular-nums">{reviewCount}</span>
-                    <span className="kpi-subtext">berkas</span>
-                  </div>
-                </div>
-                <span className="kpi-subtext" style={{ color: 'var(--status-review-text)', fontWeight: 600 }}>
-                  Terlama 4 hari lalu
-                </span>
-              </div>
-
-              <div
-                className="kpi-card kpi-overdue"
-                onClick={() => {
-                  setCurrentTab('overdue');
-                  tableSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                <div className="kpi-card-top">
-                  <div className="kpi-icon-wrap">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="8" x2="12" y2="12" />
-                      <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                  </div>
-                  <svg className="kpi-sparkline" viewBox="0 0 64 24" fill="none">
-                    <path d="M2 8 L22 14 L40 12 L52 18 L62 20" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="kpi-label">Terlambat / Revisi</div>
-                  <div className="kpi-number-wrap">
-                    <span className="kpi-number tabular-nums">{overdueCount}</span>
-                    <span className="kpi-subtext">kelompok</span>
-                  </div>
-                </div>
-                <span className="kpi-subtext" style={{ color: 'var(--status-overdue-text)', fontWeight: 600 }}>
-                  Butuh tindak lanjut WA
-                </span>
-              </div>
-
-              <div
-                className="kpi-card kpi-unassigned"
-                onClick={() => {
-                  setCurrentTab('unassigned');
-                  tableSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                <div className="kpi-card-top">
-                  <div className="kpi-icon-wrap">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <line x1="17" y1="8" x2="23" y2="14" />
-                      <line x1="23" y1="8" x2="17" y2="14" />
-                    </svg>
-                  </div>
-                  <svg className="kpi-sparkline" viewBox="0 0 64 24" fill="none">
-                    <path d="M2 12 L20 12 L40 12 L62 12" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="kpi-label">Belum Ada Ketua</div>
-                  <div className="kpi-number-wrap">
-                    <span className="kpi-number tabular-nums">{unassignedCount}</span>
-                    <span className="kpi-subtext">kelompok</span>
-                  </div>
-                </div>
-                <span className="kpi-subtext">Masih di Tahap 02</span>
-              </div>
-            </section>
-
-            {/* ─── 3) ROW 2: PIPELINE 6 TAHAP & WIDGETS ───────────────────────── */}
-            <section className="row-pipeline-widgets">
-              <div className="dashboard-card">
-                <div className="card-header-row">
-                  <div>
-                    <h2 className="card-title">Posisi Kelompok per Tahap</h2>
-                    <span className="card-subtitle-small">
-                      Klik pada tahap untuk menyaring daftar kelompok di bawah
-                    </span>
-                  </div>
-                  <span className="badge-progress status-badge">
-                    <span className="status-badge-dot" />
-                    <span>Alur Aktif 2026</span>
-                  </span>
-                </div>
-
-                <div className="pipeline-container">
-                  <div className="pipeline-track-line" />
-                  {STAGES_LIST.map((stg) => {
-                    const inStage = groups.filter((g) => g.tahap === stg.id);
-                    const count = inStage.length;
-                    const countDone = inStage.filter((g) => g.status === 'selesai').length;
-                    const countOverdue = inStage.filter((g) => g.status === 'terlambat').length;
-                    const countProg = inStage.filter(
-                      (g) => g.status === 'berjalan' || g.status === 'menunggu'
-                    ).length;
-
-                    const pctDone = count > 0 ? (countDone / count) * 100 : 0;
-                    const pctProg = count > 0 ? (countProg / count) * 100 : 0;
-                    const pctOver = count > 0 ? (countOverdue / count) * 100 : 0;
-
-                    return (
+              {/* Rows List (Plain rows, not cards) */}
+              <div className="bg-white border border-[#E6E2DE] rounded-[4px] divide-y divide-[#E6E2DE]">
+                {turnTab === 'admin' ? (
+                  /* ─── TAB: Menunggu Anda ─── */
+                  waitingAdminItems.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-[#6B6560] space-y-1">
+                      <p className="font-semibold text-[#21201E]">Semua berkas sudah direview.</p>
+                      <p>Tidak ada pengajuan yang tertunda. Anda bisa memeriksa tabel progres kelompok di bawah.</p>
+                    </div>
+                  ) : (
+                    (showAllActions ? waitingAdminItems : waitingAdminItems.slice(0, 5)).map((item) => (
                       <div
-                        key={stg.id}
-                        className={`pipeline-step-node ${filterStage === stg.id ? 'is-active' : ''}`}
-                        onClick={() => {
-                          setFilterStage((prev) => (prev === stg.id ? null : stg.id));
-                          setCurrentPage(1);
-                        }}
-                        title={`${stg.no} ${stg.name}: ${count} kelompok`}
+                        key={item.id}
+                        className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#F7F5F2]/60 transition-colors"
                       >
-                        <div className="step-circle-badge tabular-nums">{count}</div>
-                        <span className="step-index-label">{stg.no}</span>
-                        <span className="step-name-label">{stg.name}</span>
-                        <div className="step-mini-bars">
-                          <div className="bar-seg-done" style={{ width: `${pctDone}%` }} />
-                          <div className="bar-seg-progress" style={{ width: `${pctProg}%` }} />
-                          <div className="bar-seg-overdue" style={{ width: `${pctOver}%` }} />
+                        {/* Group, SMP, and Item */}
+                        <div className="flex items-start sm:items-center gap-3">
+                          <span className="text-xs font-bold text-[#21201E] shrink-0 w-24">
+                            {item.groupNumber}
+                          </span>
+                          <span className="text-xs text-[#6B6560] shrink-0 w-36 truncate">
+                            {item.schoolName}
+                          </span>
+                          <span className="text-xs font-medium text-[#21201E]">
+                            {item.itemName}
+                          </span>
+                        </div>
+
+                        {/* Status chip, Age, and Exactly One Button: Outlined Charcoal */}
+                        <div className="flex items-center gap-4 text-xs shrink-0 self-end sm:self-center">
+                          <span
+                            className="px-2 py-0.5 rounded-[4px] bg-[#F2B33D]/25 text-[#21201E] text-[11px] font-medium cursor-help"
+                            title={item.statusHint}
+                          >
+                            {item.statusLabel}
+                          </span>
+
+                          <span className="text-[11px] text-[#6B6560] w-36 text-right">
+                            {item.ageText}
+                          </span>
+
+                          <button
+                            onClick={() => handleOpenReview(item.groupId)}
+                            className="px-3 py-1 rounded-[4px] border border-[#21201E] text-[#21201E] hover:bg-[#21201E]/5 font-medium text-xs transition-colors cursor-pointer"
+                          >
+                            Review
+                          </button>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
+                    ))
+                  )
+                ) : (
+                  /* ─── TAB: Menunggu kelompok ─── */
+                  waitingGroupItems.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-[#6B6560] space-y-1">
+                      <p className="font-semibold text-[#21201E]">Semua kelompok sesuai jadwal.</p>
+                      <p>Tidak ada keterlambatan pengumpulan atau revisi yang tertunda.</p>
+                    </div>
+                  ) : (
+                    (showAllActions ? waitingGroupItems : waitingGroupItems.slice(0, 5)).map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#F7F5F2]/60 transition-colors"
+                      >
+                        {/* Group, SMP, and Item */}
+                        <div className="flex items-start sm:items-center gap-3">
+                          <span className="text-xs font-bold text-[#21201E] shrink-0 w-24">
+                            {item.groupNumber}
+                          </span>
+                          <span className="text-xs text-[#6B6560] shrink-0 w-36 truncate">
+                            {item.schoolName}
+                          </span>
+                          <span className="text-xs font-medium text-[#21201E]">
+                            {item.itemName}
+                          </span>
+                        </div>
 
-              <div className="widgets-stack">
-                <div className="deadline-card">
-                  <div className="deadline-tag-row">
-                    <span className="deadline-chip">Tenggat Terdekat</span>
-                    <span className="status-badge badge-overdue" style={{ padding: '2px 8px', fontSize: 11 }}>
-                      3 hari lagi
-                    </span>
-                  </div>
-                  <h3 className="deadline-title">Tahap 04 - Siapkan Desain</h3>
-                  <div className="deadline-date-info">
-                    Batas akhir: <strong>Sabtu, 21 Februari 2026</strong>
-                  </div>
-                </div>
+                        {/* Status chip, Lateness / Revision state, and Button: Salin pengingat */}
+                        <div className="flex items-center gap-4 text-xs shrink-0 self-end sm:self-center">
+                          {item.status === 'revisi' ? (
+                            <span
+                              className="px-2 py-0.5 rounded-[4px] bg-[#FF8A5B]/25 text-[#21201E] text-[11px] font-medium cursor-help"
+                              title={item.statusHint}
+                            >
+                              Perlu revisi
+                            </span>
+                          ) : (
+                            <span
+                              className="px-2 py-0.5 rounded-[4px] bg-[#8A8582]/15 text-[#21201E] text-[11px] font-medium cursor-help"
+                              title={item.statusHint}
+                            >
+                              Belum dikumpulkan
+                            </span>
+                          )}
 
-                <div className="activity-feed-card">
-                  <h3 className="card-title" style={{ fontSize: 14 }}>
-                    Aktivitas Terbaru
-                  </h3>
-                  <ul className="activity-feed-list">
-                    {RECENT_ACTIVITIES.map((act, idx) => (
-                      <li key={idx} className="activity-item">
-                        <div className="activity-dot-icon">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            {act.icon === 'check' ? (
-                              <polyline points="20 6 9 17 4 12" />
+                          {/* Lateness text with small coral clock */}
+                          <div className="text-[11px] text-[#6B6560] w-44 text-right">
+                            {item.isLate ? (
+                              <span className="inline-flex items-center justify-end gap-1 text-[#21201E] font-medium">
+                                <Clock className="w-3 h-3 text-[#FF8A5B]" />
+                                <span>{item.ageText}</span>
+                              </span>
                             ) : (
-                              <>
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                <polyline points="14 2 14 8 20 8" />
-                              </>
+                              <span>{item.ageText}</span>
                             )}
-                          </svg>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleCopyReminder(item)}
+                              className="px-3 py-1 rounded-[4px] border border-[#21201E] text-[#21201E] hover:bg-[#21201E]/5 font-medium text-xs transition-colors cursor-pointer"
+                            >
+                              Salin pengingat
+                            </button>
+                            {copiedReminderId === item.id && (
+                              <span className="text-[11px] text-[#6B6560] italic hidden md:inline">
+                                Teks disalin
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="activity-text-wrap">
-                          <strong>{act.group}</strong> {act.text}
-                        </div>
-                        <span className="activity-timestamp">{act.time}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                      </div>
+                    ))
+                  )
+                )}
               </div>
+
+              {/* Five rows initial and "Lihat semua" link */}
+              {((turnTab === 'admin' && waitingAdminItems.length > 5) ||
+                (turnTab === 'kelompok' && waitingGroupItems.length > 5)) && (
+                <div className="pt-1">
+                  <button
+                    onClick={() => setShowAllActions(!showAllActions)}
+                    className="text-xs font-medium text-[#6B6560] hover:text-[#21201E] underline cursor-pointer"
+                  >
+                    {showAllActions ? 'Tampilkan 5 saja' : 'Lihat semua'}
+                  </button>
+                </div>
+              )}
             </section>
 
-            {/* ─── 4) KARTU UTAMA "DAFTAR KELOMPOK" (TABEL & MATRIKS) ─────────── */}
-            <section className="groups-master-card" ref={tableSectionRef}>
-              <div className="master-toolbar">
-                <div className="table-tabs-nav">
-                  {(
-                    [
-                      { key: 'semua', label: 'Semua Kelompok', count: totalCount },
-                      { key: 'review', label: 'Menunggu Review', count: reviewCount },
-                      { key: 'overdue', label: 'Terlambat / Revisi', count: overdueCount },
-                      { key: 'unassigned', label: 'Belum Ada Ketua', count: unassignedCount },
-                    ] as const
-                  ).map((t) => (
-                    <button
-                      key={t.key}
-                      type="button"
-                      className={`tab-btn ${currentTab === t.key ? 'is-active' : ''}`}
-                      onClick={() => {
-                        setCurrentTab(t.key);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      <span>{t.label}</span>
-                      <span className="tab-counter-badge tabular-nums">{t.count}</span>
-                    </button>
-                  ))}
-                </div>
+            {/* Block 2: Progres Kelompok */}
+            <section className="space-y-3 pt-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h2 className="text-sm font-extrabold text-[#21201E]">Progres kelompok</h2>
 
-                <div className="toolbar-actions-group">
-                  <div className="view-segmented-toggle">
-                    <button
-                      type="button"
-                      className={`view-toggle-btn ${viewMode === 'table' ? 'is-active' : ''}`}
-                      onClick={() => setViewMode('table')}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="8" y1="6" x2="21" y2="6" />
-                        <line x1="8" y1="12" x2="21" y2="12" />
-                        <line x1="8" y1="18" x2="21" y2="18" />
-                        <line x1="3" y1="6" x2="3.01" y2="6" />
-                        <line x1="3" y1="12" x2="3.01" y2="12" />
-                        <line x1="3" y1="18" x2="3.01" y2="18" />
-                      </svg>
-                      <span>Tabel</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`view-toggle-btn ${viewMode === 'matrix' ? 'is-active' : ''}`}
-                      onClick={() => setViewMode('matrix')}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect width="18" height="18" x="3" y="3" rx="2" />
-                        <path d="M3 9h18" />
-                        <path d="M3 15h18" />
-                        <path d="M9 3v18" />
-                        <path d="M15 3v18" />
-                      </svg>
-                      <span>Matriks</span>
-                    </button>
-                  </div>
-
-                  <div className="input-search-wrap">
-                    <svg className="input-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="8" />
-                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
+                {/* Search field and Filter Chips */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-[#6B6560] absolute left-2.5 top-2.5" />
                     <input
                       type="text"
-                      value={searchTerm}
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      placeholder="Cari nama, SMP, ketua..."
-                      aria-label="Cari di tabel"
+                      value={progressSearch}
+                      onChange={(e) => setProgressSearch(e.target.value)}
+                      placeholder="Cari kelompok, ketua, atau SMP"
+                      className="pl-8 pr-3 py-1 text-xs bg-white border border-[#E6E2DE] rounded-[4px] text-[#21201E] placeholder:text-[#6B6560] focus:outline-none focus:border-[#21201E] w-56"
                     />
                   </div>
 
-                  <button type="button" className="btn-secondary" onClick={handleExportCsv}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    <span>Ekspor</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    style={{ padding: '8px 14px', fontSize: 12 }}
-                    onClick={openCreateModal}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    <span>Tambah Kelompok</span>
-                  </button>
+                  <div className="flex items-center gap-1 text-xs">
+                    {(['all', 'attention', 'done'] as const).map((key) => {
+                      const labels = {
+                        all: 'Semua',
+                        attention: 'Perlu perhatian',
+                        done: 'Selesai',
+                      };
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => setProgressChip(key)}
+                          className={`px-2.5 py-1 rounded-[4px] border transition-colors cursor-pointer font-medium ${
+                            progressChip === key
+                              ? 'bg-white border-[#21201E] text-[#21201E] font-semibold'
+                              : 'bg-white border-[#E6E2DE] text-[#6B6560] hover:text-[#21201E]'
+                          }`}
+                        >
+                          {labels[key]}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              {/* Active Filter Chips */}
-              {(filterStage !== null || searchTerm.trim() !== '') && (
-                <div className="active-filter-chips-bar">
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    Filter Aktif:
-                  </span>
-                  {filterStage !== null && (
-                    <div className="filter-chip-item">
-                      <span>
-                        Tahap: {STAGES_LIST.find((s) => s.id === filterStage)?.no}{' '}
-                        {STAGES_LIST.find((s) => s.id === filterStage)?.name}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setFilterStage(null)}
-                        style={{ color: 'var(--text-muted)', fontWeight: 700 }}
-                      >
-                        &times;
-                      </button>
-                    </div>
-                  )}
-                  {searchTerm.trim() !== '' && (
-                    <div className="filter-chip-item">
-                      <span>Pencarian: "{searchTerm}"</span>
-                      <button
-                        type="button"
-                        onClick={() => setSearchTerm('')}
-                        style={{ color: 'var(--text-muted)', fontWeight: 700 }}
-                      >
-                        &times;
-                      </button>
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    style={{ height: 24, padding: '0 8px', fontSize: 11, marginLeft: 'auto' }}
-                    onClick={() => {
-                      setFilterStage(null);
-                      setSearchTerm('');
-                    }}
-                  >
-                    Reset Semua Filter
-                  </button>
-                </div>
-              )}
-
-              {/* TABLE VIEW */}
-              {viewMode === 'table' ? (
-                <div className="table-responsive-wrapper">
-                  {filteredGroups.length === 0 ? (
-                    <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-                      <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-ink)' }}>
-                        Tidak ada kelompok yang cocok
-                      </h3>
-                      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-                        Coba ubah kata kunci pencarian atau sesuaikan opsi filter.
-                      </p>
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        style={{ marginTop: 14 }}
-                        onClick={() => {
-                          setCurrentTab('semua');
-                          setFilterStage(null);
-                          setSearchTerm('');
-                        }}
-                      >
-                        Reset Filter
-                      </button>
-                    </div>
-                  ) : (
-                    <table className="master-data-table">
-                      <thead>
-                        <tr>
-                          <th style={{ width: 44, textAlign: 'center' }}>
-                            <div
-                              className={`custom-checkbox ${
-                                selectedIds.size === filteredGroups.length && filteredGroups.length > 0
-                                  ? 'is-checked'
-                                  : ''
-                              }`}
-                              onClick={toggleSelectAll}
-                              title="Pilih Semua"
-                            >
-                              {selectedIds.size === filteredGroups.length && filteredGroups.length > 0 && (
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                  <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                              )}
-                            </div>
-                          </th>
-                          <th className="is-sortable" onClick={() => handleSort('id')}>
-                            <div className="th-sort-inner">
-                              <span>Kelompok</span>
-                            </div>
-                          </th>
-                          <th className="is-sortable" onClick={() => handleSort('ketua')}>
-                            <div className="th-sort-inner">
-                              <span>Ketua Kelompok</span>
-                            </div>
-                          </th>
-                          <th className="is-sortable" onClick={() => handleSort('tahap')}>
-                            <div className="th-sort-inner">
-                              <span>Tahap &amp; Progres</span>
-                            </div>
-                          </th>
-                          <th className="is-sortable" onClick={() => handleSort('menungguHari')}>
-                            <div className="th-sort-inner">
-                              <span>Menunggu Sejak</span>
-                            </div>
-                          </th>
-                          <th>Status</th>
-                          <th style={{ textAlign: 'right' }}>Aksi</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paginatedGroups.map((grp) => {
-                          const isSelected = selectedIds.has(grp.id);
-                          const isMenunggu = grp.status === 'menunggu';
-                          const isOverdue = grp.status === 'terlambat';
-                          const isBelumKetua = grp.status === 'belumKetua';
-                          const isSelesai = grp.status === 'selesai';
-
-                          let statusBadgeClass = 'badge-progress';
-                          let statusLabel = 'Berjalan';
-                          if (isMenunggu) {
-                            statusBadgeClass = 'badge-review';
-                            statusLabel = 'Menunggu Review';
-                          } else if (isOverdue) {
-                            statusBadgeClass = 'badge-overdue';
-                            statusLabel = 'Terlambat';
-                          } else if (isBelumKetua) {
-                            statusBadgeClass = 'badge-unassigned';
-                            statusLabel = 'Belum Ada Ketua';
-                          } else if (isSelesai) {
-                            statusBadgeClass = 'badge-done';
-                            statusLabel = 'Selesai';
-                          }
-
-                          const initial =
-                            grp.ketua && grp.ketua !== '—'
-                              ? grp.ketua
-                                  .split(' ')
-                                  .map((n) => n[0])
-                                  .slice(0, 2)
-                                  .join('')
-                                  .toUpperCase()
-                              : '—';
-                          const avatarBg = isMenunggu
-                            ? '#D97706'
-                            : isOverdue
-                            ? '#DC2626'
-                            : isBelumKetua
-                            ? '#94A3B8'
-                            : '#2563EB';
-
-                          return (
-                            <tr
-                              key={grp.id}
-                              onClick={() => setDrawerGroupId(grp.id)}
-                              style={{ backgroundColor: isSelected ? '#F8FAFC' : undefined }}
-                            >
-                              <td
-                                style={{ textAlign: 'center' }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleRowSelection(grp.id);
-                                }}
-                              >
-                                <div className={`custom-checkbox ${isSelected ? 'is-checked' : ''}`}>
-                                  {isSelected && (
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                      <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                  )}
-                                </div>
-                              </td>
-                              <td>
-                                <div className="group-ident">
-                                  <span className="group-code">{grp.id}</span>
-                                  <span className="group-school">{grp.smp}</span>
-                                  <span className="group-students-sub">
-                                    {grp.jumlahSiswa} siswa • {grp.kecamatan}
-                                  </span>
-                                </div>
-                              </td>
-                              <td>
-                                <div className="leader-cell">
-                                  <div className="leader-avatar" style={{ backgroundColor: avatarBg }}>
-                                    {initial}
-                                  </div>
-                                  <div className="leader-name-wrap">
-                                    <span className="leader-name-text">{grp.ketua}</span>
-                                    {grp.wa ? (
-                                      <span
-                                        className="tabular-nums"
-                                        style={{ fontSize: 11, color: 'var(--text-muted)' }}
-                                      >
-                                        +{grp.wa}
-                                      </span>
-                                    ) : (
-                                      <span style={{ fontSize: 11, color: 'var(--status-review-text)' }}>
-                                        Belum ditentukan
-                                      </span>
-                                    )}
-                                  </div>
-                                  {grp.wa && (
-                                    <a
-                                      href={`https://wa.me/${grp.wa}?text=${encodeURIComponent(
-                                        `Halo Ketua ${grp.id} (${grp.smp})...`
-                                      )}`}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="btn-wa-round"
-                                      onClick={(e) => e.stopPropagation()}
-                                      title={`WhatsApp Ketua (${grp.wa})`}
-                                    >
-                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                                      </svg>
-                                    </a>
-                                  )}
-                                </div>
-                              </td>
-                              <td>
-                                <div className="stage-progress-cell">
-                                  <div className="stepper-dots-row">
-                                    {[1, 2, 3, 4, 5, 6].map((stgNo) => (
-                                      <span
-                                        key={stgNo}
-                                        className={`mini-stepper-dot ${
-                                          stgNo < grp.tahap
-                                            ? 'is-completed'
-                                            : stgNo === grp.tahap
-                                            ? 'is-current'
-                                            : ''
-                                        }`}
-                                      />
-                                    ))}
-                                  </div>
-                                  <span className="stage-title-text">{grp.tahapName}</span>
-                                  <span className="stage-tasks-text tabular-nums">
-                                    {grp.tugasSelesai}/{grp.tugasTotal} tugas selesai
-                                  </span>
-                                </div>
-                              </td>
-                              <td
-                                style={{
-                                  color: grp.menungguHari > 3 ? 'var(--status-overdue-dot)' : undefined,
-                                  fontWeight: grp.menungguHari > 3 ? 700 : undefined,
-                                }}
-                              >
-                                <span className="tabular-nums">{grp.menungguSejak}</span>
-                              </td>
-                              <td>
-                                <span className={`status-badge ${statusBadgeClass}`}>
-                                  <span className="status-badge-dot" />
-                                  <span>{statusLabel}</span>
-                                </span>
-                              </td>
-                              <td onClick={(e) => e.stopPropagation()}>
-                                <div className="row-actions-cell">
-                                  <button
-                                    type="button"
-                                    className={`btn-row-action ${
-                                      isMenunggu ? 'btn-review-outline' : 'btn-view-ghost'
-                                    }`}
-                                    onClick={() => setDrawerGroupId(grp.id)}
-                                  >
-                                    {isMenunggu ? 'Review' : 'Lihat'}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn-row-action btn-view-ghost"
-                                    onClick={() => openEditModal(grp)}
-                                    title={`Edit ${grp.id}`}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn-row-action btn-view-ghost"
-                                    style={{ color: 'var(--status-overdue-dot)', borderColor: '#FECACA' }}
-                                    onClick={() => setDeleteConfirmGroup(grp)}
-                                    title={`Hapus ${grp.id}`}
-                                  >
-                                    Hapus
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              ) : (
-                /* MATRIX VIEW */
-                <div className="matrix-wrapper">
-                  <div className="matrix-legend">
-                    <div className="legend-item">
-                      <div className="legend-box matrix-cell-done" />
-                      <span>Selesai</span>
-                    </div>
-                    <div className="legend-item">
-                      <div className="legend-box matrix-cell-progress" />
-                      <span>Berjalan</span>
-                    </div>
-                    <div className="legend-item">
-                      <div className="legend-box matrix-cell-review" />
-                      <span>Menunggu Review</span>
-                    </div>
-                    <div className="legend-item">
-                      <div className="legend-box matrix-cell-overdue" />
-                      <span>Terlambat / Revisi</span>
-                    </div>
-                    <div className="legend-item">
-                      <div className="legend-box matrix-cell-empty" />
-                      <span>Belum Mulai</span>
-                    </div>
-                  </div>
-                  <table className="matrix-grid-table">
-                    <thead>
+              {/* Progress Table */}
+              <div className="bg-white border border-[#E6E2DE] rounded-[4px] overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-[#E6E2DE] text-[#6B6560] font-medium">
+                      <th className="py-2.5 px-4 font-medium">Kelompok</th>
+                      <th className="py-2.5 px-4 font-medium">Ketua</th>
+                      <th className="py-2.5 px-4 font-medium">Tahap sekarang</th>
+                      <th className="py-2.5 px-4 font-medium">Progres</th>
+                      <th className="py-2.5 px-4 font-medium">Item</th>
+                      <th className="py-2.5 px-4 text-right font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E6E2DE]">
+                    {filteredProgressRows.length === 0 ? (
                       <tr>
-                        <th>Kelompok</th>
-                        <th>01 Bentuk Tim</th>
-                        <th>02 Pilih Ketua</th>
-                        <th>03 Susun Modul</th>
-                        <th>04 Siapkan Desain</th>
-                        <th>05 Mengajar SMP</th>
-                        <th>06 Evaluasi &amp; Nilai</th>
+                        <td colSpan={6} className="py-8 text-center text-[#6B6560]">
+                          <p className="font-semibold text-[#21201E]">Tidak ada kelompok pada filter ini.</p>
+                          <p className="mt-0.5">Ubah kata kunci pencarian atau pilih chip "Semua".</p>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {filteredGroups.map((grp) => (
-                        <tr key={grp.id}>
-                          <td>
-                            <strong>{grp.id}</strong>
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{grp.smp}</div>
+                    ) : (
+                      filteredProgressRows.map((row) => (
+                        <tr
+                          key={row.id}
+                          onClick={() => handleOpenReview(row.id)}
+                          className="hover:bg-[#F7F5F2]/60 transition-colors cursor-pointer"
+                        >
+                          {/* Kelompok (name and SMP asal) */}
+                          <td className="py-3 px-4">
+                            <div>
+                              <span className="font-bold text-[#21201E] block">
+                                Kelompok {row.number}
+                              </span>
+                              <span className="text-[11px] text-[#6B6560] block">
+                                {row.schoolName}
+                              </span>
+                            </div>
                           </td>
-                          {[1, 2, 3, 4, 5, 6].map((stgNo) => {
-                            let cellClass = 'matrix-cell-empty';
-                            let isDoneCell = false;
-                            let isCurrentCell = false;
-                            if (stgNo < grp.tahap) {
-                              cellClass = 'matrix-cell-done';
-                              isDoneCell = true;
-                            } else if (stgNo === grp.tahap) {
-                              isCurrentCell = true;
-                              if (grp.status === 'menunggu') cellClass = 'matrix-cell-review';
-                              else if (grp.status === 'terlambat') cellClass = 'matrix-cell-overdue';
-                              else if (grp.status === 'selesai') {
-                                cellClass = 'matrix-cell-done';
-                                isDoneCell = true;
-                              } else cellClass = 'matrix-cell-progress';
-                            }
-                            return (
-                              <td key={stgNo}>
-                                <div
-                                  className={`matrix-cell-node ${cellClass}`}
-                                  onClick={() => setDrawerGroupId(grp.id)}
-                                  title={`${grp.id} — Tahap 0${stgNo}`}
-                                >
-                                  {isDoneCell ? (
-                                    <svg
-                                      width="13"
-                                      height="13"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="3"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    >
-                                      <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                  ) : isCurrentCell ? (
-                                    <span>
-                                      {grp.tugasSelesai}/{grp.tugasTotal}
-                                    </span>
-                                  ) : (
-                                    <span style={{ opacity: 0.7 }}>—</span>
-                                  )}
-                                </div>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
 
-              {/* Table Footer & Pagination */}
-              {viewMode === 'table' && filteredGroups.length > 0 && (
-                <div className="table-footer">
-                  <div>
-                    Menampilkan {startIndex + 1}-
-                    {Math.min(startIndex + rowsPerPage, filteredGroups.length)} dari{' '}
-                    {filteredGroups.length} kelompok
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span>Baris per halaman:</span>
-                      <select
-                        value={rowsPerPage}
-                        onChange={(e) => {
-                          setRowsPerPage(Number(e.target.value));
-                          setCurrentPage(1);
-                        }}
-                        style={{
-                          border: '1px solid var(--border-hairline)',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '3px 6px',
-                          fontSize: 12,
-                          background: '#fff',
-                        }}
-                      >
-                        <option value={10}>10</option>
-                        <option value={25}>25</option>
-                        <option value={50}>50</option>
-                      </select>
-                    </div>
-                    {totalPages > 1 && (
-                      <div className="pager-controls">
-                        <button
-                          type="button"
-                          className="btn-pager"
-                          disabled={safePage === 1}
-                          onClick={() => setCurrentPage(safePage - 1)}
-                        >
-                          &lt;
-                        </button>
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                          <button
-                            key={p}
-                            type="button"
-                            className={`btn-pager ${p === safePage ? 'is-current' : ''}`}
-                            onClick={() => setCurrentPage(p)}
-                          >
-                            {p}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          className="btn-pager"
-                          disabled={safePage === totalPages}
-                          onClick={() => setCurrentPage(safePage + 1)}
-                        >
-                          &gt;
-                        </button>
-                      </div>
+                          {/* Ketua */}
+                          <td className="py-3 px-4 text-[#21201E]">
+                            {row.hasLeader ? (
+                              row.leaderName
+                            ) : (
+                              <span className="text-[#6B6560] italic">Belum ditentukan</span>
+                            )}
+                          </td>
+
+                          {/* Tahap sekarang */}
+                          <td className="py-3 px-4 text-[#21201E] font-medium">
+                            {row.currentStage}
+                          </td>
+
+                          {/* Progres: Six small segments (completed solid charcoal, current outlined, future pale) */}
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-1 w-24">
+                              {[1, 2, 3, 4, 5, 6].map((stg) => {
+                                const isCompleted = stg < row.currentStageIndex;
+                                const isCurrent = stg === row.currentStageIndex;
+                                return (
+                                  <span
+                                    key={stg}
+                                    className={`h-2 flex-1 rounded-[1px] ${
+                                      isCompleted
+                                        ? 'bg-[#21201E]'
+                                        : isCurrent
+                                        ? 'border border-[#21201E] bg-white'
+                                        : 'bg-[#E6E2DE]'
+                                    }`}
+                                    title={`Tahap ${stg}: ${SIX_STAGES[stg - 1]}`}
+                                  />
+                                );
+                              })}
+                            </div>
+                          </td>
+
+                          {/* Item */}
+                          <td className="py-3 px-4 text-[#6B6560]">
+                            {row.approvedItemsText}
+                          </td>
+
+                          {/* Status Chip (Most urgent state first) */}
+                          <td className="py-3 px-4 text-right">
+                            {row.urgentStatus === 'review' && (
+                              <span
+                                className="px-2 py-0.5 rounded-[4px] bg-[#F2B33D]/25 text-[#21201E] text-[11px] font-medium cursor-help inline-block"
+                                title={row.urgentStatusHint}
+                              >
+                                Menunggu review
+                              </span>
+                            )}
+                            {row.urgentStatus === 'overdue' && (
+                              <span
+                                className="px-2 py-0.5 rounded-[4px] bg-[#FF8A5B]/25 text-[#21201E] text-[11px] font-medium cursor-help inline-flex items-center gap-1"
+                                title={row.urgentStatusHint}
+                              >
+                                <Clock className="w-3 h-3 text-[#FF8A5B]" />
+                                <span>{row.urgentStatusLabel}</span>
+                              </span>
+                            )}
+                            {row.urgentStatus === 'revisi' && (
+                              <span
+                                className="px-2 py-0.5 rounded-[4px] bg-[#FF8A5B]/25 text-[#21201E] text-[11px] font-medium cursor-help inline-block"
+                                title={row.urgentStatusHint}
+                              >
+                                Perlu revisi
+                              </span>
+                            )}
+                            {row.urgentStatus === 'approved' && (
+                              <span
+                                className="px-2 py-0.5 rounded-[4px] bg-[#3DBE7A]/25 text-[#21201E] text-[11px] font-medium cursor-help inline-block"
+                                title={row.urgentStatusHint}
+                              >
+                                Disetujui
+                              </span>
+                            )}
+                            {row.urgentStatus === 'waiting' && (
+                              <span
+                                className="px-2 py-0.5 rounded-[4px] bg-[#8A8582]/15 text-[#21201E] text-[11px] font-medium cursor-help inline-block"
+                                title={row.urgentStatusHint}
+                              >
+                                Belum dikumpulkan
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
                     )}
-                  </div>
-                </div>
-              )}
+                  </tbody>
+                </table>
+              </div>
             </section>
           </div>
-        </main>
-      </div>
+        )}
 
-      {/* ─── 5) DRAWER DETAIL KELOMPOK (480px SLIDE OVER) ─────────────────────── */}
-      {activeDrawerGroup && (
-        <>
-          <div className="drawer-backdrop" onClick={() => setDrawerGroupId(null)} />
-          <aside className="detail-drawer" aria-label="Detail Kelompok">
-            <div className="drawer-header">
-              <div className="drawer-title-group">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <h2>{activeDrawerGroup.id}</h2>
-                  <span
-                    className={`status-badge ${
-                      activeDrawerGroup.status === 'menunggu'
-                        ? 'badge-review'
-                        : activeDrawerGroup.status === 'terlambat'
-                        ? 'badge-overdue'
-                        : 'badge-progress'
-                    }`}
-                  >
-                    {activeDrawerGroup.status === 'menunggu'
-                      ? 'Menunggu Review'
-                      : activeDrawerGroup.status === 'terlambat'
-                      ? 'Terlambat / Revisi'
-                      : 'Berjalan'}
+        {/* ────────────────────────────────────────────────────────────────────
+            SCREEN 3: KELOMPOK (SETUP DATA & KETUA)
+        ──────────────────────────────────────────────────────────────────── */}
+        {activeScreen === 'kelompok' && (
+          <div className="space-y-6">
+            {/* Header: Opens with required sentence */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-[#E6E2DE]">
+              <div>
+                <h1 className="text-2xl font-extrabold text-[#21201E] tracking-tight">
+                  Kelompok
+                </h1>
+                <p className="text-xs text-[#6B6560] mt-1 leading-relaxed">
+                  Siapkan data kelompok dan tentukan ketua. Hanya ketua yang punya akun.
+                </p>
+              </div>
+
+              {/* Indicator & The Single Red Primary Button on Screen 3: "Impor CSV" */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                {/* Two-item Persiapan indicator */}
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="flex items-center gap-1 text-[#21201E] font-medium">
+                    <Check className="w-3.5 h-3.5 text-[#3DBE7A]" />
+                    <span>1. Impor data</span>
+                  </span>
+                  <span className="text-[#E6E2DE]">/</span>
+                  <span className="font-bold text-[#21201E] bg-white border border-[#21201E] px-2 py-0.5 rounded-[4px]">
+                    2. Tandai ketua ({groupsWithLeaderCount} dari {groupsList.length})
                   </span>
                 </div>
-                <div className="drawer-school-sub">
-                  {activeDrawerGroup.smp} • {activeDrawerGroup.kecamatan}
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+
+                {/* Exactly one primary button on Screen 3: Signal Red */}
                 <button
-                  type="button"
-                  className="btn-secondary"
-                  style={{ height: 30, padding: '0 10px', fontSize: 11 }}
-                  onClick={() => openEditModal(activeDrawerGroup)}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  style={{
-                    height: 30,
-                    padding: '0 10px',
-                    fontSize: 11,
-                    color: 'var(--status-overdue-dot)',
-                    borderColor: '#FECACA',
+                  onClick={() => {
+                    setIsImportCsvOpen(true);
+                    setImportCsvStep(1);
                   }}
-                  onClick={() => setDeleteConfirmGroup(activeDrawerGroup)}
+                  className="px-4 py-2 bg-[#E20113] hover:bg-[#b4000c] text-white text-xs font-semibold rounded-[4px] transition-colors cursor-pointer shrink-0"
                 >
-                  Hapus
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDrawerGroupId(null)}
-                  style={{ color: 'var(--text-muted)', padding: 4 }}
-                  aria-label="Tutup Panel"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                  Impor CSV
                 </button>
               </div>
             </div>
 
-            <div className="drawer-body-scroll">
-              <div>
-                <div className="drawer-section-heading">Ketua Kelompok &amp; Kontak</div>
-                <div className="drawer-leader-card">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div className="leader-avatar" style={{ backgroundColor: '#D7141F' }}>
-                      {activeDrawerGroup.ketua !== '—'
-                        ? activeDrawerGroup.ketua
-                            .split(' ')
-                            .map((n) => n[0])
-                            .slice(0, 2)
-                            .join('')
-                        : '—'}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 700, color: 'var(--text-ink)' }}>
-                        {activeDrawerGroup.ketua}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }} className="tabular-nums">
-                        {activeDrawerGroup.wa ? `+${activeDrawerGroup.wa}` : 'Belum ditentukan'}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {activeDrawerGroup.wa && (
-                      <a
-                        href={`https://wa.me/${activeDrawerGroup.wa}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="btn-wa-round"
-                        title="Hubungi via WhatsApp"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                        </svg>
-                      </a>
-                    )}
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      style={{ height: 26, padding: '0 8px', fontSize: 11 }}
-                      onClick={() => {
-                        if (activeDrawerGroup.wa) {
-                          void navigator.clipboard?.writeText(`+${activeDrawerGroup.wa}`);
-                          triggerAdminToast('Nomor WhatsApp ketua disalin!');
-                        }
-                      }}
-                    >
-                      Salin
-                    </button>
-                  </div>
-                </div>
+            {/* Table: Kelompok, SMP asal, Anggota, Ketua */}
+            <div className="bg-white border border-[#E6E2DE] rounded-[4px] overflow-hidden">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[#E6E2DE] text-[#6B6560] font-medium">
+                    <th className="py-2.5 px-4 font-medium">Kelompok</th>
+                    <th className="py-2.5 px-4 font-medium">SMP asal</th>
+                    <th className="py-2.5 px-4 font-medium">Anggota</th>
+                    <th className="py-2.5 px-4 text-right font-medium">Ketua</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E6E2DE]">
+                  {groupsList.map((grp) => (
+                    <tr key={grp.id} className="hover:bg-[#F7F5F2]/60 transition-colors">
+                      <td className="py-3 px-4 font-bold text-[#21201E]">
+                        Kelompok {grp.number}
+                      </td>
+                      <td className="py-3 px-4 text-[#21201E]">
+                        {grp.schoolName}
+                      </td>
+                      <td className="py-3 px-4 text-[#6B6560]">
+                        {grp.members.length} siswa
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {grp.hasLeader ? (
+                          <div className="flex items-center justify-end gap-3">
+                            <span className="font-medium text-[#21201E]">{grp.leaderName}</span>
+                            <button
+                              onClick={() => {
+                                const nis = grp.members[0]?.nis || `2024.11.${grp.number}01`;
+                                const newPass = `skm-${Math.floor(1000 + Math.random() * 9000)}`;
+                                setCreatedCredentials({
+                                  name: grp.leaderName,
+                                  groupNum: grp.number,
+                                  username: nis,
+                                  pass: newPass,
+                                });
+                              }}
+                              className="text-xs text-[#6B6560] hover:text-[#21201E] underline cursor-pointer"
+                            >
+                              Reset kata sandi
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-3">
+                            <span className="text-[#6B6560] italic">Belum ditentukan</span>
+                            <button
+                              onClick={() => {
+                                setAssignLeaderGroup(grp);
+                                setSelectedLeaderMember(grp.members[0]?.name || '');
+                              }}
+                              className="px-2.5 py-1 rounded-[4px] border border-[#21201E] text-[#21201E] hover:bg-[#21201E]/5 text-xs font-medium transition-colors cursor-pointer"
+                            >
+                              Tandai ketua
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ────────────────────────────────────────────────────────────────────
+            FEEDBACK TAB
+        ──────────────────────────────────────────────────────────────────── */}
+        {activeScreen === 'feedback' && (
+          <div className="space-y-6">
+            <div className="pb-4 border-b border-[#E6E2DE]">
+              <h1 className="text-2xl font-extrabold text-[#21201E] tracking-tight">
+                Feedback
+              </h1>
+              <p className="text-xs text-[#6B6560] mt-1 leading-relaxed">
+                Evaluasi dan masukan langsung dari guru pamong dan siswa SMP setelah sesi mengajar.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white border border-[#E6E2DE] p-4 rounded-[4px]">
+                <span className="text-xs text-[#6B6560] block">Kepuasan guru pamong</span>
+                <span className="text-2xl font-extrabold text-[#21201E] mt-1 block">4.8 / 5.0</span>
+                <p className="text-xs text-[#6B6560] mt-2 leading-relaxed">
+                  "Siswa SMK sangat siap dengan modul Canva dan tata krama mengajar yang baik."
+                </p>
               </div>
 
-              {activeDrawerGroup.berkas.length > 0 && (
+              <div className="bg-white border border-[#E6E2DE] p-4 rounded-[4px]">
+                <span className="text-xs text-[#6B6560] block">Respons siswa SMP</span>
+                <span className="text-2xl font-extrabold text-[#21201E] mt-1 block">4.5 / 5.0</span>
+                <p className="text-xs text-[#6B6560] mt-2 leading-relaxed">
+                  "Penyampaian materi ramah dan mudah dipahami adik kelas."
+                </p>
+              </div>
+
+              <div className="bg-white border border-[#E6E2DE] p-4 rounded-[4px]">
+                <span className="text-xs text-[#6B6560] block">Relevansi kurikulum</span>
+                <span className="text-2xl font-extrabold text-[#21201E] mt-1 block">4.7 / 5.0</span>
+                <p className="text-xs text-[#6B6560] mt-2 leading-relaxed">
+                  "Sangat sesuai dengan capaian Fase D mata pelajaran Informatika."
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ────────────────────────────────────────────────────────────────────
+            PENGATURAN TAB
+        ──────────────────────────────────────────────────────────────────── */}
+        {activeScreen === 'pengaturan' && (
+          <div className="space-y-6">
+            <div className="pb-4 border-b border-[#E6E2DE]">
+              <h1 className="text-2xl font-extrabold text-[#21201E] tracking-tight">
+                Pengaturan
+              </h1>
+              <p className="text-xs text-[#6B6560] mt-1 leading-relaxed">
+                Jadwal resmi enam tahap program Skomda Mengajar untuk panduan semua kelompok.
+              </p>
+            </div>
+
+            <div className="bg-white border border-[#E6E2DE] rounded-[4px] divide-y divide-[#E6E2DE] text-xs">
+              {[
+                { stage: 'Tahap 1: Atur peran', date: '12 Jan 2026', status: 'Selesai' },
+                { stage: 'Tahap 2: Rancang materi', date: '28 Jan 2026', status: 'Selesai' },
+                { stage: 'Tahap 3: Buat desain', date: '15 Feb 2026', status: 'Aktif berjalan' },
+                { stage: 'Tahap 4: Pelaksanaan di SMP', date: '18–25 Feb 2026', status: 'Mendatang' },
+                { stage: 'Tahap 5: Kumpulkan laporan', date: '28 Feb 2026', status: 'Mendatang' },
+                { stage: 'Tahap 6: Terima feedback', date: '05 Mar 2026', status: 'Mendatang' },
+              ].map((item, idx) => (
+                <div key={idx} className="p-3.5 flex items-center justify-between">
+                  <span className="font-bold text-[#21201E]">{item.stage}</span>
+                  <div className="flex items-center gap-4 text-[#6B6560]">
+                    <span>Tenggat: {item.date}</span>
+                    <span className="px-2 py-0.5 rounded-[4px] bg-[#E6E2DE]/50 text-[#21201E] font-medium">
+                      {item.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          SCREEN 2: REVIEW PANEL (RIGHT-SIDE SLIDE-OVER OVER SCREEN 1)
+      ══════════════════════════════════════════════════════════════════════════ */}
+      {isReviewPanelOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/25">
+          <div className="w-full max-w-xl bg-white h-full border-l border-[#E6E2DE] flex flex-col justify-between animate-in slide-in-from-right duration-200">
+            {/* Top Line: "Review 1 dari 4" and "Kembali" link */}
+            <div className="p-4 border-b border-[#E6E2DE] flex items-center justify-between">
+              <span className="text-xs font-bold text-[#21201E]">
+                {!isAllReviewsFinished
+                  ? `Review ${currentReviewIdx + 1} dari ${reviewQueue.length}`
+                  : 'Review selesai'}
+              </span>
+              <button
+                onClick={() => setIsReviewPanelOpen(false)}
+                className="text-xs font-medium text-[#6B6560] hover:text-[#21201E] underline cursor-pointer"
+              >
+                Kembali
+              </button>
+            </div>
+
+            {/* When all reviews are done */}
+            {isAllReviewsFinished ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
+                <div className="w-12 h-12 rounded-[4px] bg-[#3DBE7A]/20 text-[#3DBE7A] flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
                 <div>
-                  <div className="drawer-section-heading">Berkas Menunggu Validasi</div>
-                  <div className="drawer-deliverable-card">
-                    <div className="deliverable-top">
-                      <span className="deliverable-name">{activeDrawerGroup.berkas[0].nama}</span>
-                      <span
-                        className="badge-review status-badge"
-                        style={{ padding: '2px 6px', fontSize: 10 }}
-                      >
-                        {activeDrawerGroup.berkas[0].versi}
+                  <h3 className="text-base font-extrabold text-[#21201E]">
+                    Semua review selesai
+                  </h3>
+                  <p className="text-xs text-[#6B6560] mt-1 max-w-xs leading-relaxed">
+                    Semua berkas yang menunggu tindakan Anda telah diperiksa.
+                  </p>
+                </div>
+                {/* The single primary button on this state */}
+                <button
+                  onClick={() => setIsReviewPanelOpen(false)}
+                  className="px-4 py-2 bg-[#E20113] hover:bg-[#b4000c] text-white text-xs font-semibold rounded-[4px] transition-colors cursor-pointer"
+                >
+                  Kembali ke beranda
+                </button>
+              </div>
+            ) : currentReviewGroup ? (
+              <>
+                {/* Panel Header Info: Group, SMP asal, Ketua */}
+                <div className="px-5 py-4 border-b border-[#E6E2DE] bg-[#F7F5F2]/40">
+                  <h2 className="text-lg font-extrabold text-[#21201E]">
+                    Kelompok {currentReviewGroup.number}
+                  </h2>
+                  <p className="text-xs font-medium text-[#6B6560] mt-0.5">
+                    {currentReviewGroup.schoolName}
+                  </p>
+                  <p className="text-xs text-[#21201E] mt-1">
+                    Ketua: {currentReviewGroup.leaderName || 'Belum ditentukan'}
+                  </p>
+                </div>
+
+                {/* Panel Body: Scrollable */}
+                <div className="flex-1 overflow-y-auto p-5 space-y-6 text-xs">
+                  {/* Six-Stage Timeline with Waiting Item Open */}
+                  <div>
+                    <h3 className="font-bold text-[#21201E] mb-2.5">Tahapan program</h3>
+                    <div className="space-y-2 border border-[#E6E2DE] rounded-[4px] p-3 bg-[#F7F5F2]/30">
+                      {SIX_STAGES.map((stgName, idx) => {
+                        const stgNum = idx + 1;
+                        const isOpen = stgNum === 3; // Tahap 3 is waiting review & open
+                        return (
+                          <div key={stgNum} className="space-y-2">
+                            <div className="flex items-center justify-between py-1">
+                              <span
+                                className={`font-medium ${
+                                  isOpen ? 'font-bold text-[#21201E]' : 'text-[#6B6560]'
+                                }`}
+                              >
+                                Tahap {stgNum}: {stgName}
+                              </span>
+                              {stgNum < 3 && (
+                                <span
+                                  className="px-2 py-0.5 rounded-[4px] bg-[#3DBE7A]/25 text-[#21201E] text-[11px] font-medium cursor-help"
+                                  title="Tahap ini sudah diperiksa dan disetujui"
+                                >
+                                  Disetujui
+                                </span>
+                              )}
+                              {stgNum === 3 && (
+                                <span
+                                  className="px-2 py-0.5 rounded-[4px] bg-[#F2B33D]/25 text-[#21201E] text-[11px] font-medium cursor-help"
+                                  title="Menunggu review Anda"
+                                >
+                                  Menunggu review
+                                </span>
+                              )}
+                              {stgNum > 3 && (
+                                <span
+                                  className="px-2 py-0.5 rounded-[4px] bg-[#8A8582]/15 text-[#21201E] text-[11px] font-medium cursor-help"
+                                  title="Belum dikumpulkan kelompok"
+                                >
+                                  Belum dikumpulkan
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Open Stage 3 Details: item name, version, upload time, file preview, checklist, earlier comments */}
+                            {isOpen && (
+                              <div className="p-3.5 bg-white border border-[#E6E2DE] rounded-[4px] space-y-3.5 my-2">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <span className="font-bold text-[#21201E] text-xs block">
+                                      X-Banner v2
+                                    </span>
+                                    <span className="text-[11px] text-[#6B6560]">
+                                      Versi 2 • Diunggah 45 menit lalu
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() =>
+                                      showToast('Membuka file X-Banner v2 di tab baru...', 'info')
+                                    }
+                                    className="px-2.5 py-1 rounded-[4px] border border-[#21201E] text-[#21201E] hover:bg-[#21201E]/5 font-medium text-xs transition-colors cursor-pointer flex items-center gap-1"
+                                  >
+                                    <span>Buka file</span>
+                                    <ExternalLink className="w-3 h-3" />
+                                  </button>
+                                </div>
+
+                                {/* Ticked Checklist */}
+                                <div className="space-y-1.5 pt-1">
+                                  <span className="text-[11px] font-bold text-[#21201E] block">
+                                    Daftar periksa desain:
+                                  </span>
+                                  {[
+                                    'Ukuran cetak sesuai standar 60 × 160 cm',
+                                    'Resolusi berkas tajam dan siap cetak',
+                                    'Memuat logo SMK Telkom Sidoarjo dan SMP tujuan',
+                                    'Mencantumkan nama guru pembimbing',
+                                  ].map((chk, cIdx) => (
+                                    <div
+                                      key={cIdx}
+                                      className="flex items-center gap-2 text-[#21201E]"
+                                    >
+                                      <span className="w-3.5 h-3.5 rounded-[2px] bg-[#21201E] text-white flex items-center justify-center shrink-0">
+                                        <Check className="w-2.5 h-2.5" />
+                                      </span>
+                                      <span>{chk}</span>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Earlier Comments */}
+                                <div className="pt-2 border-t border-[#E6E2DE]">
+                                  <span className="text-[11px] font-bold text-[#21201E] block">
+                                    Catatan review sebelumnya:
+                                  </span>
+                                  <p className="text-[11px] text-[#6B6560] mt-1 leading-relaxed bg-[#F7F5F2] p-2 rounded-[4px]">
+                                    "Perbaiki kontras teks judul agar terbaca dari jarak 2 meter, dan pastikan logo sekolah tidak terpotong margin atas."
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Anggota List with Roles */}
+                  <div>
+                    <h3 className="font-bold text-[#21201E] mb-2">Anggota</h3>
+                    <div className="border border-[#E6E2DE] rounded-[4px] divide-y divide-[#E6E2DE]">
+                      {currentReviewGroup.members.map((m, mIdx) => (
+                        <div
+                          key={mIdx}
+                          className="p-2.5 flex items-center justify-between text-xs"
+                        >
+                          <span className="font-medium text-[#21201E]">{m.name}</span>
+                          <span className="text-[#6B6560]">{m.role}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sticky Bottom Bar: Red "Setujui dan lanjut" and Outlined "Minta revisi" */}
+                <div className="p-4 border-t border-[#E6E2DE] bg-white space-y-3">
+                  {/* Revision comment input if opened */}
+                  {isRevisionBoxOpen && (
+                    <div className="space-y-2 animate-in fade-in duration-150">
+                      <label className="text-xs font-bold text-[#21201E] block">
+                        Tulis catatan revisi
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={revisionComment}
+                        onChange={(e) => setRevisionComment(e.target.value)}
+                        placeholder="Tulis bagian yang perlu diperbaiki kelompok..."
+                        className="w-full p-2 text-xs border border-[#E6E2DE] rounded-[4px] focus:outline-none focus:border-[#21201E]"
+                      />
+                      <p className="text-[11px] text-[#6B6560]">
+                        Kelompok akan melihat catatan ini dan diminta mengunggah ulang.
+                      </p>
+                      <div className="flex justify-end gap-2 pt-1">
+                        <button
+                          onClick={() => setIsRevisionBoxOpen(false)}
+                          className="px-3 py-1.5 rounded-[4px] border border-[#E6E2DE] text-[#6B6560] text-xs font-medium cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          onClick={handleSubmitRevision}
+                          className="px-4 py-1.5 rounded-[4px] bg-[#21201E] text-white text-xs font-medium cursor-pointer"
+                        >
+                          Kirim catatan revisi
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isRevisionBoxOpen && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {/* The single primary button in this screen state: Signal Red */}
+                        <button
+                          onClick={handleApproveAndNext}
+                          className="px-4 py-2 rounded-[4px] bg-[#E20113] hover:bg-[#b4000c] text-white font-semibold text-xs transition-colors cursor-pointer"
+                        >
+                          Setujui dan lanjut
+                        </button>
+
+                        {/* Outlined Charcoal button */}
+                        <button
+                          onClick={() => setIsRevisionBoxOpen(true)}
+                          className="px-3 py-2 rounded-[4px] border border-[#21201E] text-[#21201E] hover:bg-[#21201E]/5 font-medium text-xs transition-colors cursor-pointer"
+                        >
+                          Minta revisi
+                        </button>
+                      </div>
+
+                      {/* Remaining queue indicator */}
+                      <span className="text-[11px] text-[#6B6560]">
+                        Sisa {reviewQueue.length - currentReviewIdx} pengajuan
                       </span>
                     </div>
-                    <div className="deliverable-meta">
-                      {activeDrawerGroup.berkas[0].ukuran} • {activeDrawerGroup.berkas[0].waktu}
-                    </div>
-                    <p
-                      style={{
-                        fontSize: 12,
-                        color: 'var(--text-body)',
-                        background: 'var(--bg-subtle)',
-                        padding: '8px 10px',
-                        borderRadius: 'var(--radius-sm)',
-                        marginTop: 4,
-                      }}
-                    >
-                      "Revisi tata letak logo SMK Telkom Sidoarjo dan QR Code pendaftaran siswa SMP sudah
-                      diperbaiki sesuai panduan."
-                    </p>
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      style={{ marginTop: 6, justifyContent: 'center' }}
-                      onClick={() => setIsBannerModalOpen(true)}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                      <span>Pratinjau Berkas</span>
-                    </button>
+                  )}
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          SCREEN 3: 3-STEP DIALOG "IMPOR CSV"
+      ══════════════════════════════════════════════════════════════════════════ */}
+      {isImportCsvOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/25">
+          <div className="bg-white border border-[#E6E2DE] rounded-[4px] max-w-md w-full p-5 space-y-4">
+            {/* Dialog Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-[#E6E2DE]">
+              <div>
+                <h3 className="text-sm font-extrabold text-[#21201E]">
+                  Impor data kelompok dari CSV
+                </h3>
+                <p className="text-xs text-[#6B6560] mt-0.5">
+                  Langkah {importCsvStep} dari 3
+                </p>
+              </div>
+              <button
+                onClick={() => setIsImportCsvOpen(false)}
+                className="text-[#6B6560] hover:text-[#21201E] cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Step 1: Pilih file */}
+            {importCsvStep === 1 && (
+              <div className="space-y-4 text-xs">
+                <div>
+                  <h4 className="font-bold text-[#21201E] mb-1">Pilih file</h4>
+                  <p className="text-[#6B6560]">
+                    Unggah berkas spreadsheet CSV berisi daftar siswa dan pembagian kelompok.
+                  </p>
+                </div>
+
+                <div className="border border-dashed border-[#21201E]/40 p-6 rounded-[4px] text-center bg-[#F7F5F2]/40 space-y-2">
+                  <FileText className="w-8 h-8 text-[#6B6560] mx-auto" />
+                  <div>
+                    <span className="font-medium text-[#21201E] block">
+                      daftar_kelompok_skomda_2026.csv
+                    </span>
+                    <span className="text-[11px] text-[#6B6560]">Ukuran: 42 KB • 180 baris siswa</span>
                   </div>
                 </div>
-              )}
 
-              <div>
-                <div className="drawer-section-heading">Catatan Evaluasi Guru Pembimbing</div>
-                <textarea
-                  className="drawer-feedback-textarea"
-                  value={drawerNotes}
-                  onChange={(e) => setDrawerNotes(e.target.value)}
-                  placeholder="Tulis instruksi revisi atau apresiasi berkas..."
-                />
-              </div>
-
-              <div>
-                <div className="drawer-section-heading">Alur 6 Tahap Pelaksanaan</div>
-                <div className="drawer-stepper-vert">
-                  {STAGES_LIST.map((stg) => {
-                    const isCompleted = stg.id < activeDrawerGroup.tahap;
-                    const isCurrent = stg.id === activeDrawerGroup.tahap;
-                    return (
-                      <div
-                        key={stg.id}
-                        className={`drawer-step-item ${
-                          isCompleted ? 'is-completed' : isCurrent ? 'is-current' : ''
-                        }`}
-                      >
-                        <div className="drawer-step-circle tabular-nums">{stg.no}</div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-ink)' }}>
-                            {stg.name}
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                            {isCompleted
-                              ? 'Tuntas disetujui'
-                              : isCurrent
-                              ? `${activeDrawerGroup.tugasSelesai}/${activeDrawerGroup.tugasTotal} tugas tuntas`
-                              : 'Belum dimulai'}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <div className="drawer-footer-sticky">
-              <button
-                type="button"
-                className="btn-revision-outline"
-                onClick={() => handleDrawerDecision('revision')}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="1 4 1 10 7 10" />
-                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-                </svg>
-                <span>Minta Revisi</span>
-              </button>
-              <button
-                type="button"
-                className="btn-approve-solid"
-                onClick={() => handleDrawerDecision('approved')}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span>Setujui Berkas</span>
-              </button>
-            </div>
-          </aside>
-        </>
-      )}
-
-      {/* ─── 6) FLOATING BULK ACTION BAR ──────────────────────────────────────── */}
-      {selectedIds.size > 0 && (
-        <div className="bulk-action-bar">
-          <span>{selectedIds.size} kelompok dipilih</span>
-          <button type="button" className="bulk-btn" onClick={handleBulkApprove}>
-            Setujui Semua
-          </button>
-          <button
-            type="button"
-            className="bulk-btn"
-            onClick={() =>
-              triggerAdminToast(`Pengingat WhatsApp dikirim ke ${selectedIds.size} ketua kelompok!`)
-            }
-          >
-            Kirim Pengingat WA
-          </button>
-          <button type="button" className="bulk-btn" onClick={handleExportCsv}>
-            Ekspor
-          </button>
-          <button
-            type="button"
-            className="bulk-btn"
-            style={{ backgroundColor: '#DC2626' }}
-            onClick={handleBulkDelete}
-          >
-            Hapus Terpilih
-          </button>
-          <button
-            type="button"
-            className="bulk-btn"
-            style={{ background: 'none', textDecoration: 'underline' }}
-            onClick={() => setSelectedIds(new Set())}
-          >
-            Batal
-          </button>
-        </div>
-      )}
-
-      {/* ─── 7) COMMAND PALETTE MODAL (CTRL+K) ────────────────────────────────── */}
-      {paletteOpen && (
-        <div
-          className="palette-modal-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setPaletteOpen(false);
-          }}
-        >
-          <div className="palette-container" role="dialog" aria-modal="true">
-            <div className="palette-input-wrap">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                type="text"
-                autoFocus
-                className="palette-search-input"
-                value={paletteQuery}
-                onChange={(e) => setPaletteQuery(e.target.value)}
-                placeholder="Ketik nomor kelompok (contoh: KEL-03) atau nama SMP..."
-              />
-              <kbd className="search-kbd-hint">ESC</kbd>
-            </div>
-            <ul className="palette-results-list">
-              <li className="palette-group-label">Kelompok Terkait</li>
-              {paletteMatches.length === 0 ? (
-                <li
-                  style={{
-                    padding: 12,
-                    fontSize: 13,
-                    color: 'var(--text-muted)',
-                    textAlign: 'center',
-                  }}
-                >
-                  Tidak ada kelompok ditemukan
-                </li>
-              ) : (
-                paletteMatches.map((grp) => (
-                  <li
-                    key={grp.id}
-                    className="palette-result-item"
-                    onClick={() => {
-                      setPaletteOpen(false);
-                      setDrawerGroupId(grp.id);
-                    }}
-                  >
-                    <div>
-                      <strong>{grp.id}</strong> — {grp.smp}
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        {grp.ketua} • {grp.tahapName}
-                      </div>
-                    </div>
-                    <span
-                      className={`status-badge ${
-                        grp.status === 'menunggu' ? 'badge-review' : 'badge-progress'
-                      }`}
-                      style={{ fontSize: 10 }}
-                    >
-                      {grp.status === 'menunggu' ? 'Review' : 'Detail'}
-                    </span>
-                  </li>
-                ))
-              )}
-              <li className="palette-group-label" style={{ marginTop: 8 }}>
-                Aksi Cepat
-              </li>
-              <li
-                className="palette-result-item"
-                onClick={() => {
-                  setPaletteOpen(false);
-                  setCurrentTab('review');
-                }}
-              >
-                <div>Tampilkan {reviewCount} Berkas Menunggu Review</div>
-                <kbd className="search-kbd-hint">R</kbd>
-              </li>
-              <li
-                className="palette-result-item"
-                onClick={() => {
-                  setPaletteOpen(false);
-                  handleExportCsv();
-                }}
-              >
-                <div>Ekspor Laporan Kelompok ke CSV</div>
-                <kbd className="search-kbd-hint">E</kbd>
-              </li>
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {/* ─── 8) CRUD MODAL: TAMBAH / EDIT KELOMPOK ────────────────────────────── */}
-      {crudModalOpen && (
-        <div
-          className="palette-modal-backdrop"
-          style={{ alignItems: 'center', paddingTop: 0 }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setCrudModalOpen(false);
-          }}
-        >
-          <div className="palette-container" style={{ width: 520, padding: 24 }} role="dialog" aria-modal="true">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-brand)', textTransform: 'uppercase' }}>
-                  {crudMode === 'create' ? 'Create Data' : `Update Data • ${editingOriginalId}`}
-                </span>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-ink)', margin: '2px 0 0 0' }}>
-                  {crudMode === 'create' ? 'Tambah Kelompok Baru' : 'Edit Data Kelompok'}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCrudModalOpen(false)}
-                style={{ color: 'var(--text-muted)' }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-
-            <form onSubmit={(e) => void handleSaveCrudForm(e)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 12 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>No. Kelompok</label>
-                  <input
-                    type="text"
-                    required
-                    value={crudForm.number}
-                    onChange={(e) => setCrudForm({ ...crudForm, number: e.target.value })}
-                    placeholder="25"
-                    style={{
-                      height: 38,
-                      padding: '0 12px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-hairline)',
-                      fontSize: 13,
-                      color: 'var(--text-ink)',
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>Nama SMP Mitra</label>
-                  <input
-                    type="text"
-                    required
-                    value={crudForm.smp}
-                    onChange={(e) => setCrudForm({ ...crudForm, smp: e.target.value })}
-                    placeholder="Contoh: SMPN 3 Sidoarjo"
-                    style={{
-                      height: 38,
-                      padding: '0 12px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-hairline)',
-                      fontSize: 13,
-                      color: 'var(--text-ink)',
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>Kecamatan</label>
-                  <input
-                    type="text"
-                    required
-                    value={crudForm.kecamatan}
-                    onChange={(e) => setCrudForm({ ...crudForm, kecamatan: e.target.value })}
-                    placeholder="Sidoarjo"
-                    style={{
-                      height: 38,
-                      padding: '0 12px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-hairline)',
-                      fontSize: 13,
-                      color: 'var(--text-ink)',
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>Jumlah Siswa Relawan</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    required
-                    value={crudForm.jumlahSiswa}
-                    onChange={(e) => setCrudForm({ ...crudForm, jumlahSiswa: Number(e.target.value) })}
-                    style={{
-                      height: 38,
-                      padding: '0 12px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-hairline)',
-                      fontSize: 13,
-                      color: 'var(--text-ink)',
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>
-                    Nama Ketua (Kosongkan jika belum ada)
-                  </label>
-                  <input
-                    type="text"
-                    value={crudForm.ketua}
-                    onChange={(e) => setCrudForm({ ...crudForm, ketua: e.target.value })}
-                    placeholder="Contoh: Budi Santoso"
-                    style={{
-                      height: 38,
-                      padding: '0 12px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-hairline)',
-                      fontSize: 13,
-                      color: 'var(--text-ink)',
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>No. WhatsApp Ketua</label>
-                  <input
-                    type="text"
-                    value={crudForm.wa}
-                    onChange={(e) => setCrudForm({ ...crudForm, wa: e.target.value })}
-                    placeholder="6281234567890"
-                    style={{
-                      height: 38,
-                      padding: '0 12px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-hairline)',
-                      fontSize: 13,
-                      color: 'var(--text-ink)',
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>Tahap Saat Ini</label>
-                  <select
-                    value={crudForm.tahap}
-                    onChange={(e) => setCrudForm({ ...crudForm, tahap: Number(e.target.value) })}
-                    style={{
-                      height: 38,
-                      padding: '0 10px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-hairline)',
-                      fontSize: 13,
-                      color: 'var(--text-ink)',
-                      backgroundColor: '#FFFFFF',
-                    }}
-                  >
-                    {STAGES_LIST.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.no} — {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>Status Kelompok</label>
-                  <select
-                    value={crudForm.status}
-                    onChange={(e) =>
-                      setCrudForm({ ...crudForm, status: e.target.value as AdminGroupItem['status'] })
+                <div className="flex justify-between items-center pt-2">
+                  <button
+                    onClick={() =>
+                      showToast('Mengunduh berkas template_data_kelompok.csv...', 'info')
                     }
-                    style={{
-                      height: 38,
-                      padding: '0 10px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-hairline)',
-                      fontSize: 13,
-                      color: 'var(--text-ink)',
-                      backgroundColor: '#FFFFFF',
-                    }}
+                    className="text-xs text-[#6B6560] hover:text-[#21201E] underline cursor-pointer"
                   >
-                    <option value="berjalan">Berjalan</option>
-                    <option value="menunggu">Menunggu Review</option>
-                    <option value="terlambat">Terlambat / Revisi</option>
-                    <option value="selesai">Selesai</option>
-                    <option value="belumKetua">Belum Ada Ketua</option>
-                  </select>
+                    Unduh contoh CSV
+                  </button>
+                  <button
+                    onClick={() => setImportCsvStep(2)}
+                    className="px-4 py-1.5 bg-[#E20113] hover:bg-[#b4000c] text-white text-xs font-semibold rounded-[4px] cursor-pointer"
+                  >
+                    Lanjut: Cek hasil
+                  </button>
                 </div>
               </div>
+            )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>Tugas Selesai</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={20}
-                    value={crudForm.tugasSelesai}
-                    onChange={(e) => setCrudForm({ ...crudForm, tugasSelesai: Number(e.target.value) })}
-                    style={{
-                      height: 38,
-                      padding: '0 12px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-hairline)',
-                      fontSize: 13,
-                      color: 'var(--text-ink)',
-                    }}
-                  />
+            {/* Step 2: Cek hasil */}
+            {importCsvStep === 2 && (
+              <div className="space-y-4 text-xs">
+                <div>
+                  <h4 className="font-bold text-[#21201E] mb-1">Cek hasil</h4>
+                  <p className="text-[#6B6560]">
+                    Pemeriksaan format baris dan validasi data sebelum disimpan ke sistem.
+                  </p>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-ink)' }}>Total Tugas Tahap Ini</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={crudForm.tugasTotal}
-                    onChange={(e) => setCrudForm({ ...crudForm, tugasTotal: Number(e.target.value) })}
-                    style={{
-                      height: 38,
-                      padding: '0 12px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-hairline)',
-                      fontSize: 13,
-                      color: 'var(--text-ink)',
-                    }}
-                  />
-                </div>
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8, paddingTop: 14, borderTop: '1px solid var(--border-hairline)' }}>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setCrudModalOpen(false)}
-                >
-                  Batal
-                </button>
-                <button type="submit" className="btn-primary">
-                  <span>{crudMode === 'create' ? 'Simpan Kelompok Baru' : 'Simpan Perubahan'}</span>
-                </button>
+                <div className="grid grid-cols-3 gap-3 p-3 bg-[#F7F5F2] border border-[#E6E2DE] rounded-[4px] text-center">
+                  <div>
+                    <span className="text-lg font-extrabold text-[#21201E] block">180</span>
+                    <span className="text-[11px] text-[#6B6560]">Siswa</span>
+                  </div>
+                  <div>
+                    <span className="text-lg font-extrabold text-[#21201E] block">24</span>
+                    <span className="text-[11px] text-[#6B6560]">Kelompok</span>
+                  </div>
+                  <div>
+                    <span className="text-lg font-extrabold text-[#3DBE7A] block">0</span>
+                    <span className="text-[11px] text-[#6B6560]">Baris bermasalah</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 p-2 bg-[#3DBE7A]/10 border border-[#3DBE7A]/30 rounded-[4px] text-[#21201E]">
+                  <Check className="w-4 h-4 text-[#3DBE7A] shrink-0" />
+                  <span className="text-[11px]">
+                    Semua kolom (NIS, Nama, Kelompok, SMP) terdeteksi lengkap dan siap diterapkan.
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center pt-2">
+                  <button
+                    onClick={() => setImportCsvStep(1)}
+                    className="text-xs text-[#6B6560] hover:text-[#21201E] underline cursor-pointer"
+                  >
+                    Kembali
+                  </button>
+                  <button
+                    onClick={() => setImportCsvStep(3)}
+                    className="px-4 py-1.5 bg-[#E20113] hover:bg-[#b4000c] text-white text-xs font-semibold rounded-[4px] cursor-pointer"
+                  >
+                    Lanjut: Konfirmasi
+                  </button>
+                </div>
               </div>
-            </form>
+            )}
+
+            {/* Step 3: Konfirmasi */}
+            {importCsvStep === 3 && (
+              <div className="space-y-4 text-xs">
+                <div>
+                  <h4 className="font-bold text-[#21201E] mb-1">Konfirmasi</h4>
+                  <p className="text-[#6B6560]">
+                    Simpan dan terapkan data 180 siswa ke 24 kelompok Skomda Mengajar.
+                  </p>
+                </div>
+
+                <p className="text-[#6B6560] bg-[#F7F5F2] p-3 rounded-[4px] leading-relaxed">
+                  Setelah konfirmasi, Anda dapat melanjutkan langkah kedua yaitu menentukan ketua untuk masing-masing kelompok agar akun login dapat segera dibagikan.
+                </p>
+
+                <div className="flex justify-between items-center pt-2">
+                  <button
+                    onClick={() => setImportCsvStep(2)}
+                    className="text-xs text-[#6B6560] hover:text-[#21201E] underline cursor-pointer"
+                  >
+                    Kembali
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsImportCsvOpen(false);
+                      showToast('Data CSV berhasil diimpor ke sistem kelompok.', 'success');
+                    }}
+                    className="px-4 py-1.5 bg-[#E20113] hover:bg-[#b4000c] text-white text-xs font-semibold rounded-[4px] cursor-pointer"
+                  >
+                    Konfirmasi dan simpan
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* ─── 9) MODAL KONFIRMASI HAPUS KELOMPOK ───────────────────────────────── */}
-      {deleteConfirmGroup && (
-        <div
-          className="palette-modal-backdrop"
-          style={{ alignItems: 'center', paddingTop: 0 }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setDeleteConfirmGroup(null);
-          }}
-        >
-          <div className="palette-container" style={{ width: 420, padding: 24 }} role="dialog" aria-modal="true">
-            <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-ink)', margin: 0 }}>
-              Hapus {deleteConfirmGroup.id}?
-            </h3>
-            <p style={{ fontSize: 13, color: 'var(--text-body)', marginTop: 8, lineHeight: 1.5 }}>
-              Anda yakin ingin menghapus data <strong>{deleteConfirmGroup.id} ({deleteConfirmGroup.smp})</strong>?
-              Anda masih dapat mengurungkan penghapusan dalam 5 detik setelah dihapus.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+      {/* ══════════════════════════════════════════════════════════════════════════
+          SCREEN 3: DIALOG "PILIH KETUA UNTUK KELOMPOK XX"
+      ══════════════════════════════════════════════════════════════════════════ */}
+      {assignLeaderGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/25">
+          <div className="bg-white border border-[#E6E2DE] rounded-[4px] max-w-sm w-full p-5 space-y-4">
+            <div>
+              <h3 className="text-sm font-extrabold text-[#21201E]">
+                Pilih ketua untuk Kelompok {assignLeaderGroup.number}
+              </h3>
+              <p className="text-xs text-[#6B6560] mt-0.5">
+                {assignLeaderGroup.schoolName}
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-[#21201E] block mb-1.5">
+                Daftar anggota kelompok:
+              </label>
+              <select
+                value={selectedLeaderMember}
+                onChange={(e) => setSelectedLeaderMember(e.target.value)}
+                className="w-full p-2 text-xs border border-[#E6E2DE] rounded-[4px] bg-white text-[#21201E] focus:outline-none focus:border-[#21201E]"
+              >
+                {assignLeaderGroup.members.map((m, idx) => (
+                  <option key={idx} value={m.name}>
+                    {m.name} ({m.role})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-[#6B6560] mt-1.5">
+                Akun login dibuat untuk siswa ini.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#E6E2DE]">
               <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setDeleteConfirmGroup(null)}
+                onClick={() => setAssignLeaderGroup(null)}
+                className="px-3 py-1.5 rounded-[4px] border border-[#E6E2DE] text-[#6B6560] text-xs font-medium cursor-pointer"
               >
                 Batal
               </button>
               <button
-                type="button"
-                className="btn-primary"
-                style={{ backgroundColor: '#DC2626' }}
-                onClick={() => void handleConfirmDeleteGroup(deleteConfirmGroup)}
+                onClick={handleConfirmLeaderAssignment}
+                className="px-4 py-1.5 rounded-[4px] bg-[#E20113] hover:bg-[#b4000c] text-white text-xs font-semibold cursor-pointer"
               >
-                Ya, Hapus Kelompok
+                Tetapkan ketua
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ─── 10) TOAST CONTAINER WITH UNDO ────────────────────────────────────── */}
-      {adminToast && (
-        <div className="toast-container">
-          <div className="toast-card">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-            <span style={{ flex: 1 }}>{adminToast.message}</span>
-            {adminToast.undoFn && (
-              <>
-                <button
-                  type="button"
-                  className="toast-undo-btn"
-                  onClick={() => {
-                    adminToast.undoFn?.();
-                  }}
-                >
-                  Urungkan
-                </button>
-                <div className="toast-progress-bar" />
-              </>
-            )}
+      {/* ══════════════════════════════════════════════════════════════════════════
+          SCREEN 3: DIALOG KREDENSIAL KETUA (ONE-TIME DIALOG WITH "SALIN")
+      ══════════════════════════════════════════════════════════════════════════ */}
+      {createdCredentials && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/25">
+          <div className="bg-white border border-[#E6E2DE] rounded-[4px] max-w-sm w-full p-5 space-y-4">
+            <div>
+              <h3 className="text-sm font-extrabold text-[#21201E]">
+                Akun ketua Kelompok {createdCredentials.groupNum}
+              </h3>
+              <p className="text-xs text-[#6B6560] mt-0.5">
+                Ketua terpilih: {createdCredentials.name}
+              </p>
+            </div>
+
+            <div className="p-3 bg-[#F7F5F2] border border-[#E6E2DE] rounded-[4px] space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-[#6B6560]">Username (NIS):</span>
+                <span className="font-bold text-[#21201E]">{createdCredentials.username}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#6B6560]">Kata sandi awal:</span>
+                <span className="font-bold text-[#21201E]">{createdCredentials.pass}</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-[#6B6560]">
+              Berikan ke ketua. Kata sandi hanya tampil sekali.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#E6E2DE]">
+              <button
+                onClick={() => {
+                  const text = `Akun Ketua Kelompok ${createdCredentials.groupNum} Skomda Mengajar\nNama: ${createdCredentials.name}\nUsername (NIS): ${createdCredentials.username}\nKata sandi: ${createdCredentials.pass}`;
+                  navigator.clipboard?.writeText(text);
+                  showToast('Akun berhasil disalin ke clipboard!', 'success');
+                  setCreatedCredentials(null);
+                }}
+                className="px-4 py-1.5 rounded-[4px] bg-[#E20113] hover:bg-[#b4000c] text-white text-xs font-semibold cursor-pointer"
+              >
+                Salin
+              </button>
+            </div>
           </div>
         </div>
       )}
     </div>
   );
 };
-
-export default AdminMonitoringPage;

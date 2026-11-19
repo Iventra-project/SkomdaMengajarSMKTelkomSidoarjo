@@ -4,14 +4,12 @@ import { Group, groupsData, initialMembersKelompok03, initialSprintTasks, Member
 
 export type RoutePath =
   | '/'
-  | '/home'
   | '/login'
-  | '/dashboard/ketua'
-  | '/dashboard/admin'
-  | '/dashboard/admin/review'
   | '/admin'
   | '/admin/kelompok/03'
-  | '/workspace';
+  | '/workspace'
+  | '/dashboard/admin'
+  | '/dashboard/admin/review';
 
 export type UserRole = 'admin' | 'user';
 
@@ -76,10 +74,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const getInitialPath = (): RoutePath => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
-      if (hash === '/home') return '/home';
       if (hash === '/login') return '/login';
-      if (hash === '/dashboard/ketua') return '/dashboard/ketua';
-      if (hash === '/dashboard/admin') return '/dashboard/admin';
       if (hash === '/admin') return '/admin';
       if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03') return '/admin/kelompok/03';
       if (hash === '/workspace' || hash === '/kelompok-03') return '/workspace';

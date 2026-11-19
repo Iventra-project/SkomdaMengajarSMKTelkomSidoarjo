@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { groupsData } from '../../data/mockData';
 import {
   Users,
   Search,
-  Check,
+  CheckCircle2,
+  Lock,
   ChevronRight,
   ChevronLeft,
   X,
@@ -21,12 +22,7 @@ import {
   Palette,
   LogOut,
   Sparkles,
-  LayoutDashboard,
-  Pencil,
-  FileText,
-  Clock,
-  ShieldCheck,
-  ArrowUpRight
+  LayoutDashboard
 } from 'lucide-react';
 
 const generateMockMembers = (groupNumber: string, leaderName: string, isLeaderAssigned: boolean) => {
@@ -34,7 +30,7 @@ const generateMockMembers = (groupNumber: string, leaderName: string, isLeaderAs
   const baseNis = 54124100 + num * 10;
 
   const studentPool = [
-    'Raffi Akbar Pratama',
+    'Ahmad Rizky Pratama',
     'Nabila Putri Ramadhani',
     'Dimas Bagus Wicaksono',
     'Siti Nurhaliza',
@@ -57,23 +53,12 @@ const generateMockMembers = (groupNumber: string, leaderName: string, isLeaderAs
   ];
 
   const members = [];
-  const count = 8;
+  const count = num % 2 === 0 ? 8 : 7;
 
   for (let i = 0; i < count; i++) {
     const isFirst = i === 0;
     const name = isFirst && isLeaderAssigned ? leaderName : studentPool[(num * 3 + i) % studentPool.length];
-    const role =
-      isFirst && isLeaderAssigned
-        ? 'Ketua Kelompok'
-        : i === 1
-        ? 'Notulen & Sekretaris'
-        : i === 2
-        ? 'Desain Grafis'
-        : i === 3
-        ? 'Koord. Materi'
-        : i === 4
-        ? 'Dokumentasi'
-        : 'Logistik';
+    const role = isFirst && isLeaderAssigned ? 'Ketua Kelompok' : i === 1 ? 'Sekretaris & Notulen' : i === 2 ? 'Bendahara / Logistik' : 'Anggota Tim';
 
     members.push({
       id: `${groupNumber}-${i + 1}`,
@@ -90,31 +75,22 @@ const generateMockMembers = (groupNumber: string, leaderName: string, isLeaderAs
 export const PostLoginHomePage: React.FC = () => {
   const { navigate, currentUser, logout, showToast } = useApp();
 
-  // Active user info (Default to Raffi Akbar Pratama if previewing)
-  const activeLeaderName = currentUser?.name || 'Raffi Akbar Pratama';
-  const userGroupNum = currentUser?.groupNumber ? String(currentUser.groupNumber).padStart(2, '0') : '01';
-
   // Filter & Search State
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 6;
 
-  // Animated circular progress state
-  const [progressLoaded, setProgressLoaded] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setProgressLoaded(true), 150);
-    return () => clearTimeout(timer);
-  }, []);
-
   // Modal State for Other Groups Member Preview
   const [selectedGroupModal, setSelectedGroupModal] = useState<typeof groupsData[0] | null>(null);
+
+  const userGroupNum = currentUser?.groupNumber ? String(currentUser.groupNumber).padStart(2, '0') : '01';
 
   // Group items with region, status, and PINNING the user's own group to position 1
   const enrichedGroups = useMemo(() => {
     const mapped = groupsData.map((g) => {
       const num = parseInt(g.number, 10);
-      const isNoLeader = num === 23 || num === 24 || g.leaderName.includes('Belum');
+      const isLeaderPending = num === 23 || num === 24 || g.leaderName.includes('Belum');
       const districtLower = g.district.toLowerCase();
 
       let regionCategory = 'other';
@@ -124,12 +100,7 @@ export const PostLoginHomePage: React.FC = () => {
         regionCategory = 'buduran-sedati';
       } else if (districtLower.includes('waru') || districtLower.includes('taman')) {
         regionCategory = 'waru-taman';
-      } else if (
-        districtLower.includes('porong') ||
-        districtLower.includes('krian') ||
-        districtLower.includes('tarik') ||
-        districtLower.includes('prambon')
-      ) {
+      } else if (districtLower.includes('porong') || districtLower.includes('krian') || districtLower.includes('tarik') || districtLower.includes('prambon')) {
         regionCategory = 'porong-krian';
       }
 
@@ -137,10 +108,10 @@ export const PostLoginHomePage: React.FC = () => {
 
       return {
         ...g,
-        isLeaderPending: isNoLeader,
+        isLeaderPending,
         regionCategory,
         isMyGroup,
-        displayLeader: isMyGroup ? activeLeaderName : isNoLeader ? 'Belum Ditentukan' : g.leaderName,
+        displayLeader: isLeaderPending ? 'Belum Ditentukan' : g.leaderName,
       };
     });
 
@@ -150,7 +121,7 @@ export const PostLoginHomePage: React.FC = () => {
       if (b.isMyGroup) return 1;
       return a.number.localeCompare(b.number);
     });
-  }, [userGroupNum, activeLeaderName]);
+  }, [userGroupNum]);
 
   // Filter Logic
   const filteredGroups = useMemo(() => {
@@ -198,256 +169,273 @@ export const PostLoginHomePage: React.FC = () => {
     navigate('/');
   };
 
-  // SVG circular ring calculations (radius 28 -> circumference ~175.9)
-  const radius = 28;
-  const circumference = 2 * Math.PI * radius;
-  const progressPercent = 67;
-  const strokeOffset = circumference - (progressPercent / 100) * circumference;
-
   return (
-    <div className="w-full bg-[#FFFFFF] text-[#475569] antialiased min-h-screen flex flex-col font-sans selection:bg-[#D7141F] selection:text-white">
-      
-      {/* ================= 1. FLOATING / STICKY TOP WELCOME BANNER ================= */}
-      <div className="sticky top-0 z-50 bg-[#FFFFFF]/95 backdrop-blur-md border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
-          <div className="bg-[#FFF1F2] rounded-full px-4 sm:px-6 py-2 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_2px_8px_rgba(215,20,31,0.06)]">
-            <div className="flex items-center gap-2.5 text-xs text-[#0B1B3A] text-center sm:text-left">
-              <span className="w-2 h-2 rounded-full bg-[#D7141F] animate-pulse shrink-0" />
-              <span>
-                Selamat Datang, <strong className="font-extrabold text-[#0B1B3A]">{activeLeaderName}</strong> — Anda login sebagai Ketua Kelompok {userGroupNum} (SMPN 1 Sidoarjo).
+    <div className="w-full bg-[#FAFAFA] text-slate-900 antialiased min-h-screen flex flex-col font-sans selection:bg-red-500 selection:text-white">
+      {/* ================= 1. POST-LOGIN NAVBAR ================= */}
+      <header className="sticky top-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
+        <div className="h-16 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+          {/* Left Brand */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              <span className="text-xl font-black text-slate-950 tracking-tight select-none">
+                #SKOMDA
+              </span>
+              <span className="bg-red-600 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full tracking-wider shadow-sm select-none">
+                MENGAJAR
               </span>
             </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => navigate('/dashboard/ketua')}
-                className="inline-flex items-center gap-1.5 bg-[#D7141F] hover:bg-[#B80F1A] active:scale-95 text-white font-bold text-xs px-4 py-1.5 rounded-full shadow-[0_2px_8px_rgba(215,20,31,0.25)] transition-all duration-200 cursor-pointer"
-              >
-                <span>Buka Dashboard Tim</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-
-              <button
-                onClick={handleLogout}
-                title="Keluar Akun"
-                className="w-7 h-7 rounded-full bg-white/80 hover:bg-white text-slate-500 hover:text-[#D7141F] flex items-center justify-center transition-colors shadow-xs cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
+            <div className="hidden sm:flex items-center gap-2 border-l border-slate-200 pl-3 text-[11px] font-semibold text-slate-400">
+              <span className="text-red-600 font-bold">#Impact2026</span>
+              <span>•</span>
+              <span>SMK Telkom Sidoarjo</span>
             </div>
+          </div>
+
+          {/* Right Action: Logged In User Pill + Logout */}
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200/80 text-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-bold text-slate-800">{currentUser?.name || 'Ketua Kelompok'}</span>
+              <span className="text-slate-400">•</span>
+              <span className="font-bold text-red-600">KEL-{userGroupNum}</span>
+            </div>
+
+            <button
+              onClick={() => navigate('/dashboard/ketua')}
+              className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-full transition shadow-xs cursor-pointer"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Dashboard Kelompok</span>
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-full transition cursor-pointer"
+              title="Keluar"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content Viewport */}
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 flex-1 space-y-12">
-        
-        {/* ================= 2. COMPACT HERO SECTION ================= */}
-        <section className="bg-[#FFFFFF] rounded-[24px] p-6 sm:p-8 lg:p-10 shadow-[0_1px_3px_rgba(11,27,58,0.04),0_12px_32px_-8px_rgba(11,27,58,0.08)]">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            
-            {/* Left Headline */}
-            <div className="lg:col-span-7 space-y-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#FFF1F2] text-[#D7141F] text-xs font-bold tracking-wide">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Portal Resmi Pelaksanaan 2026</span>
+      {/* Main Content (Identical Familiar Layout to Public Page) */}
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 space-y-8">
+
+        {/* User Welcome Alert Banner */}
+        <div className="p-4 rounded-2xl bg-red-50/80 border border-red-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center font-black text-sm shrink-0">
+              {userGroupNum}
+            </div>
+            <div>
+              <div className="text-xs font-bold text-red-700 uppercase tracking-wider">
+                Selamat Datang, {currentUser?.name}
               </div>
-              
-              <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold text-[#0B1B3A] tracking-tight leading-[1.15]">
-                Kembali Mengajar, <br className="hidden sm:inline" />
-                Menginspirasi Nyata.
+              <div className="text-sm font-bold text-slate-900">
+                Anda login sebagai Ketua Kelompok {userGroupNum} ({enrichedGroups.find(g => g.isMyGroup)?.schoolName}).
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/dashboard/ketua')}
+            className="self-start sm:self-auto inline-flex items-center gap-2 px-5 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs cursor-pointer"
+          >
+            <span>Buka Dashboard Tim</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* ================= COMPACT HERO STRIP ================= */}
+        <section className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-xs">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            {/* Left Headline */}
+            <div className="lg:col-span-7 space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 text-red-600 text-xs font-semibold border border-red-100">
+                <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                Skomda Mengajar 2026: Fase Aktif
+              </div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                Kembali Mengajar, Menginspirasi Nyata.
               </h1>
-              
-              <p className="text-sm sm:text-base text-[#475569] leading-relaxed max-w-xl font-medium">
-                Pusat orkestrasi pengajaran SMK Telkom Sidoarjo. Validasi modul digital, koordinasikan 8 anggota tim Anda, dan tuntaskan misi di sekolah mitra.
+              <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl">
+                Kelola berkas modul, koordinasi anggota tim, dan pantau progres kelompok SMP Anda melalui sistem terpadu.
               </p>
             </div>
 
-            {/* Right: 4 Ultra-Clean Stat Pills */}
-            <div className="lg:col-span-5 grid grid-cols-2 gap-3.5">
-              {[
-                { icon: School, label: 'SMP Tujuan', val: '12' },
-                { icon: Layers, label: 'Kelompok', val: '24' },
-                { icon: GraduationCap, label: 'Siswa Mengajar', val: '180' },
-                { icon: Calendar, label: 'Hari Program', val: '30' },
-              ].map((stat, i) => {
-                const Icon = stat.icon;
-                return (
-                  <div
-                    key={i}
-                    className="bg-[#FFFFFF] p-4 rounded-[20px] shadow-[0_1px_2px_rgba(11,27,58,0.04),0_8px_20px_-4px_rgba(11,27,58,0.06)] hover:-translate-y-1 transition-transform duration-200 flex items-center gap-3.5"
-                  >
-                    <div className="w-10 h-10 rounded-2xl bg-[#FFF1F2] text-[#D7141F] flex items-center justify-center shrink-0">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-xl font-extrabold text-[#0B1B3A] tracking-tight leading-none">
-                        {stat.val}
-                      </div>
-                      <div className="text-xs font-semibold text-slate-400 mt-1">
-                        {stat.label}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {/* Right Stat Pills */}
+            <div className="lg:col-span-5 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3">
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-red-100/70 text-red-600 flex items-center justify-center shrink-0">
+                  <School className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-lg font-black text-slate-900 leading-none">12</div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">SMP Tujuan</div>
+                </div>
+              </div>
 
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-red-100/70 text-red-600 flex items-center justify-center shrink-0">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-lg font-black text-slate-900 leading-none">24</div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Kelompok</div>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-red-100/70 text-red-600 flex items-center justify-center shrink-0">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-lg font-black text-slate-900 leading-none">180</div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Siswa</div>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-red-100/70 text-red-600 flex items-center justify-center shrink-0">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-lg font-black text-slate-900 leading-none">30</div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Hari Program</div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* ================= 3. ALUR & PROGRES SKOMDA MENGAJAR (6-STEP TRACKER) ================= */}
-        <section className="bg-[#FFFFFF] rounded-[24px] p-6 sm:p-8 lg:p-10 shadow-[0_1px_3px_rgba(11,27,58,0.04),0_12px_32px_-8px_rgba(11,27,58,0.08)] space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+        {/* ================= 2. PROGRAM PROGRESS TRACKER (SERPENTINE PATH) ================= */}
+        <section className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
             <div>
-              <h2 className="text-lg sm:text-xl font-extrabold text-[#0B1B3A] tracking-tight">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">
                 Alur & Progres Skomda Mengajar
               </h2>
-              <p className="text-xs sm:text-sm text-[#475569] mt-0.5">
-                Pantau tahap pengerjaan berjalan dari pembagian regu hingga penyerahan laporan akhir.
+              <p className="text-xs text-slate-500 mt-0.5">
+                Tahapan terstruktur dari pembentukan tim hingga evaluasi luaran nyata di sekolah mitra.
               </p>
             </div>
-
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FFF1F2] text-[#D7141F] text-xs font-bold self-start sm:self-auto">
-              <span className="w-2 h-2 rounded-full bg-[#D7141F] animate-pulse" />
-              <span>Fase Aktif: 04. Siapkan Desain</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-bold border border-red-200 self-start sm:self-auto">
+              <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+              <span>Fase Aktif: Pembentukan Ketua Tim</span>
             </div>
           </div>
 
-          {/* Stepper Steps (Step 01-03 Completed, Step 04 Active, Step 05-06 Locked) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 relative">
-            {[
-              {
-                step: '01',
-                title: 'Bentuk Kelompok',
-                sub: 'Selesai 20 Jan',
-                type: 'completed',
-              },
-              {
-                step: '02',
-                title: 'Pilih Ketua',
-                sub: 'Selesai 28 Jan',
-                type: 'completed',
-              },
-              {
-                step: '03',
-                title: 'Susun Materi',
-                sub: 'Selesai 05 Feb',
-                type: 'completed',
-              },
-              {
-                step: '04',
-                title: 'Siapkan Desain',
-                sub: 'Tenggat 15 Feb',
-                type: 'active',
-              },
-              {
-                step: '05',
-                title: 'Mengajar di SMP',
-                sub: 'Mulai 18 Feb',
-                type: 'locked',
-              },
-              {
-                step: '06',
-                title: 'Laporan & LPJ',
-                sub: 'Batas 28 Feb',
-                type: 'locked',
-              },
-            ].map((st, idx) => {
-              const isCompleted = st.type === 'completed';
-              const isActive = st.type === 'active';
-              const isLocked = st.type === 'locked';
+          <div className="w-full relative py-6 sm:py-8 overflow-x-auto select-none scrollbar-none">
+            <div className="min-w-[860px] relative h-48 flex items-center">
+              <svg
+                className="w-full h-full absolute inset-0 pointer-events-none"
+                fill="none"
+                preserveAspectRatio="none"
+                viewBox="0 0 1100 160"
+              >
+                <path
+                  id="journey-full-path"
+                  d="M 50,70 C 150,20 230,120 330,60 C 430,10 510,120 610,65 C 710,15 790,125 890,70 C 970,25 1020,80 1060,60"
+                  stroke="#CBD5E1"
+                  strokeDasharray="4 6"
+                  strokeWidth="2"
+                  style={{
+                    clipPath: 'polygon(27% 0%, 100% 0%, 100% 100%, 27% 100%)',
+                  }}
+                />
+                <path
+                  d="M 50,70 C 150,20 230,120 330,60 C 430,10 510,120 610,65 C 710,15 790,125 890,70 C 970,25 1020,80 1060,60"
+                  stroke="#DC2626"
+                  strokeWidth="2.5"
+                  strokeDasharray="4 6"
+                  style={{
+                    clipPath: 'polygon(0% 0%, 27% 0%, 27% 100%, 0% 100%)',
+                  }}
+                />
+              </svg>
 
-              return (
-                <div
-                  key={st.step}
-                  className={`p-4 rounded-[20px] transition-all duration-200 flex flex-col justify-between space-y-3 ${
-                    isActive
-                      ? 'bg-[#FFFFFF] shadow-[0_1px_3px_rgba(215,20,31,0.08),0_12px_24px_-6px_rgba(215,20,31,0.12)] ring-2 ring-[#D7141F]'
-                      : isCompleted
-                      ? 'bg-slate-50/70 shadow-xs'
-                      : 'bg-slate-50/40 opacity-70'
-                  }`}
-                >
-                  {/* Top Row: Icon + Badge */}
-                  <div className="flex items-center justify-between">
-                    {/* Circle Node Icon */}
-                    {isCompleted && (
-                      <div className="w-8 h-8 rounded-full bg-[#D7141F] text-white flex items-center justify-center shadow-xs">
-                        <Check className="w-4 h-4 stroke-[3]" />
-                      </div>
-                    )}
-
-                    {isActive && (
-                      <div className="relative">
-                        <div className="w-8 h-8 rounded-full bg-white text-[#D7141F] border-2 border-[#D7141F] flex items-center justify-center shadow-[0_0_0_6px_rgba(215,20,31,0.15)] animate-pulse">
-                          <Pencil className="w-3.5 h-3.5 stroke-[2.5]" />
-                        </div>
-                      </div>
-                    )}
-
-                    {isLocked && (
-                      <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold">
-                        {st.step}
-                      </div>
-                    )}
-
-                    <span
-                      className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
-                        isCompleted
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : isActive
-                          ? 'bg-[#D7141F] text-white'
-                          : 'bg-slate-200 text-slate-500'
-                      }`}
-                    >
-                      {isCompleted ? 'Tuntas' : isActive ? 'Aktif' : 'Terkunci'}
-                    </span>
+              <div className="w-full grid grid-cols-6 gap-2 relative z-10 items-center">
+                <div className="flex flex-col items-center text-center transform -translate-y-4 group">
+                  <div className="w-16 h-16 rounded-2xl bg-red-600 text-white flex flex-col items-center justify-center mb-2 shadow-lg shadow-red-600/25 transition-transform group-hover:scale-105">
+                    <span className="text-[10px] font-bold text-white/90 leading-none mb-1">01</span>
+                    <Users className="w-5 h-5 text-white" />
                   </div>
-
-                  {/* Title & Deadline */}
-                  <div>
-                    <h3
-                      className={`text-xs font-bold leading-tight ${
-                        isActive ? 'text-[#0B1B3A] font-extrabold' : 'text-slate-800'
-                      }`}
-                    >
-                      {st.step}. {st.title}
-                    </h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5 font-medium">
-                      {st.sub}
-                    </p>
-                  </div>
+                  <span className="text-xs font-extrabold text-slate-900 leading-tight">Bentuk kelompok</span>
+                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">Penentuan anggota tim</span>
                 </div>
-              );
-            })}
+
+                <div className="flex flex-col items-center text-center transform translate-y-6 group">
+                  <div className="w-16 h-16 rounded-2xl bg-white border-2 border-red-500/80 text-red-600 shadow-md shadow-red-500/10 flex flex-col items-center justify-center mb-2 transition-transform group-hover:scale-105">
+                    <span className="text-[10px] font-bold text-red-500 leading-none mb-1">02</span>
+                    <UserCheck className="w-5 h-5 text-red-600" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-900 leading-tight">Pilih ketua</span>
+                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">Koordinator lapangan</span>
+                </div>
+
+                <div className="flex flex-col items-center text-center transform -translate-y-6 group opacity-85 hover:opacity-100 transition-opacity">
+                  <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:border-slate-400 flex flex-col items-center justify-center mb-2 shadow-xs transition-transform group-hover:scale-105">
+                    <span className="text-[10px] font-medium text-slate-400 leading-none mb-1">03</span>
+                    <BookOpen className="w-5 h-5 text-slate-700" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 leading-tight">Susun materi</span>
+                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">Modul & silabus ajar</span>
+                </div>
+
+                <div className="flex flex-col items-center text-center transform translate-y-5 group opacity-85 hover:opacity-100 transition-opacity">
+                  <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:border-slate-400 flex flex-col items-center justify-center mb-2 shadow-xs transition-transform group-hover:scale-105">
+                    <span className="text-[10px] font-medium text-slate-400 leading-none mb-1">04</span>
+                    <Palette className="w-5 h-5 text-slate-700" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 leading-tight">Siapkan desain</span>
+                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">Media visual & slide</span>
+                </div>
+
+                <div className="flex flex-col items-center text-center transform -translate-y-4 group opacity-85 hover:opacity-100 transition-opacity">
+                  <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:border-slate-400 flex flex-col items-center justify-center mb-2 shadow-xs transition-transform group-hover:scale-105">
+                    <span className="text-[10px] font-medium text-slate-400 leading-none mb-1">05</span>
+                    <GraduationCap className="w-5 h-5 text-slate-700" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 leading-tight">Mengajar di SMP</span>
+                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">Sesi kelas interaktif</span>
+                </div>
+
+                <div className="flex flex-col items-center text-center transform translate-y-4 group opacity-85 hover:opacity-100 transition-opacity relative">
+                  <div className="absolute -top-3.5 right-6 sm:right-8 bg-red-600 text-white font-black text-[9px] uppercase px-2 py-0.5 rounded-sm transform -rotate-6 origin-center shadow-xs">
+                    FINISH
+                  </div>
+                  <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:border-slate-400 flex flex-col items-center justify-center mb-2 shadow-xs transition-transform group-hover:scale-105">
+                    <span className="text-[10px] font-medium text-slate-400 leading-none mb-1">06</span>
+                    <CheckCircle2 className="w-5 h-5 text-slate-700" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 leading-tight">Laporan & feedback</span>
+                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">Refleksi & publikasi</span>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* ================= 4. PEMBAGIAN KELOMPOK (CATEGORY FILTERS & 6-CARD GRID) ================= */}
-        <section className="space-y-6">
-          
-          {/* Header & Filter Controls Bar */}
-          <div className="bg-[#FFFFFF] rounded-[24px] p-6 shadow-[0_1px_3px_rgba(11,27,58,0.04),0_12px_32px_-8px_rgba(11,27,58,0.08)] space-y-4">
+        {/* ================= 3. GROUP FINDER WITH PINNED OWN GROUP ================= */}
+        <section className="space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg sm:text-xl font-extrabold text-[#0B1B3A] tracking-tight">
-                  Pembagian Kelompok
-                </h2>
-                <p className="text-xs sm:text-sm text-[#475569] mt-0.5">
-                  Posisi tim Anda disematkan di kartu utama. Telusuri kelompok sekolah mitra lainnya.
+                <h2 className="text-lg font-bold text-slate-900">Pembagian Kelompok</h2>
+                <p className="text-xs text-slate-500">
+                  Kelompok Anda disematkan di posisi teratas. Klik untuk membuka dashboard tim Anda.
                 </p>
               </div>
 
               {/* Search Bar */}
-              <div className="relative w-full md:w-80">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <div className="relative w-full md:w-72">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Cari nama SMP, kelompok, ketua..."
+                  placeholder="Cari nama SMP atau kelompok..."
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  className="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 rounded-full border-0 focus:ring-2 focus:ring-[#D7141F]/30 text-[#0B1B3A] placeholder-slate-400 transition"
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-slate-800 placeholder-slate-400 transition"
                 />
                 {searchQuery && (
                   <button
@@ -460,8 +448,8 @@ export const PostLoginHomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Category Filter Pills (Active: solid #0B1B3A) */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none text-xs">
+            {/* Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 scrollbar-none text-xs">
               {[
                 { id: 'all', label: `Semua (${enrichedGroups.length})` },
                 { id: 'sidoarjo-candi', label: 'Sidoarjo & Candi' },
@@ -471,6 +459,7 @@ export const PostLoginHomePage: React.FC = () => {
                 {
                   id: 'no-leader',
                   label: `Belum Ada Ketua (${enrichedGroups.filter((g) => g.isLeaderPending).length})`,
+                  special: true,
                 },
               ].map((tab) => {
                 const isActive = activeCategory === tab.id;
@@ -478,11 +467,12 @@ export const PostLoginHomePage: React.FC = () => {
                   <button
                     key={tab.id}
                     onClick={() => handleCategoryChange(tab.id)}
-                    className={`px-4 py-2 rounded-full font-bold transition-all duration-200 whitespace-nowrap cursor-pointer ${
-                      isActive
-                        ? 'bg-[#0B1B3A] text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
+                    className={`px-3.5 py-1.5 rounded-full font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer ${isActive
+                      ? 'bg-red-600 text-white shadow-xs'
+                      : tab.special
+                        ? 'bg-amber-50 text-amber-800 border border-amber-200/80 hover:bg-amber-100'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                      }`}
                   >
                     {tab.label}
                   </button>
@@ -491,122 +481,97 @@ export const PostLoginHomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* 6-Card Grid (3 Columns x 2 Rows) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paginatedGroups.map((group, idx) => {
+          {/* Group Cards Grid: 6 cards per view */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {paginatedGroups.map((group) => {
               const isMyGroup = group.isMyGroup;
               const isPending = group.isLeaderPending;
 
-              // ================= CARD 1: PINNED LOGGED-IN USER GROUP =================
               if (isMyGroup) {
+                // PINNED LEADER'S OWN GROUP CARD
                 return (
                   <div
                     key={group.id}
-                    className="bg-[#FFFFFF] rounded-[24px] p-6 shadow-[0_1px_3px_rgba(11,27,58,0.06),0_16px_36px_-8px_rgba(215,20,31,0.12)] border-t-4 border-[#D7141F] flex flex-col justify-between space-y-5 hover:-translate-y-1 transition-all duration-300 relative"
+                    onClick={() => navigate('/dashboard/ketua')}
+                    className="bg-white rounded-2xl border-2 border-red-600 p-5 shadow-md shadow-red-600/10 hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden"
                   >
-                    {/* Header */}
+                    {/* Corner Ribbon */}
+                    <div className="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-black uppercase px-3 py-1 rounded-bl-xl tracking-wider">
+                      Kelompok Anda
+                    </div>
+
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="px-3 py-0.5 rounded-full bg-[#FFF1F2] text-[#D7141F] font-extrabold text-[11px] tracking-wide">
-                          KELOMPOK {group.number} • {group.district}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-extrabold text-[11px] tracking-wide">
+                          KELOMPOK {group.number}
                         </span>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">
-                          Posisi Kelompokmu
+                        <span className="text-[11px] font-medium text-slate-500 bg-red-50 px-2 py-0.5 rounded-md">
+                          {group.district}
                         </span>
                       </div>
 
-                      <h3 className="text-xl font-extrabold text-[#0B1B3A] tracking-tight">
+                      <h3 className="text-lg font-black text-slate-900">
                         {group.schoolName}
                       </h3>
-                      <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                      <p className="text-xs text-slate-500 mt-0.5">
                         Pembimbing: <strong className="text-slate-700">{group.mentorName.split(',')[0]}</strong>
                       </p>
                     </div>
 
-                    {/* Middle: Integrated SVG Circular Progress Ring */}
-                    <div className="p-4 rounded-[20px] bg-slate-50/80 flex items-center gap-4">
-                      {/* SVG Circular Ring */}
-                      <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
-                        <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 64 64">
-                          {/* Track */}
-                          <circle
-                            cx="32"
-                            cy="32"
-                            r={radius}
-                            stroke="#E2E8F0"
-                            strokeWidth="5"
-                            fill="transparent"
-                          />
-                          {/* Animated Progress Stroke */}
-                          <circle
-                            cx="32"
-                            cy="32"
-                            r={radius}
-                            stroke="#D7141F"
-                            strokeWidth="5"
-                            strokeLinecap="round"
-                            fill="transparent"
-                            strokeDasharray={circumference}
-                            strokeDashoffset={progressLoaded ? strokeOffset : circumference}
-                            className="transition-all duration-1000 ease-out"
-                          />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center font-extrabold text-xs text-[#0B1B3A]">
-                          67%
-                        </div>
+                    {/* Live Progress Bar for Own Group */}
+                    <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-red-600">Tahap 4/6 • Siapkan Desain</span>
+                        <span className="font-bold text-slate-700">67% Selesai</span>
                       </div>
-
-                      {/* Text info next to ring */}
-                      <div>
-                        <div className="text-xs font-extrabold text-[#0B1B3A]">
-                          Tahap 4/6 Selesai
-                        </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
-                          Desain X-Banner & RPP siap review.
-                        </div>
+                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                        <div className="bg-red-600 h-full rounded-full w-2/3" />
                       </div>
                     </div>
 
-                    {/* Bottom: Solid Brand Red Pill Button */}
-                    <button
-                      onClick={() => navigate('/dashboard/ketua')}
-                      className="w-full bg-[#D7141F] hover:bg-[#B80F1A] active:scale-98 text-white font-bold text-xs py-3 rounded-full transition-all duration-200 shadow-[0_4px_14px_rgba(215,20,31,0.3)] flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <span>Buka Dashboard Kelompok</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
+                    {/* Prominent Action Button */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/dashboard/ketua');
+                        }}
+                        className="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold text-xs py-2.5 rounded-full transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <span>Buka Dashboard Kelompok</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 );
               }
 
-              // ================= CARDS 2 TO 6: OTHER GROUPS (READ-ONLY) =================
+              // Standard card for other groups (Read-only member preview modal)
               return (
                 <div
                   key={group.id}
                   onClick={() => setSelectedGroupModal(group)}
-                  className="bg-[#FFFFFF] rounded-[24px] p-6 shadow-[0_1px_3px_rgba(11,27,58,0.04),0_8px_24px_-6px_rgba(11,27,58,0.06)] hover:shadow-[0_4px_20px_rgba(11,27,58,0.08)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between space-y-4 cursor-pointer group"
+                  className="group bg-white rounded-2xl border border-slate-200/80 p-5 hover:border-red-300 hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4"
                 >
-                  {/* Top */}
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-extrabold text-[11px]">
+                      <span className="px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 font-extrabold text-[11px] tracking-wide border border-red-100">
                         KELOMPOK {group.number}
                       </span>
-                      <span className="text-[11px] font-medium text-slate-400">
+                      <span className="text-[11px] font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">
                         {group.district}
                       </span>
                     </div>
 
-                    <h3 className="text-lg font-bold text-[#0B1B3A] group-hover:text-[#D7141F] transition-colors">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-red-600 transition-colors">
                       {group.schoolName}
                     </h3>
                   </div>
 
-                  {/* Middle Meta */}
-                  <div className="space-y-2 text-xs pt-2 border-t border-slate-100">
+                  <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs">
                     <div className="flex items-center justify-between text-slate-500">
                       <span>Pembimbing:</span>
-                      <span className="font-semibold text-[#0B1B3A] truncate max-w-[160px]">
+                      <span className="font-semibold text-slate-700 truncate max-w-[170px]">
                         {group.mentorName.split(',')[0]}
                       </span>
                     </div>
@@ -614,26 +579,25 @@ export const PostLoginHomePage: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <span className="text-slate-500">Status Ketua:</span>
                       {isPending ? (
-                        <span className="inline-flex items-center gap-1 text-amber-700 font-semibold bg-amber-50 px-2.5 py-0.5 rounded-full text-[11px]">
+                        <span className="inline-flex items-center gap-1 text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded-full text-[11px]">
                           <UserX className="w-3 h-3 text-amber-600" />
                           Belum Ditentukan
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full text-[11px]">
-                          <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                        <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full text-[11px]">
+                          <UserCheck className="w-3 h-3 text-emerald-600" />
                           Sudah Terpilih
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Bottom Link */}
                   <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                     <span className="text-slate-400 text-[11px]">
                       {group.memberCount} Siswa terdaftar
                     </span>
-                    <span className="inline-flex items-center gap-1 text-[#D7141F] font-bold text-[11px] group-hover:translate-x-1 transition-transform">
-                      <span>Lihat 8 Anggota</span>
+                    <span className="inline-flex items-center gap-1 text-red-600 font-semibold group-hover:translate-x-0.5 transition-transform">
+                      <span>Lihat {group.memberCount} Anggota</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </span>
                   </div>
@@ -644,14 +608,14 @@ export const PostLoginHomePage: React.FC = () => {
 
           {/* Pagination Bar */}
           {totalPages > 1 && (
-            <div className="bg-[#FFFFFF] rounded-[24px] px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-[0_1px_3px_rgba(11,27,58,0.04),0_8px_20px_-6px_rgba(11,27,58,0.06)]">
+            <div className="bg-white rounded-2xl border border-slate-200/80 px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-xs">
               <span className="text-slate-500 font-medium">
                 Menampilkan{' '}
-                <strong className="text-[#0B1B3A]">
+                <strong className="text-slate-800">
                   {(currentPage - 1) * itemsPerPage + 1}–
                   {Math.min(currentPage * itemsPerPage, totalItems)}
                 </strong>{' '}
-                dari <strong className="text-[#0B1B3A]">{totalItems}</strong> kelompok
+                dari <strong className="text-slate-800">{totalItems}</strong> kelompok
               </span>
 
               <div className="flex items-center gap-1.5">
@@ -667,11 +631,10 @@ export const PostLoginHomePage: React.FC = () => {
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 rounded-full font-bold transition cursor-pointer text-xs ${
-                      currentPage === page
-                        ? 'bg-[#0B1B3A] text-white shadow-xs'
-                        : 'border border-slate-200 text-slate-600 hover:bg-slate-100'
-                    }`}
+                    className={`w-8 h-8 rounded-full font-bold transition cursor-pointer text-xs ${currentPage === page
+                      ? 'bg-red-600 text-white shadow-xs'
+                      : 'border border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
                   >
                     {page}
                   </button>
@@ -687,108 +650,24 @@ export const PostLoginHomePage: React.FC = () => {
               </div>
             </div>
           )}
-
         </section>
-
       </main>
 
-      {/* ================= 5. ELEVATED LIGHT THEME FOOTER (NO HARSH BLACK) ================= */}
-      <footer className="mt-16 bg-[#FFFFFF] border-t border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* 4 Structured Columns */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-10 border-b border-slate-100">
-            {/* Col 1: Brand Info */}
-            <div className="md:col-span-5 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-extrabold text-[#0B1B3A] tracking-tight">
-                  #SKOMDA
-                </span>
-                <span className="bg-[#D7141F] text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider shadow-xs">
-                  MENGAJAR
-                </span>
-                <span className="text-xs font-bold text-slate-400">#Impact2026</span>
-              </div>
-              <p className="text-xs text-[#475569] leading-relaxed max-w-sm">
-                Inisiatif pedagogis terapan & pengabdian digital siswa SMK Telkom Sidoarjo untuk sekolah menengah pertama mitra di Kabupaten Sidoarjo.
-              </p>
-              <div className="text-[11px] text-slate-400 font-medium">
-                Penyelenggara: SMK Telkom Sidoarjo • Yayasan Pendidikan Telkom
-              </div>
-            </div>
-
-            {/* Col 2: Alur Program */}
-            <div className="md:col-span-3 space-y-2.5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#0B1B3A]">
-                Alur Program
-              </h4>
-              <ul className="space-y-1.5 text-xs text-slate-500">
-                <li className="hover:text-[#D7141F] cursor-pointer transition">01. Pembagian Kelompok (Selesai)</li>
-                <li className="hover:text-[#D7141F] cursor-pointer transition">02. Pembentukan Ketua (Selesai)</li>
-                <li className="hover:text-[#D7141F] cursor-pointer transition">03. Modul Pembelajaran (Selesai)</li>
-                <li className="text-[#D7141F] font-bold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#D7141F]" />
-                  04. Siapkan Desain (Tahap Aktif)
-                </li>
-                <li className="hover:text-[#D7141F] cursor-pointer transition">05. Mengajar di SMP</li>
-                <li className="hover:text-[#D7141F] cursor-pointer transition">06. Laporan & LPJ</li>
-              </ul>
-            </div>
-
-            {/* Col 3: Panduan & Dokumen */}
-            <div className="md:col-span-2 space-y-2.5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#0B1B3A]">
-                Dokumen & Aset
-              </h4>
-              <ul className="space-y-1.5 text-xs text-slate-500">
-                <li className="hover:text-[#D7141F] cursor-pointer transition">Buku Panduan Siswa</li>
-                <li className="hover:text-[#D7141F] cursor-pointer transition">Template X-Banner</li>
-                <li className="hover:text-[#D7141F] cursor-pointer transition">Format RPP Kurikulum</li>
-                <li className="hover:text-[#D7141F] cursor-pointer transition">Paket Logo & Twibbon</li>
-              </ul>
-            </div>
-
-            {/* Col 4: Narahubung */}
-            <div className="md:col-span-2 space-y-2.5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#0B1B3A]">
-                Narahubung
-              </h4>
-              <div className="space-y-1 text-xs text-slate-500">
-                <div>Ruang Kurikulum SMK Telkom</div>
-                <div>Jl. Raya Pecantingan, Sekardangan</div>
-                <a
-                  href="mailto:panitia@skomda.sch.id"
-                  className="text-[#D7141F] font-semibold hover:underline block pt-1"
-                >
-                  panitia@skomda.sch.id
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Hairline Signoff */}
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
-            <div>
-              © 2026 Skomda Mengajar. Hak cipta dilindungi undang-undang.
-            </div>
-            <div className="flex items-center gap-4 text-[11px]">
-              <span>Edisi Katalis IV</span>
-              <span>•</span>
-              <span>Sidoarjo, Jawa Timur</span>
-            </div>
-          </div>
-        </div>
+      {/* Footer */}
+      <footer className="mt-auto border-t border-slate-200/90 bg-white py-6 text-center text-xs text-slate-500">
+        © 2026 Skomda Mengajar • SMK Telkom Sidoarjo. Dashboard Ketua Kelompok.
       </footer>
 
       {/* Member preview modal for other groups */}
       {selectedGroupModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B1B3A]/40 backdrop-blur-xs">
-          <div className="bg-[#FFFFFF] rounded-[24px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
-            <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
               <div>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#D7141F] text-white font-extrabold text-[10px] uppercase">
+                <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-extrabold text-[10px] uppercase">
                   KELOMPOK {selectedGroupModal.number}
                 </span>
-                <h3 className="text-xl font-bold text-[#0B1B3A] mt-1.5">
+                <h3 className="text-xl font-bold text-slate-900 mt-1">
                   {selectedGroupModal.schoolName}
                 </h3>
                 <p className="text-xs text-slate-500">
@@ -797,25 +676,25 @@ export const PostLoginHomePage: React.FC = () => {
               </div>
               <button
                 onClick={() => setSelectedGroupModal(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer transition"
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-2">
-              <div className="divide-y divide-slate-100 rounded-2xl overflow-hidden text-xs">
+            <div className="p-5 max-h-[60vh] overflow-y-auto space-y-2">
+              <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden text-xs">
                 {generateMockMembers(
                   selectedGroupModal.number,
                   selectedGroupModal.leaderName,
                   !selectedGroupModal.leaderName.includes('Belum')
                 ).map((m, idx) => (
-                  <div key={m.id} className="p-3 flex items-center justify-between hover:bg-slate-50/80">
+                  <div key={m.id} className="p-3 flex items-center justify-between">
                     <div>
-                      <span className="font-bold text-[#0B1B3A]">{idx + 1}. {m.name}</span>
+                      <span className="font-bold text-slate-800">{idx + 1}. {m.name}</span>
                       <div className="text-[11px] text-slate-400">NIS: {m.nis}</div>
                     </div>
-                    <span className="text-[11px] text-slate-500 font-semibold">{m.role}</span>
+                    <span className="text-[11px] text-slate-500 font-medium">{m.role}</span>
                   </div>
                 ))}
               </div>
@@ -824,7 +703,7 @@ export const PostLoginHomePage: React.FC = () => {
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
               <button
                 onClick={() => setSelectedGroupModal(null)}
-                className="px-5 py-2 bg-[#0B1B3A] text-white rounded-full text-xs font-bold cursor-pointer"
+                className="px-4 py-2 bg-slate-800 text-white rounded-full text-xs font-semibold cursor-pointer"
               >
                 Tutup
               </button>
@@ -832,7 +711,6 @@ export const PostLoginHomePage: React.FC = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
