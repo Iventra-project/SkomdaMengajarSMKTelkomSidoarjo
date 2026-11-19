@@ -276,18 +276,30 @@ export const HomePage: React.FC = () => {
           {/* Serpentine Wavy Path Stepper */}
           <div className="w-full relative py-6 sm:py-8 overflow-x-auto select-none scrollbar-none">
             <div className="min-w-[860px] relative h-48 flex items-center">
-              {/* Underlying Dotted Smooth Path (SVG) */}
+              {/* Underlying Smooth Path (SVG) with Red Flow from Node 01 to Node 02 */}
               <svg
-                className="w-full h-full absolute inset-0 pointer-events-none text-slate-300"
+                className="w-full h-full absolute inset-0 pointer-events-none"
                 fill="none"
                 preserveAspectRatio="none"
                 viewBox="0 0 1100 160"
               >
+                {/* Background Dotted Gray Path (Full Path 01 -> 06) */}
                 <path
                   d="M 50,70 C 150,20 230,120 330,60 C 430,10 510,120 610,65 C 710,15 790,125 890,70 C 970,25 1020,80 1060,60"
-                  stroke="currentColor"
+                  stroke="#CBD5E1"
                   strokeDasharray="4 6"
-                  strokeWidth="2"
+                  strokeWidth="2.5"
+                />
+                
+                {/* Completed / Active Journey Line from Node 01 (Bentuk Kelompok) to Node 02 (Pilih Ketua) */}
+                {/* S-curve path segment between center of Node 01 (~91px) and center of Node 02 (~275px) */}
+                <path
+                  d="M 91,62 C 145,28 200,90 275,115"
+                  stroke="#DC2626"
+                  strokeWidth="3.5"
+                  strokeDasharray="5 4"
+                  strokeLinecap="round"
+                  className="animate-pulse"
                 />
               </svg>
 
