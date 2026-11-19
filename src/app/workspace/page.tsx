@@ -254,9 +254,14 @@ export const WorkspacePage: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/')}
-              className="font-black text-sm tracking-tight text-slate-900 hover:text-[#E50914] transition-colors"
+              className="flex items-center gap-1.5 cursor-pointer text-left"
             >
-              SKOMDA<span className="text-[#E50914]">.</span>
+              <span className="text-lg font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic">
+                #SKOMDA
+              </span>
+              <span className="bg-[#e20113] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full transform -rotate-3 origin-center inline-block tracking-wider select-none">
+                MENGAJAR
+              </span>
             </button>
             <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
               Kelompok {currentGroup.groupNumber}
@@ -280,11 +285,10 @@ export const WorkspacePage: React.FC = () => {
                       setViewStage(stageNum);
                       showToast(`Membuka arsip Tahap 0${stageNum} (Mode Lihat & Unduh)`, 'info');
                     }}
-                    className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
-                      isSelectedView
-                        ? 'bg-emerald-600 text-white shadow-xs font-extrabold'
-                        : 'text-emerald-700 hover:bg-emerald-50 hover:text-emerald-900'
-                    }`}
+                    className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${isSelectedView
+                      ? 'bg-emerald-600 text-white shadow-xs font-extrabold'
+                      : 'text-emerald-700 hover:bg-emerald-50 hover:text-emerald-900'
+                      }`}
                     title={`Tahap 0${stageNum} Selesai • Klik untuk melihat arsip`}
                   >
                     <Check className={`w-3.5 h-3.5 ${isSelectedView ? 'text-white' : 'text-emerald-600'}`} />
@@ -299,11 +303,10 @@ export const WorkspacePage: React.FC = () => {
                   <button
                     key={stageNum}
                     onClick={() => setViewStage(stageNum)}
-                    className={`px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-extrabold transition-all cursor-pointer ${
-                      isSelectedView
-                        ? 'bg-[#E50914] text-white shadow-sm ring-2 ring-red-200'
-                        : 'bg-red-50 text-[#E50914] border border-red-200/80 hover:bg-red-100'
-                    }`}
+                    className={`px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-extrabold transition-all cursor-pointer ${isSelectedView
+                      ? 'bg-[#E50914] text-white shadow-sm ring-2 ring-red-200'
+                      : 'bg-red-50 text-[#E50914] border border-red-200/80 hover:bg-red-100'
+                      }`}
                     title={`Tahap 0${stageNum} Sedang Berjalan (Fase Aktif)`}
                   >
                     <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isSelectedView ? 'bg-white' : 'bg-[#E50914]'}`} />
@@ -334,27 +337,24 @@ export const WorkspacePage: React.FC = () => {
               <span className="text-slate-400 px-1.5 font-mono text-[9px] uppercase">Grup:</span>
               <button
                 onClick={() => handleSelectPreset('kel-03')}
-                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
-                  selectedPresetId === 'kel-03' ? 'bg-white text-[#E50914] shadow-2xs font-black' : 'text-slate-500 hover:text-slate-800'
-                }`}
+                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${selectedPresetId === 'kel-03' ? 'bg-white text-[#E50914] shadow-2xs font-black' : 'text-slate-500 hover:text-slate-800'
+                  }`}
                 title="Preset A: Kelompok 03 (SMPN 1 Buduran) - Tahap 04 Aktif"
               >
                 03 (T4)
               </button>
               <button
                 onClick={() => handleSelectPreset('kel-09')}
-                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
-                  selectedPresetId === 'kel-09' ? 'bg-white text-[#E50914] shadow-2xs font-black' : 'text-slate-500 hover:text-slate-800'
-                }`}
+                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${selectedPresetId === 'kel-09' ? 'bg-white text-[#E50914] shadow-2xs font-black' : 'text-slate-500 hover:text-slate-800'
+                  }`}
                 title="Preset B: Kelompok 09 (SMPN 1 Taman) - Tahap 02 Aktif"
               >
                 09 (T2)
               </button>
               <button
                 onClick={() => handleSelectPreset('kel-01')}
-                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
-                  selectedPresetId === 'kel-01' ? 'bg-white text-[#E50914] shadow-2xs font-black' : 'text-slate-500 hover:text-slate-800'
-                }`}
+                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${selectedPresetId === 'kel-01' ? 'bg-white text-[#E50914] shadow-2xs font-black' : 'text-slate-500 hover:text-slate-800'
+                  }`}
                 title="Preset C: Kelompok 01 (SMPN 1 Sidoarjo) - Tahap 05 Aktif"
               >
                 01 (T5)
@@ -446,12 +446,12 @@ export const WorkspacePage: React.FC = () => {
                   {viewStage === 1 || viewStage === 2
                     ? 'Struktur & Peran Tim'
                     : viewStage === 3
-                    ? 'Modul Ajar & Slide PPT'
-                    : viewStage === 4
-                    ? 'X-Banner (60x160 cm)'
-                    : viewStage === 5
-                    ? 'Pelaksanaan & QR Feedback'
-                    : 'Laporan Akhir & Publikasi'}
+                      ? 'Modul Ajar & Slide PPT'
+                      : viewStage === 4
+                        ? 'X-Banner (60x160 cm)'
+                        : viewStage === 5
+                          ? 'Pelaksanaan & QR Feedback'
+                          : 'Laporan Akhir & Publikasi'}
                 </h2>
 
                 {/* Dynamic Description per Stage */}
@@ -459,12 +459,12 @@ export const WorkspacePage: React.FC = () => {
                   {viewStage === 1 || viewStage === 2
                     ? 'Pemetaan pembagian tugas 8 siswa relawan kelas XII (RPL & TKJ) meliputi koordinator modul ajar, desainer media, notulen, dan tim dokumentasi lapangan.'
                     : viewStage === 3
-                    ? 'Penyusunan RPP 2 pertemuan komputasi kreatif berbasis Kurikulum Merdeka Fase D, lengkap dengan lembar aktivitas praktikum siswa SMP.'
-                    : viewStage === 4
-                    ? 'Media promosi visual utama yang dipajang di gerbang aula SMPN 1 Buduran saat kedatangan regu relawan SMK Telkom Sidoarjo.'
-                    : viewStage === 5
-                    ? 'Pendampingan langsung di laboratorium komputer sekolah mitra. Siswa dan guru SMP memindai QR code evaluasi kepuasan mengajar.'
-                    : 'Kompilasi dokumentasi, rekap skor kepuasan 40+ siswa SMP, bukti karya digital, dan lembar pertanggungjawaban program.'}
+                      ? 'Penyusunan RPP 2 pertemuan komputasi kreatif berbasis Kurikulum Merdeka Fase D, lengkap dengan lembar aktivitas praktikum siswa SMP.'
+                      : viewStage === 4
+                        ? 'Media promosi visual utama yang dipajang di gerbang aula SMPN 1 Buduran saat kedatangan regu relawan SMK Telkom Sidoarjo.'
+                        : viewStage === 5
+                          ? 'Pendampingan langsung di laboratorium komputer sekolah mitra. Siswa dan guru SMP memindai QR code evaluasi kepuasan mengajar.'
+                          : 'Kompilasi dokumentasi, rekap skor kepuasan 40+ siswa SMP, bukti karya digital, dan lembar pertanggungjawaban program.'}
                 </p>
 
                 {/* Meta details */}
@@ -574,12 +574,12 @@ export const WorkspacePage: React.FC = () => {
                         {viewStage <= 2
                           ? 'DIVISI RELAWAN TIM'
                           : viewStage === 3
-                          ? 'MODUL FASE D INFORMATIKA'
-                          : viewStage === 4
-                          ? 'LITERASI DIGITAL & KREATIF'
-                          : viewStage === 5
-                          ? 'QR FEEDBACK SISWA SMP'
-                          : 'LEMBAR LPJ RESMI 2026'}
+                            ? 'MODUL FASE D INFORMATIKA'
+                            : viewStage === 4
+                              ? 'LITERASI DIGITAL & KREATIF'
+                              : viewStage === 5
+                                ? 'QR FEEDBACK SISWA SMP'
+                                : 'LEMBAR LPJ RESMI 2026'}
                       </h3>
                     </div>
                   </div>
@@ -611,10 +611,10 @@ export const WorkspacePage: React.FC = () => {
                           {viewStage <= 2
                             ? '8 Siswa Relawan Terdaftar'
                             : viewStage === 3
-                            ? 'Silabus Komputasi Kreatif'
-                            : viewStage === 4
-                            ? 'Desain DKV & Panduan Cetak'
-                            : 'Dokumentasi & Rekap Skor 4.8/5'}
+                              ? 'Silabus Komputasi Kreatif'
+                              : viewStage === 4
+                                ? 'Desain DKV & Panduan Cetak'
+                                : 'Dokumentasi & Rekap Skor 4.8/5'}
                         </p>
                         <div className="flex items-center gap-1 text-[8px] text-white/70">
                           <span>SMK Telkom Sidoarjo</span>
@@ -680,12 +680,12 @@ export const WorkspacePage: React.FC = () => {
                 {viewStage <= 2
                   ? '"Selamat bertugas tim relawan! Pastikan pembagian divisi tugas merata antara perancang materi dan tim kreatif dokumentasi."'
                   : viewStage === 3
-                  ? '"Struktur materi RPP sudah disesuaikan dengan Fase D. Jangan lupa sertakan sesi tanya jawab interaktif pada slide penutup."'
-                  : viewStage === 4
-                  ? '"Perhatikan perletakan sound system aula SMPN 1 Buduran. Pastikan roll banner terpasang rapi di pintu masuk utama."'
-                  : viewStage === 5
-                  ? '"Tiba di laboratorium komputer 30 menit sebelum sesi dimulai. Kenakan almamater lengkap dan pandu siswa mengisi QR feedback."'
-                  : '"Kerja luar biasa untuk seluruh anggota kelompok! Hasil karya siswa SMP dan laporan pertanggungjawaban telah disahkan sekolah."'}
+                    ? '"Struktur materi RPP sudah disesuaikan dengan Fase D. Jangan lupa sertakan sesi tanya jawab interaktif pada slide penutup."'
+                    : viewStage === 4
+                      ? '"Perhatikan perletakan sound system aula SMPN 1 Buduran. Pastikan roll banner terpasang rapi di pintu masuk utama."'
+                      : viewStage === 5
+                        ? '"Tiba di laboratorium komputer 30 menit sebelum sesi dimulai. Kenakan almamater lengkap dan pandu siswa mengisi QR feedback."'
+                        : '"Kerja luar biasa untuk seluruh anggota kelompok! Hasil karya siswa SMP dan laporan pertanggungjawaban telah disahkan sekolah."'}
               </p>
             </div>
 
@@ -804,12 +804,12 @@ export const WorkspacePage: React.FC = () => {
                   {viewStage <= 2
                     ? '8 / 8 NIS Valid'
                     : viewStage === 3
-                    ? '4 / 4 Bab Siap'
-                    : viewStage === 4
-                    ? `${validCount} / ${totalMembers} Siap`
-                    : viewStage === 5
-                    ? '8 / 8 Relawan Hadir'
-                    : '4.8 / 5.0 Sangat Puas'}
+                      ? '4 / 4 Bab Siap'
+                      : viewStage === 4
+                        ? `${validCount} / ${totalMembers} Siap`
+                        : viewStage === 5
+                          ? '8 / 8 Relawan Hadir'
+                          : '4.8 / 5.0 Sangat Puas'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
                   {viewStage <= 2 ? 'Verifikasi dapodik siswa' : viewStage === 4 ? 'Twibbon publikasi feed IG' : viewStage === 5 ? 'Presensi tepat waktu' : 'Rata-rata rating 40 siswa'}

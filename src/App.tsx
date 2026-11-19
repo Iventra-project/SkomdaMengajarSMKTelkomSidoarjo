@@ -23,7 +23,7 @@ const AppRouter: React.FC = () => {
       {currentPath === '/login' && <LoginPage />}
       {(currentPath === '/admin' || currentPath === '/dashboard/admin') && <AdminMonitoringPage />}
       {(currentPath === '/admin/kelompok/03' || currentPath === '/dashboard/admin/review') && <AdminKelompokDetailPage />}
-      {currentPath === '/workspace' && <WorkspacePage />}
+      {(currentPath === '/workspace' || currentPath === '/dashboard/ketua') && <WorkspacePage />}
 
       {/* Global Interactive Modals & Route Switcher */}
       <BannerPreviewModal />

@@ -1,4 +1,4 @@
-"use client"; 
+"use client";
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Group, groupsData, initialMembersKelompok03, initialSprintTasks, Member, SprintTask } from '../data/mockData';
 
@@ -8,10 +8,13 @@ export type RoutePath =
   | '/admin'
   | '/admin/kelompok/03'
   | '/workspace'
+  | '/dashboard/ketua'
   | '/dashboard/admin'
   | '/dashboard/admin/review';
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'user' | 'leader';
+
+const isGroupRole = (role?: UserRole) => role === 'user' || role === 'leader';
 
 export function formatGroupNumber(groupNumber?: string): string {
   const cleaned = (groupNumber || '01').trim().replace(/^0+/, '');
@@ -54,7 +57,19 @@ interface AppContextType {
   toggleMemberStatus: (memberId: string) => void;
   sprintTasks: SprintTask[];
   moveTaskColumn: (taskId: string, newCol: 'todo' | 'in_progress' | 'done') => void;
-  addTask: (title: string, priority?: 'high' | 'medium' | 'low', assignee?: string) => void;
+  addTask: (
+    titleOrPayload:
+      | string
+      | {
+        title: string;
+        priority?: 'high' | 'medium' | 'low';
+        assignee?: string;
+        deadline?: string;
+        column?: 'todo' | 'in_progress' | 'done';
+      },
+    priority?: 'high' | 'medium' | 'low',
+    assignee?: string
+  ) => void;
   bannerStatus: 'pending' | 'approved' | 'revision';
   bannerFeedback: string;
   submitBannerDecision: (decision: 'approved' | 'revision', notes: string) => void;
@@ -75,9 +90,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
       if (hash === '/login') return '/login';
-      if (hash === '/admin') return '/admin';
-      if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03') return '/admin/kelompok/03';
-      if (hash === '/workspace' || hash === '/kelompok-03') return '/workspace';
+      if (hash === '/admin' || hash === '/dashboard/admin') return '/admin';
+      if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03' || hash === '/dashboard/admin/review') {
+        return '/admin/kelompok/03';
+      }
+      if (hash === '/workspace' || hash === '/kelompok-03' || hash === '/dashboard/ketua') return '/workspace';
     }
     return '/';
   };
@@ -180,7 +197,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Load group-scoped members & tasks whenever the logged-in user's group changes
   useEffect(() => {
-    if (!currentUser || currentUser.role !== 'user') return;
+    if (!currentUser || !isGroupRole(currentUser.role)) return;
     const grpNum = formatGroupNumber(currentUser.groupNumber);
     const grp = groupsData.find((g) => g.number === grpNum);
 
@@ -278,7 +295,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           navigate('/login');
           return;
         }
-        if (currentUser.role === 'user' && requestedGroup !== userGroupNumber) {
+        if (isGroupRole(currentUser.role) && requestedGroup !== userGroupNumber) {
           showToast(
             `Akses ditolak! Anda terdaftar di Kelompok ${userGroupNumber}, tidak dapat mengakses Workspace Kelompok ${requestedGroup}.`,
             'warning'
@@ -291,9 +308,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
 
       if (hash === '/login') setCurrentPath('/login');
-      else if (hash === '/admin') setCurrentPath('/admin');
-      else if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03') setCurrentPath('/admin/kelompok/03');
-      else if (hash === '/workspace') setCurrentPath('/workspace');
+      else if (hash === '/admin' || hash === '/dashboard/admin') setCurrentPath('/admin');
+      else if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03' || hash === '/dashboard/admin/review') {
+        setCurrentPath('/admin/kelompok/03');
+      } else if (hash === '/workspace' || hash === '/dashboard/ketua') setCurrentPath('/workspace');
       else if (hash === '/' || hash === '') setCurrentPath('/');
     };
 
@@ -306,14 +324,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       prev.map((m) =>
         m.id === memberId
           ? {
-              ...m,
-              status: m.status === 'valid' ? 'pending' : 'valid',
-              instagramUrl: m.status === 'pending' ? `instagram.com/p/C3${m.id}test` : m.instagramUrl
-            }
+            ...m,
+            status: m.status === 'valid' ? 'pending' : 'valid',
+            instagramUrl: m.status === 'pending' ? `instagram.com/p/C3${m.id}test` : m.instagramUrl
+          }
           : m
       )
     );
-    if (authToken && currentUser?.role === 'user') {
+    if (authToken && isGroupRole(currentUser?.role)) {
       void fetch(`/api/groups/${userGroupNumber}/members/${memberId}/toggle`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${authToken}` },
@@ -339,27 +357,45 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     showToast('Status tugas berhasil dipindahkan.', 'info');
   };
 
-  const addTask = (title: string, priority: 'high' | 'medium' | 'low' = 'medium', assignee?: string) => {
-    const taskAssignee = assignee || currentUser?.name || activeGroup.leaderName;
+  const addTask = (
+    titleOrPayload:
+      | string
+      | {
+        title: string;
+        priority?: 'high' | 'medium' | 'low';
+        assignee?: string;
+        deadline?: string;
+        column?: 'todo' | 'in_progress' | 'done';
+      },
+    priority: 'high' | 'medium' | 'low' = 'medium',
+    assignee?: string
+  ) => {
+    const isObj = typeof titleOrPayload === 'object' && titleOrPayload !== null;
+    const title = isObj ? titleOrPayload.title : titleOrPayload;
+    const taskPriority = isObj ? titleOrPayload.priority || 'medium' : priority;
+    const taskAssignee = (isObj ? titleOrPayload.assignee : assignee) || currentUser?.name || activeGroup.leaderName;
+    const taskColumn = isObj ? titleOrPayload.column || 'todo' : 'todo';
+    const taskDueDate = isObj && titleOrPayload.deadline ? titleOrPayload.deadline : '14 Feb';
+
     const newTask: SprintTask = {
       id: `task-${Date.now()}`,
       title,
-      column: 'todo',
-      priority,
+      column: taskColumn,
+      priority: taskPriority,
       assignee: taskAssignee,
       assigneeInitials: taskAssignee.slice(0, 2).toUpperCase(),
-      dueDate: '14 Feb',
+      dueDate: taskDueDate,
       subtext: 'Tugas baru ditambahkan'
     };
     setSprintTasks((prev) => [newTask, ...prev]);
-    if (authToken && currentUser?.role === 'user') {
+    if (authToken && (currentUser?.role === 'user' || currentUser?.role === 'leader')) {
       void fetch(`/api/groups/${userGroupNumber}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify({ title, priority, assignee: taskAssignee }),
+        body: JSON.stringify({ title, priority: taskPriority, assignee: taskAssignee }),
       });
     }
     showToast('Tugas baru berhasil ditambahkan ke papan kerja!', 'success');

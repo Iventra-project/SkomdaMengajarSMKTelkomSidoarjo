@@ -177,10 +177,10 @@ export const PostLoginHomePage: React.FC = () => {
           {/* Left Brand */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <span className="text-xl font-black text-slate-950 tracking-tight select-none">
+              <span className="text-lg font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic">
                 #SKOMDA
               </span>
-              <span className="bg-red-600 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full tracking-wider shadow-sm select-none">
+              <span className="bg-[#e20113] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full transform -rotate-3 origin-center inline-block tracking-wider select-none">
                 MENGAJAR
               </span>
             </div>

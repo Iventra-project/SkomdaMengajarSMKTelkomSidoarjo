@@ -39,8 +39,10 @@ export const BannerPreviewModal: React.FC = () => {
             {/* Top Banner Header */}
             <div className="flex flex-col items-center text-center space-y-1 pb-3 border-b border-slate-200">
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-extrabold italic text-slate-900 tracking-tight">#SKOMDA</span>
-                <span className="bg-[#e20113] text-white text-[9px] font-bold px-1.5 py-0.2 rounded uppercase">
+                <span className="text-[11px] font-extrabold italic text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none">
+                  #SKOMDA
+                </span>
+                <span className="bg-[#e20113] text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase transform -rotate-3 origin-center inline-block tracking-wider select-none">
                   MENGAJAR
                 </span>
               </div>

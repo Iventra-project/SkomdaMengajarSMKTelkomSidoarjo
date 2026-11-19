@@ -151,22 +151,14 @@ export const HomePage: React.FC = () => {
           {/* Brand Identity */}
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-3 cursor-pointer group shrink-0 text-left"
+            className="flex items-center gap-1.5 cursor-pointer group shrink-0 text-left"
           >
-            <div className="w-9 h-9 rounded-xl bg-[#e20113] text-white flex items-center justify-center font-extrabold text-xs shadow-xs group-hover:bg-[#b4000c] transition-colors">
-              SM
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-sm tracking-tight text-slate-900 group-hover:text-[#e20113] transition-colors">
-                  SKOMDA MENGAJAR
-                </span>
-                <span className="bg-red-50 text-[#e20113] text-[11px] font-bold px-2 py-0.5 rounded-full border border-red-200/80">
-                  2026
-                </span>
-              </div>
-              <span className="text-[11px] text-slate-400 font-medium">SMK Telkom Sidoarjo</span>
-            </div>
+            <span className="text-lg font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic">
+              #SKOMDA
+            </span>
+            <span className="bg-[#e20113] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full transform -rotate-3 origin-center inline-block tracking-wider select-none">
+              MENGAJAR
+            </span>
           </button>
 
           {/* Desktop Nav Links */}
@@ -491,11 +483,10 @@ export const HomePage: React.FC = () => {
                     <button
                       key={item.id}
                       onClick={() => setActiveSpotlight(idx)}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                        activeSpotlight === idx
-                          ? 'bg-white text-[#e20113] shadow-xs'
-                          : 'text-slate-500 hover:text-slate-900'
-                      }`}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${activeSpotlight === idx
+                        ? 'bg-white text-[#e20113] shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                        }`}
                     >
                       Kel. {item.groupNumber}
                     </button>
@@ -641,19 +632,17 @@ export const HomePage: React.FC = () => {
                           return (
                             <div
                               key={step.num}
-                              className={`flex flex-col items-center text-center cursor-pointer group transition-all ${
-                                isEven ? 'pt-[74px]' : 'pt-[16px]'
-                              }`}
+                              className={`flex flex-col items-center text-center cursor-pointer group transition-all ${isEven ? 'pt-[74px]' : 'pt-[16px]'
+                                }`}
                             >
                               {/* Card Box */}
                               <div
-                                className={`w-[68px] h-[68px] rounded-2xl flex flex-col items-center justify-center relative transition-all duration-300 group-hover:-translate-y-1 ${
-                                  isCompleted
-                                    ? 'bg-[#D7141F] text-white shadow-lg shadow-red-500/25'
-                                    : isActive
+                                className={`w-[68px] h-[68px] rounded-2xl flex flex-col items-center justify-center relative transition-all duration-300 group-hover:-translate-y-1 ${isCompleted
+                                  ? 'bg-[#D7141F] text-white shadow-lg shadow-red-500/25'
+                                  : isActive
                                     ? 'bg-white border-2 border-[#D7141F] text-[#D7141F] shadow-lg shadow-red-500/15 ring-4 ring-red-50'
                                     : 'bg-white border border-slate-200/90 text-slate-400 shadow-2xs hover:border-slate-300'
-                                }`}
+                                  }`}
                               >
                                 {/* Tilted Finish Badge for Step 6 */}
                                 {isFinish && (
@@ -664,26 +653,24 @@ export const HomePage: React.FC = () => {
 
                                 {/* Step Number */}
                                 <span
-                                  className={`text-[11px] font-black tracking-wider leading-none mb-1 ${
-                                    isCompleted
-                                      ? 'text-white/90'
-                                      : isActive
+                                  className={`text-[11px] font-black tracking-wider leading-none mb-1 ${isCompleted
+                                    ? 'text-white/90'
+                                    : isActive
                                       ? 'text-[#D7141F]'
                                       : 'text-slate-400'
-                                  }`}
+                                    }`}
                                 >
                                   0{step.num}
                                 </span>
 
                                 {/* Icon */}
                                 <span
-                                  className={`material-symbols-outlined text-[24px] ${
-                                    isCompleted
-                                      ? 'text-white'
-                                      : isActive
+                                  className={`material-symbols-outlined text-[24px] ${isCompleted
+                                    ? 'text-white'
+                                    : isActive
                                       ? 'text-[#D7141F]'
                                       : 'text-slate-400 group-hover:text-slate-600 transition-colors'
-                                  }`}
+                                    }`}
                                 >
                                   {step.icon}
                                 </span>
@@ -692,9 +679,8 @@ export const HomePage: React.FC = () => {
                               {/* Labels below card */}
                               <div className="mt-3 px-2">
                                 <h4
-                                  className={`text-xs sm:text-sm font-extrabold leading-tight transition-colors ${
-                                    isActive ? 'text-[#D7141F]' : 'text-[#0B1B3A] group-hover:text-[#D7141F]'
-                                  }`}
+                                  className={`text-xs sm:text-sm font-extrabold leading-tight transition-colors ${isActive ? 'text-[#D7141F]' : 'text-[#0B1B3A] group-hover:text-[#D7141F]'
+                                    }`}
                                 >
                                   {step.label}
                                 </h4>
@@ -816,19 +802,17 @@ export const HomePage: React.FC = () => {
                             <div
                               key={step.num}
                               onClick={() => setSelectedStep(step.num)}
-                              className={`flex flex-col items-center text-center cursor-pointer group transition-all ${
-                                isEven ? 'pt-[74px]' : 'pt-[16px]'
-                              }`}
+                              className={`flex flex-col items-center text-center cursor-pointer group transition-all ${isEven ? 'pt-[74px]' : 'pt-[16px]'
+                                }`}
                             >
                               {/* Card Box */}
                               <div
-                                className={`w-[68px] h-[68px] rounded-2xl flex flex-col items-center justify-center relative transition-all duration-300 group-hover:-translate-y-1 ${
-                                  isCompleted
-                                    ? 'bg-[#D7141F] text-white shadow-lg shadow-red-500/25'
-                                    : isSelected
+                                className={`w-[68px] h-[68px] rounded-2xl flex flex-col items-center justify-center relative transition-all duration-300 group-hover:-translate-y-1 ${isCompleted
+                                  ? 'bg-[#D7141F] text-white shadow-lg shadow-red-500/25'
+                                  : isSelected
                                     ? 'bg-white border-2 border-[#D7141F] text-[#D7141F] shadow-lg shadow-red-500/15 ring-4 ring-red-50'
                                     : 'bg-white border border-slate-200/90 text-slate-400 shadow-2xs hover:border-slate-300'
-                                }`}
+                                  }`}
                               >
                                 {/* Tilted Finish Badge for Step 6 */}
                                 {isFinish && (
@@ -839,26 +823,24 @@ export const HomePage: React.FC = () => {
 
                                 {/* Step Number */}
                                 <span
-                                  className={`text-[11px] font-black tracking-wider leading-none mb-1 ${
-                                    isCompleted
-                                      ? 'text-white/90'
-                                      : isSelected
+                                  className={`text-[11px] font-black tracking-wider leading-none mb-1 ${isCompleted
+                                    ? 'text-white/90'
+                                    : isSelected
                                       ? 'text-[#D7141F]'
                                       : 'text-slate-400'
-                                  }`}
+                                    }`}
                                 >
                                   0{step.num}
                                 </span>
 
                                 {/* Icon */}
                                 <span
-                                  className={`material-symbols-outlined text-[24px] ${
-                                    isCompleted
-                                      ? 'text-white'
-                                      : isSelected
+                                  className={`material-symbols-outlined text-[24px] ${isCompleted
+                                    ? 'text-white'
+                                    : isSelected
                                       ? 'text-[#D7141F]'
                                       : 'text-slate-400 group-hover:text-slate-600 transition-colors'
-                                  }`}
+                                    }`}
                                 >
                                   {step.icon}
                                 </span>
@@ -867,9 +849,8 @@ export const HomePage: React.FC = () => {
                               {/* Labels below card */}
                               <div className="mt-3 px-2">
                                 <h4
-                                  className={`text-xs sm:text-sm font-extrabold leading-tight transition-colors ${
-                                    isSelected ? 'text-[#D7141F]' : 'text-[#0B1B3A] group-hover:text-[#D7141F]'
-                                  }`}
+                                  className={`text-xs sm:text-sm font-extrabold leading-tight transition-colors ${isSelected ? 'text-[#D7141F]' : 'text-[#0B1B3A] group-hover:text-[#D7141F]'
+                                    }`}
                                 >
                                   {step.label}
                                 </h4>
@@ -1005,11 +986,10 @@ export const HomePage: React.FC = () => {
                       <button
                         key={key}
                         onClick={() => setSelectedFilter(key as any)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                          selectedFilter === key
-                            ? 'bg-white text-[#e20113] shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${selectedFilter === key
+                          ? 'bg-white text-[#e20113] shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                          }`}
                       >
                         {label}
                       </button>
@@ -1042,9 +1022,8 @@ export const HomePage: React.FC = () => {
                     return (
                       <div
                         key={group.id}
-                        className={`bg-white rounded-2xl border overflow-hidden flex flex-col justify-between transition-all hover:shadow-md ${
-                          isMain ? 'border-2 border-[#e20113] shadow-2xs' : 'border-slate-200/90 hover:border-slate-300'
-                        }`}
+                        className={`bg-white rounded-2xl border overflow-hidden flex flex-col justify-between transition-all hover:shadow-md ${isMain ? 'border-2 border-[#e20113] shadow-2xs' : 'border-slate-200/90 hover:border-slate-300'
+                          }`}
                       >
                         {/* Top Accent Strip */}
                         <div className={`h-1.5 w-full ${isMain ? 'bg-[#e20113]' : cfg.dot}`} />
@@ -1079,9 +1058,8 @@ export const HomePage: React.FC = () => {
                             </div>
                             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all ${
-                                  isMain ? 'bg-[#e20113]' : 'bg-slate-800'
-                                }`}
+                                className={`h-full rounded-full transition-all ${isMain ? 'bg-[#e20113]' : 'bg-slate-800'
+                                  }`}
                                 style={{ width: `${group.progressPercent}%` }}
                               />
                             </div>
@@ -1164,347 +1142,347 @@ export const HomePage: React.FC = () => {
           <>
             {/* 5. REKAM JEJAK PELAKSANAAN 2025 (4 Displayed Initially + Show More) */}
             <section className="w-full bg-[#f8f9fa] py-16 md:py-20 border-b border-slate-200/80" id="jejak">
-          <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
-            {/* Section Header */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-slate-200">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#e20113]">
-                  03 / REKAM JEJAK
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
-                  Rekam Pelaksanaan & Galeri 2025
-                </h2>
-              </div>
-              <span className="text-xs font-bold bg-white border border-slate-200 text-slate-700 px-3.5 py-1.5 rounded-xl shadow-2xs">
-                100% Selesai & Terverifikasi
-              </span>
-            </div>
-
-            {/* Photo Editorial Grid — 4 items initial */}
-            <div className="pt-8 flex flex-col gap-3">
-              {/* Row 1: Spotlight (7 col) + Medium (5 col) */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                {shownStories[0] && (
-                  <div
-                    onClick={() => setSelectedStory(shownStories[0])}
-                    className="md:col-span-7 h-72 md:h-80 relative overflow-hidden rounded-2xl cursor-pointer group border border-slate-200 shadow-2xs"
-                  >
-                    <img
-                      src={shownStories[0].image}
-                      alt={shownStories[0].title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent p-5 text-white">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="bg-[#e20113] text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md">
-                          {shownStories[0].category}
-                        </span>
-                        <span className="text-xs text-slate-300 font-semibold">{shownStories[0].date}</span>
-                      </div>
-                      <h3 className="text-base sm:text-lg font-extrabold text-white leading-snug line-clamp-2">
-                        {shownStories[0].title}
-                      </h3>
-                      <p className="text-xs text-slate-300 mt-1 line-clamp-1">{shownStories[0].school}</p>
-                    </div>
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="bg-white/95 text-slate-800 text-xs font-extrabold px-3 py-1 rounded-lg flex items-center gap-1 shadow-xs">
-                        <span className="material-symbols-outlined text-[15px]">open_in_new</span>
-                        Baca
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {shownStories[1] && (
-                  <div
-                    onClick={() => setSelectedStory(shownStories[1])}
-                    className="md:col-span-5 h-72 md:h-80 relative overflow-hidden rounded-2xl cursor-pointer group border border-slate-200 shadow-2xs"
-                  >
-                    <img
-                      src={shownStories[1].image}
-                      alt={shownStories[1].title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent p-5 text-white">
-                      <span className="bg-[#e20113] text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md self-start mb-1.5 inline-block">
-                        {shownStories[1].category}
-                      </span>
-                      <h3 className="text-sm sm:text-base font-extrabold text-white leading-snug line-clamp-2">
-                        {shownStories[1].title}
-                      </h3>
-                      <p className="text-xs text-slate-300 mt-1 line-clamp-1">{shownStories[1].school}</p>
-                    </div>
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="bg-white/95 text-slate-800 text-xs font-extrabold px-3 py-1 rounded-lg flex items-center gap-1 shadow-xs">
-                        <span className="material-symbols-outlined text-[15px]">open_in_new</span>
-                        Baca
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Row 2: 2 balanced cards (6 col each) */}
-              {shownStories.length >= 3 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {shownStories.slice(2, 4).map((story) => (
-                    <div
-                      key={story.id}
-                      onClick={() => setSelectedStory(story)}
-                      className="h-56 relative overflow-hidden rounded-2xl cursor-pointer group border border-slate-200 shadow-2xs"
-                    >
-                      <img
-                        src={story.image}
-                        alt={story.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      />
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent p-4 text-white">
-                        <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md self-start mb-1.5 border border-white/30 inline-block">
-                          {story.category}
-                        </span>
-                        <h4 className="text-sm font-extrabold text-white leading-snug line-clamp-1">{story.title}</h4>
-                        <p className="text-xs text-slate-300 mt-0.5">
-                          {story.school} · {story.date}
-                        </p>
-                      </div>
-                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="bg-white/95 text-slate-800 text-xs font-extrabold px-3 py-1 rounded-lg flex items-center gap-1 shadow-xs">
-                          <span className="material-symbols-outlined text-[15px]">open_in_new</span>
-                          Baca
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Row 3: Expanded Stories (3 col grid) */}
-              {isDocExpanded && documentaryStories.length > 4 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 animate-in fade-in duration-300">
-                  {documentaryStories.slice(4).map((story) => (
-                    <div
-                      key={story.id}
-                      onClick={() => setSelectedStory(story)}
-                      className="h-56 relative overflow-hidden rounded-2xl cursor-pointer group border border-slate-200 shadow-2xs"
-                    >
-                      <img
-                        src={story.image}
-                        alt={story.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      />
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent p-4 text-white">
-                        <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md self-start mb-1.5 border border-white/30 inline-block">
-                          {story.category}
-                        </span>
-                        <h4 className="text-sm font-extrabold text-white leading-snug line-clamp-1">{story.title}</h4>
-                        <p className="text-xs text-slate-300 mt-0.5">{story.school}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Expand / Collapse Button for Stories */}
-            {documentaryStories.length > 4 && (
-              <div className="mt-6 flex justify-center">
-                <button
-                  onClick={() => setIsDocExpanded(!isDocExpanded)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-[#e20113] hover:text-[#e20113] text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-2xs cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[17px]">
-                    {isDocExpanded ? 'expand_less' : 'photo_library'}
-                  </span>
-                  <span>{isDocExpanded ? 'Ringkas Galeri' : `+${documentaryStories.length - 4} Foto Arsip Lainnya`}</span>
-                </button>
-              </div>
-            )}
-
-            {/* ══════════════ SUBSECTION: PROJEK YANG DIBUAT (4 CARDS) ══════════════ */}
-            <div className="mt-14 pt-10 border-t border-slate-200">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-[#e20113]">
-                    ARTEFAK PEMBELAJARAN
-                  </span>
-                  <h3 className="text-xl font-extrabold text-slate-900 mt-0.5">Karya Nyata Siswa SMP</h3>
-                </div>
-                <span className="text-xs font-semibold text-slate-400">
-                  {shownProjects.length}/{showcaseProjects.length} Artefak
-                </span>
-              </div>
-
-              {/* 4 Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {shownProjects.map((proj) => (
-                  <div
-                    key={proj.id}
-                    onClick={() => setSelectedProject(proj)}
-                    className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden cursor-pointer group hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between"
-                  >
-                    <div className="aspect-[16/10] bg-slate-100 relative overflow-hidden">
-                      <img
-                        src={proj.image}
-                        alt={proj.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <span className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-xs text-slate-900 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shadow-2xs">
-                        {proj.tag}
-                      </span>
-                    </div>
-
-                    <div className="p-4 flex flex-col justify-between flex-1">
-                      <div>
-                        <h4 className="text-xs font-extrabold text-slate-900 group-hover:text-[#e20113] transition-colors line-clamp-1">
-                          {proj.title}
-                        </h4>
-                        <p className="text-xs text-slate-500 mt-1 leading-snug line-clamp-2">{proj.desc}</p>
-                      </div>
-
-                      <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-                        <span className="text-slate-400 font-medium truncate max-w-[130px]">{proj.school}</span>
-                        <span className="font-bold text-[#e20113] group-hover:underline">Lihat Rincian</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Expand / Collapse Button for Projects */}
-              {showcaseProjects.length > 4 && (
-                <div className="mt-8 flex justify-center">
-                  <button
-                    onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-[#e20113] hover:text-[#e20113] text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-2xs cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-[17px]">
-                      {isProjectsExpanded ? 'expand_less' : 'grid_view'}
+              <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
+                {/* Section Header */}
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-slate-200">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-widest text-[#e20113]">
+                      03 / REKAM JEJAK
                     </span>
-                    <span>{isProjectsExpanded ? 'Ringkas Projek' : `+${showcaseProjects.length - 4} Projek Lainnya`}</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* ══════════════════════════════════════════════════════════════════════════
-            6. STANDAR KURIKULUM & BERKAS
-        ══════════════════════════════════════════════════════════════════════════ */}
-        <section className="w-full bg-white py-16 md:py-20 border-b border-slate-200/80" id="kurikulum">
-          <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-              {/* Left Column: Accreditation Points */}
-              <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#e20113]">
-                  04 / STANDAR PEDOMAN
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1 mb-6">
-                  Pedoman & Standar Kurikulum
-                </h2>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { icon: 'verified_user', label: 'Disahkan MGMP', sub: 'Informatika Kab. Sidoarjo' },
-                    { icon: 'menu_book', label: 'Struktur 6 JP', sub: '30% Teori, 70% Praktik Lab' },
-                    { icon: 'fact_check', label: 'Rubrik Penilaian', sub: 'Kreativitas & Kemandirian' },
-                    { icon: 'emoji_events', label: 'Kurikulum Merdeka', sub: 'Capaian Fase D SMP' },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-start gap-3 hover:border-slate-300 transition-colors"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
-                        <span className="material-symbols-outlined text-[20px] text-[#e20113]">{item.icon}</span>
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-900">{item.label}</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">{item.sub}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right Column: Downloadable Files */}
-              <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-5 flex flex-col gap-3 shadow-2xs">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                  <span className="text-xs font-bold text-slate-900 uppercase">Paket Dokumen Resmi Guru & Tim</span>
-                  <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200 uppercase">
-                    Terverifikasi
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
+                      Rekam Pelaksanaan & Galeri 2025
+                    </h2>
+                  </div>
+                  <span className="text-xs font-bold bg-white border border-slate-200 text-slate-700 px-3.5 py-1.5 rounded-xl shadow-2xs">
+                    100% Selesai & Terverifikasi
                   </span>
                 </div>
 
-                {[
-                  { icon: 'picture_as_pdf', color: 'text-rose-500', name: 'Buku Panduan Mentor Skomda v4.2', size: 'PDF • 4.8 MB' },
-                  { icon: 'description', color: 'text-blue-500', name: 'Format RPP & Berita Acara Tatap Muka', size: 'DOCX • 1.2 MB' },
-                  { icon: 'table_chart', color: 'text-emerald-500', name: 'Rubrik Penilaian Akhir Siswa SMP', size: 'XLSX • 850 KB' },
-                ].map((doc) => (
-                  <div
-                    key={doc.name}
-                    className="flex items-center justify-between p-3.5 bg-white border border-slate-200/80 rounded-xl hover:border-slate-300 transition-colors shadow-2xs"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`material-symbols-outlined text-[22px] ${doc.color}`}>{doc.icon}</span>
-                      <div>
-                        <p className="text-xs font-bold text-slate-900">{doc.name}</p>
-                        <p className="text-[11px] text-slate-400 font-medium">{doc.size}</p>
+                {/* Photo Editorial Grid — 4 items initial */}
+                <div className="pt-8 flex flex-col gap-3">
+                  {/* Row 1: Spotlight (7 col) + Medium (5 col) */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    {shownStories[0] && (
+                      <div
+                        onClick={() => setSelectedStory(shownStories[0])}
+                        className="md:col-span-7 h-72 md:h-80 relative overflow-hidden rounded-2xl cursor-pointer group border border-slate-200 shadow-2xs"
+                      >
+                        <img
+                          src={shownStories[0].image}
+                          alt={shownStories[0].title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        />
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent p-5 text-white">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="bg-[#e20113] text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md">
+                              {shownStories[0].category}
+                            </span>
+                            <span className="text-xs text-slate-300 font-semibold">{shownStories[0].date}</span>
+                          </div>
+                          <h3 className="text-base sm:text-lg font-extrabold text-white leading-snug line-clamp-2">
+                            {shownStories[0].title}
+                          </h3>
+                          <p className="text-xs text-slate-300 mt-1 line-clamp-1">{shownStories[0].school}</p>
+                        </div>
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="bg-white/95 text-slate-800 text-xs font-extrabold px-3 py-1 rounded-lg flex items-center gap-1 shadow-xs">
+                            <span className="material-symbols-outlined text-[15px]">open_in_new</span>
+                            Baca
+                          </span>
+                        </div>
                       </div>
+                    )}
+
+                    {shownStories[1] && (
+                      <div
+                        onClick={() => setSelectedStory(shownStories[1])}
+                        className="md:col-span-5 h-72 md:h-80 relative overflow-hidden rounded-2xl cursor-pointer group border border-slate-200 shadow-2xs"
+                      >
+                        <img
+                          src={shownStories[1].image}
+                          alt={shownStories[1].title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        />
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent p-5 text-white">
+                          <span className="bg-[#e20113] text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md self-start mb-1.5 inline-block">
+                            {shownStories[1].category}
+                          </span>
+                          <h3 className="text-sm sm:text-base font-extrabold text-white leading-snug line-clamp-2">
+                            {shownStories[1].title}
+                          </h3>
+                          <p className="text-xs text-slate-300 mt-1 line-clamp-1">{shownStories[1].school}</p>
+                        </div>
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="bg-white/95 text-slate-800 text-xs font-extrabold px-3 py-1 rounded-lg flex items-center gap-1 shadow-xs">
+                            <span className="material-symbols-outlined text-[15px]">open_in_new</span>
+                            Baca
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Row 2: 2 balanced cards (6 col each) */}
+                  {shownStories.length >= 3 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {shownStories.slice(2, 4).map((story) => (
+                        <div
+                          key={story.id}
+                          onClick={() => setSelectedStory(story)}
+                          className="h-56 relative overflow-hidden rounded-2xl cursor-pointer group border border-slate-200 shadow-2xs"
+                        >
+                          <img
+                            src={story.image}
+                            alt={story.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                          />
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent p-4 text-white">
+                            <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md self-start mb-1.5 border border-white/30 inline-block">
+                              {story.category}
+                            </span>
+                            <h4 className="text-sm font-extrabold text-white leading-snug line-clamp-1">{story.title}</h4>
+                            <p className="text-xs text-slate-300 mt-0.5">
+                              {story.school} · {story.date}
+                            </p>
+                          </div>
+                          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="bg-white/95 text-slate-800 text-xs font-extrabold px-3 py-1 rounded-lg flex items-center gap-1 shadow-xs">
+                              <span className="material-symbols-outlined text-[15px]">open_in_new</span>
+                              Baca
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                  )}
+
+                  {/* Row 3: Expanded Stories (3 col grid) */}
+                  {isDocExpanded && documentaryStories.length > 4 && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 animate-in fade-in duration-300">
+                      {documentaryStories.slice(4).map((story) => (
+                        <div
+                          key={story.id}
+                          onClick={() => setSelectedStory(story)}
+                          className="h-56 relative overflow-hidden rounded-2xl cursor-pointer group border border-slate-200 shadow-2xs"
+                        >
+                          <img
+                            src={story.image}
+                            alt={story.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                          />
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent p-4 text-white">
+                            <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md self-start mb-1.5 border border-white/30 inline-block">
+                              {story.category}
+                            </span>
+                            <h4 className="text-sm font-extrabold text-white leading-snug line-clamp-1">{story.title}</h4>
+                            <p className="text-xs text-slate-300 mt-0.5">{story.school}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Expand / Collapse Button for Stories */}
+                {documentaryStories.length > 4 && (
+                  <div className="mt-6 flex justify-center">
                     <button
-                      onClick={() => showToast(`Mengunduh berkas ${doc.name}...`, 'info')}
-                      className="text-xs font-bold text-[#e20113] hover:underline px-3 py-1 bg-red-50 hover:bg-red-100 rounded-lg cursor-pointer"
+                      onClick={() => setIsDocExpanded(!isDocExpanded)}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-[#e20113] hover:text-[#e20113] text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-2xs cursor-pointer"
                     >
-                      Unduh
+                      <span className="material-symbols-outlined text-[17px]">
+                        {isDocExpanded ? 'expand_less' : 'photo_library'}
+                      </span>
+                      <span>{isDocExpanded ? 'Ringkas Galeri' : `+${documentaryStories.length - 4} Foto Arsip Lainnya`}</span>
                     </button>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
+                )}
 
-        {/* ══════════════════════════════════════════════════════════════════════════
+                {/* ══════════════ SUBSECTION: PROJEK YANG DIBUAT (4 CARDS) ══════════════ */}
+                <div className="mt-14 pt-10 border-t border-slate-200">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-widest text-[#e20113]">
+                        ARTEFAK PEMBELAJARAN
+                      </span>
+                      <h3 className="text-xl font-extrabold text-slate-900 mt-0.5">Karya Nyata Siswa SMP</h3>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-400">
+                      {shownProjects.length}/{showcaseProjects.length} Artefak
+                    </span>
+                  </div>
+
+                  {/* 4 Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {shownProjects.map((proj) => (
+                      <div
+                        key={proj.id}
+                        onClick={() => setSelectedProject(proj)}
+                        className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden cursor-pointer group hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between"
+                      >
+                        <div className="aspect-[16/10] bg-slate-100 relative overflow-hidden">
+                          <img
+                            src={proj.image}
+                            alt={proj.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <span className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-xs text-slate-900 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shadow-2xs">
+                            {proj.tag}
+                          </span>
+                        </div>
+
+                        <div className="p-4 flex flex-col justify-between flex-1">
+                          <div>
+                            <h4 className="text-xs font-extrabold text-slate-900 group-hover:text-[#e20113] transition-colors line-clamp-1">
+                              {proj.title}
+                            </h4>
+                            <p className="text-xs text-slate-500 mt-1 leading-snug line-clamp-2">{proj.desc}</p>
+                          </div>
+
+                          <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span className="text-slate-400 font-medium truncate max-w-[130px]">{proj.school}</span>
+                            <span className="font-bold text-[#e20113] group-hover:underline">Lihat Rincian</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Expand / Collapse Button for Projects */}
+                  {showcaseProjects.length > 4 && (
+                    <div className="mt-8 flex justify-center">
+                      <button
+                        onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-[#e20113] hover:text-[#e20113] text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-2xs cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[17px]">
+                          {isProjectsExpanded ? 'expand_less' : 'grid_view'}
+                        </span>
+                        <span>{isProjectsExpanded ? 'Ringkas Projek' : `+${showcaseProjects.length - 4} Projek Lainnya`}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════════════════════════════════
+            6. STANDAR KURIKULUM & BERKAS
+        ══════════════════════════════════════════════════════════════════════════ */}
+            <section className="w-full bg-white py-16 md:py-20 border-b border-slate-200/80" id="kurikulum">
+              <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                  {/* Left Column: Accreditation Points */}
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-widest text-[#e20113]">
+                      04 / STANDAR PEDOMAN
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1 mb-6">
+                      Pedoman & Standar Kurikulum
+                    </h2>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { icon: 'verified_user', label: 'Disahkan MGMP', sub: 'Informatika Kab. Sidoarjo' },
+                        { icon: 'menu_book', label: 'Struktur 6 JP', sub: '30% Teori, 70% Praktik Lab' },
+                        { icon: 'fact_check', label: 'Rubrik Penilaian', sub: 'Kreativitas & Kemandirian' },
+                        { icon: 'emoji_events', label: 'Kurikulum Merdeka', sub: 'Capaian Fase D SMP' },
+                      ].map((item) => (
+                        <div
+                          key={item.label}
+                          className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-start gap-3 hover:border-slate-300 transition-colors"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
+                            <span className="material-symbols-outlined text-[20px] text-[#e20113]">{item.icon}</span>
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-900">{item.label}</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">{item.sub}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right Column: Downloadable Files */}
+                  <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-5 flex flex-col gap-3 shadow-2xs">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                      <span className="text-xs font-bold text-slate-900 uppercase">Paket Dokumen Resmi Guru & Tim</span>
+                      <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200 uppercase">
+                        Terverifikasi
+                      </span>
+                    </div>
+
+                    {[
+                      { icon: 'picture_as_pdf', color: 'text-rose-500', name: 'Buku Panduan Mentor Skomda v4.2', size: 'PDF • 4.8 MB' },
+                      { icon: 'description', color: 'text-blue-500', name: 'Format RPP & Berita Acara Tatap Muka', size: 'DOCX • 1.2 MB' },
+                      { icon: 'table_chart', color: 'text-emerald-500', name: 'Rubrik Penilaian Akhir Siswa SMP', size: 'XLSX • 850 KB' },
+                    ].map((doc) => (
+                      <div
+                        key={doc.name}
+                        className="flex items-center justify-between p-3.5 bg-white border border-slate-200/80 rounded-xl hover:border-slate-300 transition-colors shadow-2xs"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`material-symbols-outlined text-[22px] ${doc.color}`}>{doc.icon}</span>
+                          <div>
+                            <p className="text-xs font-bold text-slate-900">{doc.name}</p>
+                            <p className="text-[11px] text-slate-400 font-medium">{doc.size}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => showToast(`Mengunduh berkas ${doc.name}...`, 'info')}
+                          className="text-xs font-bold text-[#e20113] hover:underline px-3 py-1 bg-red-50 hover:bg-red-100 rounded-lg cursor-pointer"
+                        >
+                          Unduh
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════════════════════════════════
             7. CALL-TO-ACTION (Floating Red Banner with Parallax Feel)
         ══════════════════════════════════════════════════════════════════════════ */}
-        <section className="py-16 px-5 sm:px-8 md:px-10 bg-white">
-          <div className="max-w-7xl mx-auto rounded-3xl bg-gradient-to-r from-[#E11D2E] via-[#D7141F] to-[#B80F1A] text-white p-8 sm:p-12 shadow-xl relative overflow-hidden">
-            <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-              <div className="max-w-2xl">
-                <span className="inline-block text-[11px] font-extrabold uppercase tracking-widest text-red-200 bg-black/15 px-3 py-1 rounded-full mb-3">
-                  Saluran Pendampingan Resmi
-                </span>
-                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                  Ketua Regu? Butuh bantuan perizinan atau kurikulum?
-                </h3>
-                <p className="text-xs sm:text-sm text-red-100 mt-2 font-normal leading-relaxed">
-                  Tim kurikulum dan kemitraan SMK Telkom Sidoarjo siap mendampingi proses koordinasi dengan pihak sekolah mitra secara cepat dan responsif.
-                </p>
-              </div>
+            <section className="py-16 px-5 sm:px-8 md:px-10 bg-white">
+              <div className="max-w-7xl mx-auto rounded-3xl bg-gradient-to-r from-[#E11D2E] via-[#D7141F] to-[#B80F1A] text-white p-8 sm:p-12 shadow-xl relative overflow-hidden">
+                <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                  <div className="max-w-2xl">
+                    <span className="inline-block text-[11px] font-extrabold uppercase tracking-widest text-red-200 bg-black/15 px-3 py-1 rounded-full mb-3">
+                      Saluran Pendampingan Resmi
+                    </span>
+                    <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
+                      Ketua Regu? Butuh bantuan perizinan atau kurikulum?
+                    </h3>
+                    <p className="text-xs sm:text-sm text-red-100 mt-2 font-normal leading-relaxed">
+                      Tim kurikulum dan kemitraan SMK Telkom Sidoarjo siap mendampingi proses koordinasi dengan pihak sekolah mitra secara cepat dan responsif.
+                    </p>
+                  </div>
 
-              <div className="flex flex-wrap items-center gap-3 shrink-0">
-                <button
-                  onClick={() => navigate('/workspace')}
-                  className="inline-flex items-center gap-2 px-6 h-12 bg-white hover:bg-slate-50 text-[#0B1B3A] font-bold text-xs uppercase tracking-wider rounded-full transition-all shadow-md cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[18px] text-[#D7141F]">terminal</span>
-                  <span>Buka Workspace</span>
-                </button>
-                <button
-                  onClick={() => showToast('Menghubungkan ke helpdesk kurikulum...', 'info')}
-                  className="inline-flex items-center gap-2 px-6 h-12 bg-black/20 hover:bg-black/30 text-white font-bold text-xs uppercase tracking-wider rounded-full border border-white/25 transition-all cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[18px]">support_agent</span>
-                  <span>Hubungi Koordinator</span>
-                </button>
+                  <div className="flex flex-wrap items-center gap-3 shrink-0">
+                    <button
+                      onClick={() => navigate('/workspace')}
+                      className="inline-flex items-center gap-2 px-6 h-12 bg-white hover:bg-slate-50 text-[#0B1B3A] font-bold text-xs uppercase tracking-wider rounded-full transition-all shadow-md cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[18px] text-[#D7141F]">terminal</span>
+                      <span>Buka Workspace</span>
+                    </button>
+                    <button
+                      onClick={() => showToast('Menghubungkan ke helpdesk kurikulum...', 'info')}
+                      className="inline-flex items-center gap-2 px-6 h-12 bg-black/20 hover:bg-black/30 text-white font-bold text-xs uppercase tracking-wider rounded-full border border-white/25 transition-all cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">support_agent</span>
+                      <span>Hubungi Koordinator</span>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </section>
-      </>
-    )}
-  </main>
+            </section>
+          </>
+        )}
+      </main>
 
       {/* ══════════════════════════════════════════════════════════════════════════
           8. FOOTER (EDITORIAL LIGHT THEME)
@@ -1514,14 +1492,13 @@ export const HomePage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-12 border-b border-[#E8ECF2]">
             {/* Col 1: Identity */}
             <div className="md:col-span-5 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#D7141F] text-white flex items-center justify-center font-black text-xs shadow-xs">
-                  SM
-                </div>
-                <div>
-                  <span className="text-sm font-black text-[#0B1B3A] tracking-tight block">SKOMDA MENGAJAR 2026</span>
-                  <span className="text-[11px] text-slate-400 font-medium">SMK Telkom Sidoarjo</span>
-                </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic">
+                  #SKOMDA
+                </span>
+                <span className="bg-[#e20113] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full transform -rotate-3 origin-center inline-block tracking-wider select-none">
+                  MENGAJAR
+                </span>
               </div>
               <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
                 Inisiatif vokasi dan pengabdian masyarakat untuk mendampingi literasi digital, komputasi kreatif, dan teknologi tepat guna di 12 SMP Kabupaten Sidoarjo.

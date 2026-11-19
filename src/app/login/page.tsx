@@ -113,7 +113,7 @@ export const LoginPage: React.FC = () => {
                     <span className="text-3xl font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic">
                       #SKOMDA
                     </span>
-                    <span className="bg-[#e20113] text-white text-base uppercase px-3 py-1 rounded-lg transform -rotate-3 origin-center font-extrabold shadow-xs">
+                    <span className="bg-[#e20113] text-white text-base uppercase px-3.5 py-1 rounded-full transform -rotate-3 origin-center font-extrabold shadow-xs tracking-wider select-none">
                       MENGAJAR
                     </span>
                   </div>
