@@ -283,26 +283,25 @@ export const HomePage: React.FC = () => {
                 preserveAspectRatio="none"
                 viewBox="0 0 1100 160"
               >
-                {/* Full Path (Gray Dotted) */}
+                {/* Full Path (Gray Dotted) - only renders from Node 02 onwards */}
                 <path
                   id="journey-full-path"
                   d="M 50,70 C 150,20 230,120 330,60 C 430,10 510,120 610,65 C 710,15 790,125 890,70 C 970,25 1020,80 1060,60"
                   stroke="#CBD5E1"
                   strokeDasharray="4 6"
-                  strokeWidth="2.5"
+                  strokeWidth="2"
+                  style={{
+                    clipPath: 'polygon(27% 0%, 100% 0%, 100% 100%, 27% 100%)',
+                  }}
                 />
                 
-                {/* Exact Active/Completed Red Segment (100% Identik kurva aslinya, dipotong di Node 02) */}
+                {/* Active/Completed Red Segment from Node 01 to Node 02 (clean solid stroke, no duplicate gray underneath) */}
                 <path
                   d="M 50,70 C 150,20 230,120 330,60 C 430,10 510,120 610,65 C 710,15 790,125 890,70 C 970,25 1020,80 1060,60"
                   stroke="#DC2626"
-                  strokeWidth="3.5"
+                  strokeWidth="2.5"
                   strokeDasharray="4 6"
-                  pathLength="1000"
-                  strokeDashoffset="0"
                   style={{
-                    strokeDasharray: '4 6',
-                    strokeDashoffset: 0,
                     clipPath: 'polygon(0% 0%, 27% 0%, 27% 100%, 0% 100%)',
                   }}
                 />
