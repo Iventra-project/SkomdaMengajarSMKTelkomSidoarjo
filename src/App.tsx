@@ -6,8 +6,10 @@
 import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { HomePage } from './app/page';
+import { PostLoginHomePage } from './app/home/page';
 import { LoginPage } from './app/login/page';
-import { AdminMonitoringPage } from './app/admin/page';
+import { KetuaDashboardPage } from './app/dashboard/ketua/page';
+import { AdminDashboardWorkspace } from './app/dashboard/admin/page';
 import { AdminKelompokDetailPage } from './app/admin/kelompok/[id]/page';
 import { WorkspacePage } from './app/workspace/page';
 import { BannerPreviewModal } from './components/BannerPreviewModal';
@@ -21,8 +23,13 @@ const AppRouter: React.FC = () => {
     currentPath === '/admin/kelompok/03' ||
     currentPath === '/dashboard/admin' ||
     currentPath === '/dashboard/admin/review';
-  const isUserRoute = currentPath === '/workspace';
-  const isProtectedRoute = isAdminRoute || isUserRoute;
+
+  const isKetuaRoute =
+    currentPath === '/home' ||
+    currentPath === '/dashboard/ketua' ||
+    currentPath === '/workspace';
+
+  const isProtectedRoute = isAdminRoute || isKetuaRoute;
 
   useEffect(() => {
     if (!isAuthReady) return;
@@ -35,33 +42,35 @@ const AppRouter: React.FC = () => {
 
     if (isAdminRoute && currentUser && currentUser.role !== 'admin') {
       showToast('Akses ditolak: Halaman ini khusus role Admin.', 'warning');
-      navigate('/workspace');
+      navigate('/home');
       return;
     }
 
-    if (isUserRoute && currentUser && currentUser.role !== 'user') {
-      showToast('Halaman Workspace khusus untuk User Kelompok. Mengalihkan ke Panel Admin.', 'info');
-      navigate('/admin');
+    if (isKetuaRoute && currentUser && currentUser.role === 'admin') {
+      // Allow admin to view if desired, or redirect
     }
-  }, [isAuthReady, isProtectedRoute, isAdminRoute, isUserRoute, currentUser, navigate, showToast]);
-
-  const canRenderCurrentRoute =
-    !isProtectedRoute ||
-    (currentUser !== null &&
-      ((isAdminRoute && currentUser.role === 'admin') ||
-        (isUserRoute && currentUser.role === 'user')));
+  }, [isAuthReady, isProtectedRoute, isAdminRoute, isKetuaRoute, currentUser, navigate, showToast]);
 
   return (
-    <div className="relative min-h-screen bg-[#f9f9f9] text-[#1a1c1c] flex flex-col font-sans">
-      {/* Dynamic View based on Route & Role Guard */}
+    <div className="relative min-h-screen bg-[#F4F4F5] text-slate-900 flex flex-col font-sans">
+      {/* 1. Public Pre-Login Landing Page */}
       {currentPath === '/' && <HomePage />}
+
+      {/* 2. Login & Role Simulation */}
       {currentPath === '/login' && <LoginPage />}
-      {canRenderCurrentRoute &&
-        (currentPath === '/admin' ||
-          currentPath === '/dashboard/admin' ||
-          currentPath === '/dashboard/admin/review') && <AdminMonitoringPage />}
-      {canRenderCurrentRoute && currentPath === '/admin/kelompok/03' && <AdminKelompokDetailPage />}
-      {canRenderCurrentRoute && currentPath === '/workspace' && <WorkspacePage />}
+
+      {/* 3. Post-Login Home Page (Bridging familiar layout with pinned own group) */}
+      {currentPath === '/home' && <PostLoginHomePage />}
+
+      {/* 4. Multi-Page Ketua Dashboard (6 Modular Sub-Pages) */}
+      {currentPath === '/dashboard/ketua' && <KetuaDashboardPage />}
+      {currentPath === '/workspace' && <KetuaDashboardPage />}
+
+      {/* 5. Pill-Based Admin Workspace */}
+      {(currentPath === '/dashboard/admin' ||
+        currentPath === '/dashboard/admin/review' ||
+        currentPath === '/admin') && <AdminDashboardWorkspace />}
+      {currentPath === '/admin/kelompok/03' && <AdminKelompokDetailPage />}
 
       {/* Global Interactive Modals & Route Switcher */}
       <BannerPreviewModal />
