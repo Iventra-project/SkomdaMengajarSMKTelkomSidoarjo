@@ -17,14 +17,22 @@ import {
   GraduationCap,
   Calendar,
   Layers,
-  ArrowRight
+  ArrowRight,
+  BookOpen,
+  Palette,
+  Flag,
+  Sparkles,
+  ExternalLink,
+  Mail,
+  ShieldCheck,
+  Check
 } from 'lucide-react';
 
 // Static members generator for preview modal
 const generateMockMembers = (groupNumber: string, leaderName: string, isLeaderAssigned: boolean) => {
   const num = parseInt(groupNumber, 10) || 1;
   const baseNis = 54124100 + num * 10;
-  
+
   const studentPool = [
     'Ahmad Rizky Pratama',
     'Nabila Putri Ramadhani',
@@ -55,7 +63,7 @@ const generateMockMembers = (groupNumber: string, leaderName: string, isLeaderAs
     const isFirst = i === 0;
     const name = isFirst && isLeaderAssigned ? leaderName : studentPool[(num * 3 + i) % studentPool.length];
     const role = isFirst && isLeaderAssigned ? 'Ketua Kelompok' : i === 1 ? 'Sekretaris & Notulen' : i === 2 ? 'Bendahara / Logistik' : 'Anggota Tim';
-    
+
     members.push({
       id: `${groupNumber}-${i + 1}`,
       nis: (baseNis + i).toString(),
@@ -148,52 +156,6 @@ export const HomePage: React.FC = () => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
   };
-
-  // Stepper data definitions
-  const steps = [
-    {
-      step: '01',
-      title: 'Pembagian Kelompok',
-      status: 'completed',
-      badge: 'Selesai',
-      sub: 'Penetapan 24 Tim & SMP',
-    },
-    {
-      step: '02',
-      title: 'Pembentukan Ketua Tim',
-      status: 'active',
-      badge: 'Sedang Berjalan',
-      sub: 'Musyawarah & Aktivasi Akun',
-    },
-    {
-      step: '03',
-      title: 'Susun Materi',
-      status: 'locked',
-      badge: 'Terkunci',
-      sub: 'RPP & Modul Digital',
-    },
-    {
-      step: '04',
-      title: 'Siapkan Desain',
-      status: 'locked',
-      badge: 'Terkunci',
-      sub: 'X-Banner & Feed IG',
-    },
-    {
-      step: '05',
-      title: 'Mengajar di SMP',
-      status: 'locked',
-      badge: 'Terkunci',
-      sub: 'Pelaksanaan 30 Hari',
-    },
-    {
-      step: '06',
-      title: 'Laporan & Evaluasi',
-      status: 'locked',
-      badge: 'Terkunci',
-      sub: 'Nilai & Rekap LPJ',
-    },
-  ];
 
   return (
     <div className="w-full bg-[#FAFAFA] text-slate-900 antialiased min-h-screen flex flex-col font-sans selection:bg-red-500 selection:text-white">
@@ -294,15 +256,15 @@ export const HomePage: React.FC = () => {
           </div>
         </section>
 
-        {/* ================= 2. PROGRAM PROGRESS TRACKER ================= */}
-        <section className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-6">
+        {/* ================= 2. PROGRAM PROGRESS TRACKER (SERPENTINE CURVED PATH) ================= */}
+        <section className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-                <span>Alur & Progres Skomda Mengajar</span>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                Alur & Progres Skomda Mengajar
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Tahapan resmi program dari pembagian tim hingga pelaksanaan mengajar di SMP.
+                Tahapan terstruktur dari pembentukan tim hingga evaluasi luaran nyata di sekolah mitra.
               </p>
             </div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-bold border border-red-200 self-start sm:self-auto">
@@ -311,85 +273,115 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Stepper Grid / Horizontal List */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 relative">
-            {steps.map((st, idx) => {
-              const isStep1 = idx === 0;
-              const isStep2 = idx === 1;
-              const isLocked = idx >= 2;
+          {/* Serpentine Wavy Path Stepper */}
+          <div className="w-full relative py-6 sm:py-8 overflow-x-auto select-none scrollbar-none">
+            <div className="min-w-[860px] relative h-48 flex items-center">
+              {/* Underlying Dotted Smooth Path (SVG) */}
+              <svg
+                className="w-full h-full absolute inset-0 pointer-events-none text-slate-300"
+                fill="none"
+                preserveAspectRatio="none"
+                viewBox="0 0 1100 160"
+              >
+                <path
+                  d="M 50,70 C 150,20 230,120 330,60 C 430,10 510,120 610,65 C 710,15 790,125 890,70 C 970,25 1020,80 1060,60"
+                  stroke="currentColor"
+                  strokeDasharray="4 6"
+                  strokeWidth="2"
+                />
+              </svg>
 
-              return (
-                <div
-                  key={st.step}
-                  className={`relative flex flex-col p-3.5 rounded-xl transition-all duration-200 ${
-                    isStep1
-                      ? 'bg-red-50/40 border border-red-200'
-                      : isStep2
-                      ? 'border-2 border-red-600 bg-red-50/70 shadow-xs'
-                      : 'bg-slate-50/80 border border-slate-200/60 opacity-80'
-                  }`}
-                >
-                  {/* Top Row with Number/Icon and Badge */}
-                  <div className="flex items-center justify-between mb-2">
-                    <div
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${
-                        isStep1
-                          ? 'bg-red-700 text-white ring-4 ring-red-100'
-                          : isStep2
-                          ? 'bg-red-600 text-white font-extrabold shadow-xs'
-                          : 'bg-slate-200 text-slate-500'
-                      }`}
-                    >
-                      {isStep1 ? (
-                        <CheckCircle2 className="w-4 h-4 text-white" />
-                      ) : isLocked ? (
-                        <Lock className="w-3.5 h-3.5 text-slate-400" />
-                      ) : (
-                        st.step
-                      )}
-                    </div>
-
-                    <span
-                      className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                        isStep1
-                          ? 'bg-red-100 text-red-800'
-                          : isStep2
-                          ? 'bg-red-600 text-white animate-pulse'
-                          : 'bg-slate-200 text-slate-500'
-                      }`}
-                    >
-                      {st.badge}
-                    </span>
+              {/* 6 Horizontal Interactive Nodes with Alt-Elevations (-translate-y-4, translate-y-6, ...) */}
+              <div className="w-full grid grid-cols-6 gap-2 relative z-10 items-center">
+                {/* Node 01: Bentuk Kelompok (Active/Completed Red) */}
+                <div className="flex flex-col items-center text-center transform -translate-y-4 group">
+                  <div className="w-16 h-16 rounded-2xl bg-red-600 text-white flex flex-col items-center justify-center mb-2 shadow-lg shadow-red-600/25 transition-transform group-hover:scale-105">
+                    <span className="text-[10px] font-bold text-white/90 leading-none mb-1">01</span>
+                    <Users className="w-5 h-5 text-white" />
                   </div>
-
-                  {/* Title and Subtitle */}
-                  <div className="space-y-0.5">
-                    <h3
-                      className={`text-xs font-bold leading-tight ${
-                        isStep1
-                          ? 'text-red-700 font-extrabold'
-                          : isStep2
-                          ? 'text-red-700 font-bold'
-                          : 'text-slate-600'
-                      }`}
-                    >
-                      {st.step}. {st.title}
-                    </h3>
-                    <p className="text-[11px] text-slate-500 leading-tight">
-                      {st.sub}
-                    </p>
-                  </div>
-
-                  {/* Progress Line Step 1 -> Step 2 */}
-                  {isStep1 && (
-                    <div className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-1 bg-red-600 z-10 rounded-full" />
-                  )}
-                  {isStep2 && (
-                    <div className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-0.5 bg-slate-300 z-10" />
-                  )}
+                  <span className="text-xs font-extrabold text-slate-900 leading-tight">
+                    Bentuk kelompok
+                  </span>
+                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">
+                    Penentuan anggota tim
+                  </span>
                 </div>
-              );
-            })}
+
+                {/* Node 02: Pilih Ketua */}
+                <div className="flex flex-col items-center text-center transform translate-y-6 group">
+                  <div className="w-16 h-16 rounded-2xl bg-white border-2 border-red-500/80 text-red-600 shadow-md shadow-red-500/10 flex flex-col items-center justify-center mb-2 transition-transform group-hover:scale-105">
+                    <span className="text-[10px] font-bold text-red-500 leading-none mb-1">02</span>
+                    <UserCheck className="w-5 h-5 text-red-600" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-900 leading-tight">
+                    Pilih ketua
+                  </span>
+                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">
+                    Koordinator lapangan
+                  </span>
+                </div>
+
+                {/* Node 03: Susun Materi */}
+                <div className="flex flex-col items-center text-center transform -translate-y-6 group opacity-85 hover:opacity-100 transition-opacity">
+                  <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:border-slate-400 flex flex-col items-center justify-center mb-2 shadow-xs transition-transform group-hover:scale-105">
+                    <span className="text-[10px] font-medium text-slate-400 leading-none mb-1">03</span>
+                    <BookOpen className="w-5 h-5 text-slate-700" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 leading-tight">
+                    Susun materi
+                  </span>
+                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">
+                    Modul & silabus ajar
+                  </span>
+                </div>
+
+                {/* Node 04: Siapkan Desain */}
+                <div className="flex flex-col items-center text-center transform translate-y-5 group opacity-85 hover:opacity-100 transition-opacity">
+                  <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:border-slate-400 flex flex-col items-center justify-center mb-2 shadow-xs transition-transform group-hover:scale-105">
+                    <span className="text-[10px] font-medium text-slate-400 leading-none mb-1">04</span>
+                    <Palette className="w-5 h-5 text-slate-700" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 leading-tight">
+                    Siapkan desain
+                  </span>
+                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">
+                    Media visual & slide
+                  </span>
+                </div>
+
+                {/* Node 05: Mengajar di SMP */}
+                <div className="flex flex-col items-center text-center transform -translate-y-4 group opacity-85 hover:opacity-100 transition-opacity">
+                  <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:border-slate-400 flex flex-col items-center justify-center mb-2 shadow-xs transition-transform group-hover:scale-105">
+                    <span className="text-[10px] font-medium text-slate-400 leading-none mb-1">05</span>
+                    <GraduationCap className="w-5 h-5 text-slate-700" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 leading-tight">
+                    Mengajar di SMP
+                  </span>
+                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">
+                    Sesi kelas interaktif
+                  </span>
+                </div>
+
+                {/* Node 06: Laporan & Feedback (Finish Tag) */}
+                <div className="flex flex-col items-center text-center transform translate-y-4 group opacity-85 hover:opacity-100 transition-opacity relative">
+                  {/* Tilted Finish Badge */}
+                  <div className="absolute -top-3.5 right-6 sm:right-8 bg-red-600 text-white font-black text-[9px] uppercase px-2 py-0.5 rounded-sm transform -rotate-6 origin-center shadow-xs">
+                    FINISH
+                  </div>
+                  <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:border-slate-400 flex flex-col items-center justify-center mb-2 shadow-xs transition-transform group-hover:scale-105">
+                    <span className="text-[10px] font-medium text-slate-400 leading-none mb-1">06</span>
+                    <CheckCircle2 className="w-5 h-5 text-slate-700" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 leading-tight">
+                    Laporan & feedback
+                  </span>
+                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">
+                    Refleksi & publikasi
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -592,21 +584,117 @@ export const HomePage: React.FC = () => {
             </div>
           )}
         </section>
+
+        {/* ================= CALLOUT BANNER (AKSES KETUA KELOMPOK) ================= */}
+        <section className="w-full bg-red-600 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-white shadow-md shadow-red-600/15">
+          <div className="space-y-1 text-center sm:text-left">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-red-100 bg-red-700/60 px-2.5 py-0.5 rounded-full inline-block">
+              Akses Khusus Pemimpin Tim
+            </span>
+            <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+              Ketua kelompok? Masuk di sini.
+            </h3>
+            <p className="text-xs sm:text-sm text-red-100 max-w-xl">
+              Setelah terpilih melalui musyawarah kelompok, hubungi guru pembimbing untuk aktivasi dan kelola workspace tim Anda.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/login')}
+            className="shrink-0 bg-white hover:bg-slate-100 text-red-600 font-bold text-xs sm:text-sm px-6 py-3 rounded-full transition shadow-sm hover:shadow cursor-pointer"
+          >
+            Masuk ke Workspace
+          </button>
+        </section>
       </main>
 
-      {/* ================= 4. ULTRA-MINIMAL FOOTER ================= */}
-      <footer className="mt-auto border-t border-slate-200/80 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-          <div>
-            © 2026 Skomda Mengajar • SMK Telkom Sidoarjo
+      {/* ================= 4. RICH FOOTER ================= */}
+      <footer className="mt-auto border-t border-slate-200/90 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+          {/* Top Row: 4 Columns */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-8 border-b border-slate-100">
+            {/* Col 1: Brand Info */}
+            <div className="md:col-span-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-black text-slate-900 tracking-tight select-none">
+                  #SKOMDA
+                </span>
+                <span className="bg-red-600 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full tracking-wider shadow-sm select-none">
+                  MENGAJAR
+                </span>
+                <span className="text-xs font-bold text-slate-400">#Impact2026</span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed max-w-sm">
+                Inisiatif pedagogis terapan & pengabdian digital siswa SMK Telkom Sidoarjo untuk sekolah mitra dan komunitas di Kabupaten Sidoarjo.
+              </p>
+              <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                <span>Program Aktif 2026 • 24 Kelompok Terdaftar</span>
+              </div>
+            </div>
+
+            {/* Col 2: Alur Program */}
+            <div className="md:col-span-3 space-y-2.5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                Alur Program
+              </h4>
+              <ul className="space-y-1.5 text-xs text-slate-500">
+                <li className="hover:text-red-600 cursor-pointer transition">01. Pembagian Kelompok</li>
+                <li className="hover:text-red-600 cursor-pointer transition text-red-600 font-semibold flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 inline-block" />
+                  02. Pembentukan Ketua Tim
+                </li>
+                <li className="hover:text-red-600 cursor-pointer transition">03. Penyusunan Materi Modul</li>
+                <li className="hover:text-red-600 cursor-pointer transition">04. Persiapan Desain & X-Banner</li>
+                <li className="hover:text-red-600 cursor-pointer transition">05. Pelaksanaan Mengajar di SMP</li>
+                <li className="hover:text-red-600 cursor-pointer transition">06. Evaluasi & LPJ</li>
+              </ul>
+            </div>
+
+            {/* Col 3: Arsip & Dokumen */}
+            <div className="md:col-span-2 space-y-2.5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                Informasi & Arsip
+              </h4>
+              <ul className="space-y-1.5 text-xs text-slate-500">
+                <li className="hover:text-red-600 cursor-pointer transition">Panduan Mentor</li>
+                <li className="hover:text-red-600 cursor-pointer transition">Standar Modul Ajar</li>
+                <li className="hover:text-red-600 cursor-pointer transition">Template Desain X-Banner</li>
+                <li className="hover:text-red-600 cursor-pointer transition">Laporan Dampak 2025</li>
+              </ul>
+            </div>
+
+            {/* Col 4: Afiliasi Sekolah */}
+            <div className="md:col-span-2 space-y-2.5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                Afiliasi & Penyelenggara
+              </h4>
+              <div className="space-y-1 text-xs text-slate-500">
+                <div className="font-semibold text-slate-700">SMK Telkom Sidoarjo</div>
+                <div>Yayasan Pendidikan Telkom</div>
+                <div className="text-[11px] text-slate-400 mt-2">
+                  Jl. Raya Pecantingan, Sekardangan, Kec. Sidoarjo, Kabupaten Sidoarjo
+                </div>
+              </div>
+            </div>
           </div>
-          <div>
-            <a
-              href="mailto:panitia@skomda.sch.id"
-              className="text-slate-600 hover:text-red-600 font-medium transition-colors"
-            >
-              Bantuan & Kontak Panitia
-            </a>
+
+          {/* Bottom Row */}
+          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+            <div>
+              © 2026 Skomda Mengajar • SMK Telkom Sidoarjo. Hak cipta dilindungi.
+            </div>
+            <div className="flex items-center gap-4 text-[11px] text-slate-400">
+              <span>Edisi Katalis IV</span>
+              <span>•</span>
+              <span>Sidoarjo, Jawa Timur</span>
+              <span>•</span>
+              <a
+                href="mailto:panitia@skomda.sch.id"
+                className="hover:text-red-600 transition-colors"
+              >
+                Kontak Panitia
+              </a>
+            </div>
           </div>
         </div>
       </footer>
