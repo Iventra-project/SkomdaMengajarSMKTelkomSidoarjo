@@ -283,23 +283,28 @@ export const HomePage: React.FC = () => {
                 preserveAspectRatio="none"
                 viewBox="0 0 1100 160"
               >
-                {/* Background Dotted Gray Path (Full Path 01 -> 06) */}
+                {/* Full Path (Gray Dotted) */}
                 <path
+                  id="journey-full-path"
                   d="M 50,70 C 150,20 230,120 330,60 C 430,10 510,120 610,65 C 710,15 790,125 890,70 C 970,25 1020,80 1060,60"
                   stroke="#CBD5E1"
                   strokeDasharray="4 6"
                   strokeWidth="2.5"
                 />
                 
-                {/* Completed / Active Journey Line from Node 01 (Bentuk Kelompok) to Node 02 (Pilih Ketua) */}
-                {/* S-curve path segment between center of Node 01 (~91px) and center of Node 02 (~275px) */}
+                {/* Exact Active/Completed Red Segment (100% Identik kurva aslinya, dipotong di Node 02) */}
                 <path
-                  d="M 91,62 C 145,28 200,90 275,115"
+                  d="M 50,70 C 150,20 230,120 330,60 C 430,10 510,120 610,65 C 710,15 790,125 890,70 C 970,25 1020,80 1060,60"
                   stroke="#DC2626"
                   strokeWidth="3.5"
-                  strokeDasharray="5 4"
-                  strokeLinecap="round"
-                  className="animate-pulse"
+                  strokeDasharray="4 6"
+                  pathLength="1000"
+                  strokeDashoffset="0"
+                  style={{
+                    strokeDasharray: '4 6',
+                    strokeDashoffset: 0,
+                    clipPath: 'polygon(0% 0%, 27% 0%, 27% 100%, 0% 100%)',
+                  }}
                 />
               </svg>
 
