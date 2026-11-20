@@ -92,9 +92,6 @@ const AppRouter: React.FC = () => {
         currentUser &&
         currentUser.role === 'admin' && <AdminKelompokDetailPage />}
 
-      {/* Fallback for unauthenticated access to protected routes */}
-      {!currentUser && currentPath !== '/' && <LoginPage />}
-
       {/* Global Interactive Modals & Route Switcher */}
       <BannerPreviewModal />
       <RouteSwitcherBar />
