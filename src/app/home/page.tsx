@@ -981,111 +981,206 @@ export const PostLoginHomePage: React.FC = () => {
         </section>
 
         {/* ══════════════════════════════════════════════════════════════════════════
-            6. STANDAR KURIKULUM & BERKAS
+            6. STANDAR KURIKULUM & BERKAS (HIGH-CRAFT BENTO EDITORIAL)
         ══════════════════════════════════════════════════════════════════════════ */}
-        <section className="w-full bg-white py-16 md:py-20 border-b border-slate-200/80" id="kurikulum">
+        <section className="w-full bg-white py-16 md:py-24 border-b border-slate-200/80" id="kurikulum">
           <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-              {/* Left Column: Accreditation Points */}
-              <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#e20113]">
-                  04 / STANDAR PEDOMAN
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1 mb-6">
-                  Pedoman & Standar Kurikulum
-                </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
+              {/* Left Column (lg:col-span-6): Curriculum Pillars */}
+              <div className="lg:col-span-6 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2 h-2 rounded-full bg-[#E50914]" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-[#E50914]">
+                      04 / STANDAR PEDOMAN
+                    </span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#141416] tracking-tight">
+                    Pedoman &amp; Standar Kurikulum
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-lg leading-relaxed">
+                    Setiap modul pembelajaran dan materi praktikum disusun selaras dengan capaian pembelajaran fase D kurikulum nasional dan diverifikasi MGMP Informatika Sidoarjo.
+                  </p>
+                </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
                   {[
-                    { icon: 'verified_user', label: 'Disahkan MGMP', sub: 'Informatika Kab. Sidoarjo' },
-                    { icon: 'menu_book', label: 'Struktur 6 JP', sub: '30% Teori, 70% Praktik Lab' },
-                    { icon: 'fact_check', label: 'Rubrik Penilaian', sub: 'Kreativitas & Kemandirian' },
-                    { icon: 'emoji_events', label: 'Kurikulum Merdeka', sub: 'Capaian Fase D SMP' },
+                    {
+                      num: '01',
+                      icon: 'verified_user',
+                      label: 'Disahkan MGMP',
+                      sub: 'Informatika Kab. Sidoarjo',
+                      desc: 'Validasi silabus & standar kompetensi resmi tenaga pendidik.',
+                    },
+                    {
+                      num: '02',
+                      icon: 'menu_book',
+                      label: 'Struktur 6 JP',
+                      sub: '30% Teori • 70% Praktik',
+                      desc: 'Fokus praktikum langsung di lab komputer SMP mitra.',
+                    },
+                    {
+                      num: '03',
+                      icon: 'fact_check',
+                      label: 'Rubrik Penilaian',
+                      sub: 'Kreativitas & Logika',
+                      desc: 'Tolok ukur capaian karya digital & kemandirian siswa SMP.',
+                    },
+                    {
+                      num: '04',
+                      icon: 'emoji_events',
+                      label: 'Kurikulum Merdeka',
+                      sub: 'Capaian Fase D SMP',
+                      desc: 'Integrasi literasi digital, berpikir komputasional & etika AI.',
+                    },
                   ].map((item) => (
                     <div
                       key={item.label}
-                      className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-start gap-3 hover:border-slate-300 transition-colors"
+                      className="group relative p-5 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between hover:-translate-y-1 hover:border-[#E50914]/30 hover:shadow-md transition-all duration-200 shadow-2xs"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
-                        <span className="material-symbols-outlined text-[20px] text-[#e20113]">{item.icon}</span>
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100/70 text-[#E50914] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                        </div>
+                        <span className="text-[11px] font-mono font-bold text-slate-400 group-hover:text-[#E50914] transition-colors">
+                          {item.num}
+                        </span>
                       </div>
+
                       <div>
-                        <p className="text-xs font-bold text-slate-900">{item.label}</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">{item.sub}</p>
+                        <h4 className="text-sm font-bold text-[#141416] group-hover:text-[#E50914] transition-colors">
+                          {item.label}
+                        </h4>
+                        <p className="text-[11px] font-semibold text-[#E50914] mt-0.5">
+                          {item.sub}
+                        </p>
+                        <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                          {item.desc}
+                        </p>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Right Column: Downloadable Files */}
-              <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-5 flex flex-col gap-3 shadow-2xs">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                  <span className="text-xs font-bold text-slate-900 uppercase">Paket Dokumen Resmi Guru & Tim</span>
-                  <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200 uppercase">
-                    Terverifikasi
-                  </span>
-                </div>
-
-                {[
-                  { icon: 'picture_as_pdf', color: 'text-rose-500', name: 'Buku Panduan Mentor Skomda v4.2', size: 'PDF • 4.8 MB' },
-                  { icon: 'description', color: 'text-blue-500', name: 'Format RPP & Berita Acara Tatap Muka', size: 'DOCX • 1.2 MB' },
-                  { icon: 'table_chart', color: 'text-emerald-500', name: 'Rubrik Penilaian Akhir Siswa SMP', size: 'XLSX • 850 KB' },
-                ].map((doc) => (
-                  <div
-                    key={doc.name}
-                    className="flex items-center justify-between p-3.5 bg-white border border-slate-200/80 rounded-xl hover:border-slate-300 transition-colors shadow-2xs"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`material-symbols-outlined text-[22px] ${doc.color}`}>{doc.icon}</span>
-                      <div>
-                        <p className="text-xs font-bold text-slate-900">{doc.name}</p>
-                        <p className="text-[11px] text-slate-400 font-medium">{doc.size}</p>
-                      </div>
+              {/* Right Column (lg:col-span-6): PAKET DOKUMEN RESMI GURU & TIM (BENTO CONTAINER) */}
+              <div className="lg:col-span-6">
+                <div className="rounded-[28px] bg-slate-50/70 p-6 sm:p-7 border border-slate-200/80 shadow-xs flex flex-col gap-4">
+                  {/* Container Header */}
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-200/80">
+                    <div>
+                      <span className="text-xs font-bold text-[#141416] uppercase tracking-wider block">
+                        Paket Dokumen Resmi Guru &amp; Tim
+                      </span>
+                      <span className="text-[11px] text-slate-500 mt-0.5 block">
+                        Berkas acuan operasional dan berita acara cetak
+                      </span>
                     </div>
-                    <button
-                      onClick={() => showToast(`Mengunduh berkas ${doc.name}...`, 'info')}
-                      className="text-xs font-bold text-[#e20113] hover:underline px-3 py-1 bg-red-50 hover:bg-red-100 rounded-lg cursor-pointer"
-                    >
-                      Unduh
-                    </button>
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200/80 uppercase tracking-wide">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Terverifikasi
+                    </span>
                   </div>
-                ))}
+
+                  {/* Document Rows */}
+                  {[
+                    {
+                      type: 'PDF',
+                      typeBadge: 'bg-rose-50 text-rose-600 border-rose-200/80',
+                      name: 'Buku Panduan Mentor Skomda v4.2',
+                      meta: 'Pedoman Lengkap Pembimbing • 4.8 MB',
+                      date: 'Update Feb 2026',
+                    },
+                    {
+                      type: 'DOCX',
+                      typeBadge: 'bg-blue-50 text-blue-600 border-blue-200/80',
+                      name: 'Format RPP & Berita Acara Tatap Muka',
+                      meta: 'Template Administrasi Mengajar • 1.2 MB',
+                      date: 'Format Resmi',
+                    },
+                    {
+                      type: 'XLSX',
+                      typeBadge: 'bg-emerald-50 text-emerald-600 border-emerald-200/80',
+                      name: 'Rubrik Penilaian Akhir Siswa SMP',
+                      meta: 'Matriks Evaluasi Belajar • 850 KB',
+                      date: 'Fase D Standar',
+                    },
+                  ].map((doc) => (
+                    <div
+                      key={doc.name}
+                      className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white border border-slate-200/80 rounded-2xl hover:border-slate-300 hover:shadow-xs transition-all gap-3.5"
+                    >
+                      <div className="flex items-start sm:items-center gap-3.5">
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-extrabold border shrink-0 ${doc.typeBadge}`}>
+                          {doc.type}
+                        </span>
+                        <div>
+                          <p className="text-xs sm:text-sm font-bold text-[#141416] group-hover:text-[#E50914] transition-colors leading-snug">
+                            {doc.name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[11px] text-slate-500 font-medium">{doc.meta}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-[10px] font-semibold text-slate-400">{doc.date}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => showToast(`Mengunduh berkas ${doc.name}...`, 'info')}
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-[#141416] text-white group-hover:bg-[#E50914] transition-colors shadow-2xs cursor-pointer shrink-0"
+                      >
+                        <span>Unduh</span>
+                        <span className="material-symbols-outlined text-[15px]">download</span>
+                      </button>
+                    </div>
+                  ))}
+
+                  <div className="pt-2 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-200/60">
+                    <span>Distribusi arsip digital Direktorat Kurikulum 2026</span>
+                    <span className="font-mono">REF: MGMP-SDA-26</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         {/* ══════════════════════════════════════════════════════════════════════════
-            7. CALL-TO-ACTION (Floating Red Banner with Parallax Feel)
+            7. CALL-TO-ACTION (LAYERED HIGH-DEPTH CRIMSON CARD)
         ══════════════════════════════════════════════════════════════════════════ */}
-        <section className="py-16 px-5 sm:px-8 md:px-10 bg-white">
-          <div className="max-w-7xl mx-auto rounded-3xl bg-gradient-to-r from-[#E11D2E] via-[#D7141F] to-[#B80F1A] text-white p-8 sm:p-12 shadow-xl relative overflow-hidden">
-            <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        <section className="py-16 sm:py-20 px-5 sm:px-8 md:px-10 bg-white">
+          <div className="max-w-7xl mx-auto rounded-[32px] bg-gradient-to-br from-[#E50914] via-[#C80812] to-[#99050D] text-white p-8 sm:p-12 lg:p-14 shadow-[0_24px_48px_-16px_rgba(229,9,20,0.35)] relative overflow-hidden">
+            {/* Subtle Architectural Geometric Background Elements */}
+            <div className="absolute -right-16 -bottom-16 w-96 h-96 rounded-full border-[32px] border-white/10 opacity-15 pointer-events-none" />
+            <div className="absolute right-32 -top-24 w-80 h-80 rounded-full border-[16px] border-white/10 opacity-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none" />
+
             <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
               <div className="max-w-2xl">
-                <span className="inline-block text-[11px] font-extrabold uppercase tracking-widest text-red-200 bg-black/15 px-3 py-1 rounded-full mb-3">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-widest text-rose-100 bg-black/25 px-3 py-1 rounded-full mb-3.5 backdrop-blur-xs border border-white/10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-300" />
                   Saluran Pendampingan Resmi
                 </span>
-                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
+                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
                   Ketua Regu? Butuh bantuan perizinan atau kurikulum?
                 </h3>
-                <p className="text-xs sm:text-sm text-red-100 mt-2 font-normal leading-relaxed">
+                <p className="text-xs sm:text-sm text-rose-100/90 mt-3 font-normal leading-relaxed max-w-xl">
                   Tim kurikulum dan kemitraan SMK Telkom Sidoarjo siap mendampingi proses koordinasi dengan pihak sekolah mitra secara cepat dan responsif.
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <div className="flex flex-wrap items-center gap-3.5 shrink-0">
                 <button
                   onClick={() => navigate('/dashboard/ketua')}
-                  className="inline-flex items-center gap-2 px-6 h-12 bg-white hover:bg-slate-50 text-[#0B1B3A] font-bold text-xs uppercase tracking-wider rounded-full transition-all shadow-md cursor-pointer"
+                  className="inline-flex items-center gap-2 px-6 h-12 bg-white text-[#141416] font-bold text-xs uppercase tracking-wider rounded-full hover:scale-[1.02] shadow-lg transition-all cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[18px] text-[#D7141F]">dashboard</span>
-                  <span>Buka Dashboard Kelompok</span>
+                  <span className="material-symbols-outlined text-[18px] text-[#E50914]">dashboard</span>
+                  <span>Buka Dashboard Kelompok →</span>
                 </button>
                 <button
                   onClick={() => showToast('Menghubungkan ke helpdesk kurikulum...', 'info')}
-                  className="inline-flex items-center gap-2 px-6 h-12 bg-black/20 hover:bg-black/30 text-white font-bold text-xs uppercase tracking-wider rounded-full border border-white/25 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-2 px-6 h-12 bg-white/15 backdrop-blur-md border border-white/25 text-white font-bold text-xs uppercase tracking-wider rounded-full hover:bg-white/25 transition-all cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[18px]">support_agent</span>
                   <span>Hubungi Koordinator</span>
@@ -1097,56 +1192,65 @@ export const PostLoginHomePage: React.FC = () => {
       </main>
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          8. FOOTER (EDITORIAL LIGHT THEME)
+          8. FOOTER (EDITORIAL LIGHT THEME WITH SMOOTH SCROLL BACK TO TOP)
       ══════════════════════════════════════════════════════════════════════════ */}
-      <footer className="bg-white text-slate-600 border-t border-[#E8ECF2] pt-14 pb-10">
+      <footer className="bg-white text-slate-600 border-t border-slate-200/80 pt-16 pb-10">
         <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-12 border-b border-[#E8ECF2]">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 pb-12 border-b border-slate-200/80">
             {/* Col 1: Identity */}
-            <div className="md:col-span-5 space-y-3">
+            <div className="md:col-span-5 space-y-3.5">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#D7141F] text-white flex items-center justify-center font-black text-xs shadow-xs">
+                <div className="w-8 h-8 rounded-lg bg-[#E50914] text-white flex items-center justify-center font-black text-xs shadow-xs">
                   SM
                 </div>
                 <div>
-                  <span className="text-sm font-black text-[#0B1B3A] tracking-tight block">SKOMDA MENGAJAR 2026</span>
+                  <span className="text-sm font-black text-[#141416] tracking-tight block">SKOMDA MENGAJAR 2026</span>
                   <span className="text-[11px] text-slate-400 font-medium">SMK Telkom Sidoarjo</span>
                 </div>
               </div>
               <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
                 Inisiatif vokasi dan pengabdian masyarakat untuk mendampingi literasi digital, komputasi kreatif, dan teknologi tepat guna di 12 SMP Kabupaten Sidoarjo.
               </p>
+              <div className="pt-1 flex items-center gap-2 text-[11px] text-slate-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>MGMP Informatika &amp; Kurikulum Terakreditasi</span>
+              </div>
             </div>
 
             {/* Col 2: Navigasi */}
-            <div className="md:col-span-2 space-y-2.5 text-xs">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#0B1B3A] block">Akses Cepat</span>
-              <ul className="space-y-2 text-slate-500">
-                <li><a href="#alur" className="hover:text-[#D7141F] transition-colors">Alur Pelaksanaan</a></li>
-                <li><a href="#jejak" className="hover:text-[#D7141F] transition-colors">Rekam Jejak 2025</a></li>
-                <li><a href="#kurikulum" className="hover:text-[#D7141F] transition-colors">Standar Kurikulum</a></li>
-                <li><button onClick={() => navigate('/dashboard/ketua')} className="hover:text-[#D7141F] transition-colors cursor-pointer">Dashboard Kelompok</button></li>
+            <div className="md:col-span-2 space-y-3 text-xs">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#141416] block">Akses Cepat</span>
+              <ul className="space-y-2.5 text-slate-500">
+                <li><a href="#alur" className="hover:text-[#E50914] hover:underline transition-colors">Alur Pelaksanaan</a></li>
+                <li><a href="#jejak" className="hover:text-[#E50914] hover:underline transition-colors">Rekam Jejak 2025</a></li>
+                <li><button onClick={() => navigate('/kelompok')} className="hover:text-[#E50914] hover:underline transition-colors cursor-pointer text-left">Direktori Kelompok</button></li>
+                <li><a href="#kurikulum" className="hover:text-[#E50914] hover:underline transition-colors">Standar Kurikulum</a></li>
+                <li><button onClick={() => navigate('/dashboard/ketua')} className="hover:text-[#E50914] hover:underline transition-colors cursor-pointer text-left">Dashboard Kelompok</button></li>
               </ul>
             </div>
 
             {/* Col 3: Berkas */}
-            <div className="md:col-span-2 space-y-2.5 text-xs">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#0B1B3A] block">Dokumen</span>
-              <ul className="space-y-2 text-slate-500">
-                <li><a href="#kurikulum" className="hover:text-[#D7141F] transition-colors">Buku Panduan 2026</a></li>
-                <li><a href="#kurikulum" className="hover:text-[#D7141F] transition-colors">Format RPP Fase D</a></li>
-                <li><a href="#kurikulum" className="hover:text-[#D7141F] transition-colors">Rubrik Penilaian</a></li>
+            <div className="md:col-span-2 space-y-3 text-xs">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#141416] block">Dokumen</span>
+              <ul className="space-y-2.5 text-slate-500">
+                <li><a href="#kurikulum" className="hover:text-[#E50914] hover:underline transition-colors">Buku Panduan 2026</a></li>
+                <li><a href="#kurikulum" className="hover:text-[#E50914] hover:underline transition-colors">Format RPP Fase D</a></li>
+                <li><a href="#kurikulum" className="hover:text-[#E50914] hover:underline transition-colors">Rubrik Penilaian</a></li>
+                <li><button onClick={() => navigate('/login?role=admin')} className="hover:text-[#E50914] hover:underline transition-colors cursor-pointer text-left">Portal Guru &amp; Admin</button></li>
               </ul>
             </div>
 
             {/* Col 4: Kontak & Lokasi */}
-            <div className="md:col-span-3 space-y-2.5 text-xs">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#0B1B3A] block">Sekretariat</span>
+            <div className="md:col-span-3 space-y-3 text-xs">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#141416] block">Sekretariat</span>
               <p className="text-slate-500 text-xs leading-relaxed">
                 Jl. Raya Pecantingan, Sekardangan, Sidoarjo, Jawa Timur 61215
               </p>
               <p className="text-slate-500 text-xs">
-                Email: <a href="mailto:skomda@telkomsda.sch.id" className="text-[#D7141F] font-semibold hover:underline">skomda@telkomsda.sch.id</a>
+                Email: <a href="mailto:skomda@smktelkom-sda.sch.id" className="text-[#E50914] font-semibold hover:underline">skomda@smktelkom-sda.sch.id</a>
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Telepon: (031) 8941234 • Helpdesk IT MGMP
               </p>
             </div>
           </div>
@@ -1156,10 +1260,9 @@ export const PostLoginHomePage: React.FC = () => {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="inline-flex items-center gap-1.5 text-slate-600 hover:text-[#D7141F] font-semibold transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-slate-700 hover:text-[#E50914] font-semibold transition-colors cursor-pointer"
               >
-                <span>Kembali ke Atas</span>
-                <span className="material-symbols-outlined text-[16px]">arrow_upward</span>
+                <span>Kembali ke Atas ↑</span>
               </button>
             </div>
           </div>

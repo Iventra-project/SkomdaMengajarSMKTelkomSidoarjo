@@ -205,17 +205,18 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-[#FAFAFA] font-sans text-slate-800 antialiased flex flex-col justify-between overflow-x-hidden selection:bg-[#E50914]/10 selection:text-[#E50914]">
+    <div
+      className="relative min-h-screen w-full font-sans text-slate-800 antialiased flex flex-col justify-between overflow-x-hidden selection:bg-[#E50914]/10 selection:text-[#E50914]"
+      style={{
+        background:
+          'radial-gradient(circle at 12% 15%, rgba(229,9,20,0.06), transparent 45%), radial-gradient(circle at 88% 85%, rgba(15,23,42,0.05), transparent 45%), #FAFAFA',
+      }}
+    >
       {/* ══════════════════════════════════════════════════════════════════════════
-          NON-PLAIN MODERN ACCENTED BACKGROUND CANVAS
+          NON-PLAIN MODERN ACCENTED BACKGROUND CANVAS (GPU COMPOSITED)
       ══════════════════════════════════════════════════════════════════════════ */}
       {/* Subtle Architectural Dot-Grid Pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-70 pointer-events-none" />
-
-      {/* Ambient Radial Glow Blobs in Corners */}
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-slate-300/35 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-1/3 -right-24 w-80 h-80 bg-[#E50914]/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-65 pointer-events-none transform-gpu" />
 
       {/* ══════════════════════════════════════════════════════════════════════════
           TOP-LEFT NAVIGATION: PROMINENT PILL BUTTON (NO NAVBAR)
@@ -239,16 +240,14 @@ export const LoginPage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════════════════════
           MAIN UNIFIED AUTHENTICATION CARD
       ══════════════════════════════════════════════════════════════════════════ */}
-      <main className="relative z-10 flex-1 w-full flex items-center justify-center p-4 sm:p-6 md:p-8">
+      <main className="relative z-10 flex-1 w-full flex items-center justify-center p-4 sm:p-6 my-auto">
         <div className="w-full max-w-5xl mx-auto">
           <div className="bg-white/95 backdrop-blur-md rounded-[28px] border border-slate-200/80 shadow-[0_16px_50px_-12px_rgba(0,0,0,0.06)] overflow-hidden grid grid-cols-1 lg:grid-cols-12 p-3 sm:p-4 gap-4">
 
             {/* ──────────────────────────────────────────────────────────────────
                 LEFT COLUMN: ELEGANT EDITORIAL SHOWCASE
             ────────────────────────────────────────────────────────────────── */}
-            <div className="lg:col-span-6 relative flex flex-col justify-between overflow-hidden rounded-[22px] bg-gradient-to-br from-slate-50 via-rose-50/30 to-slate-100/60 p-6 sm:p-8 border border-slate-200/70">
-              {/* Subtle ambient light */}
-              <div className="absolute -top-16 -left-16 w-56 h-56 bg-[#E50914]/8 rounded-full blur-2xl pointer-events-none" />
+            <div className="lg:col-span-6 relative flex flex-col justify-between overflow-hidden rounded-[22px] bg-gradient-to-br from-slate-50 via-rose-50/20 to-slate-100/60 p-6 sm:p-8 border border-slate-200/70">
 
               {/* Header Info */}
               <div className="relative z-10 flex flex-col gap-3">
