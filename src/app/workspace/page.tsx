@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { BrandLogo } from '../../components/BrandLogo';
 import {
   Bell,
   Check,
@@ -369,17 +370,9 @@ export const WorkspacePage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Left: Brand Badge & Main Tabs */}
           <div className="flex items-center gap-6 sm:gap-8">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#E50914] text-white flex items-center justify-center font-black text-xs shadow-xs">
-                SM
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-sm tracking-tight text-[#141416]">#SKOMDA</span>
-                <span className="bg-[#E50914]/10 text-[#E50914] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#E50914]/20">
-                  2026
-                </span>
-              </div>
-            </div>
+            <button onClick={() => navigate('/')} className="flex items-center cursor-pointer">
+              <BrandLogo size="sm" />
+            </button>
 
             {/* Nav Links */}
             <nav className="flex items-center gap-1 sm:gap-2">

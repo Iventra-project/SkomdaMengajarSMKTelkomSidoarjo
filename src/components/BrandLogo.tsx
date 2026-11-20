@@ -2,50 +2,36 @@ import React from 'react';
 
 interface BrandLogoProps {
   size?: 'xs' | 'sm' | 'md' | 'lg';
+  variant?: 'light' | 'dark';
   className?: string;
 }
 
-const SIZE_CLASSES: Record<NonNullable<BrandLogoProps['size']>, { tag: string; pill: string; gap: string }> = {
-  xs: {
-    tag: 'text-[11px]',
-    pill: 'text-[9px] px-2 py-0.5',
-    gap: 'gap-1.5',
-  },
-  sm: {
-    tag: 'text-base',
-    pill: 'text-[9px] px-2 py-0.5',
-    gap: 'gap-1.5',
-  },
-  md: {
-    tag: 'text-lg',
-    pill: 'text-[10px] px-2.5 py-0.5',
-    gap: 'gap-1.5',
-  },
-  lg: {
-    tag: 'text-3xl',
-    pill: 'text-base px-3.5 py-1 shadow-xs',
-    gap: 'gap-2 flex-wrap',
-  },
+const SIZE_CLASSES: Record<NonNullable<BrandLogoProps['size']>, string> = {
+  xs: 'h-6',
+  sm: 'h-8',
+  md: 'h-9',
+  lg: 'h-14',
 };
 
 /**
- * Shared tilted "#SKOMDA MENGAJAR" brand logo used across all pages and modals.
+ * Shared "#SKOMDA MENGAJAR" brand logo image used across all pages, navbars, and modals.
+ * - `variant="light"` (default): dark "#SKOMDA" text + red "MENGAJAR" bar for light/white surfaces.
+ * - `variant="dark"`: white "#SKOMDA" text + red "MENGAJAR" bar for dark surfaces (e.g. dark Navbar).
  */
-export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 'md', className = '' }) => {
-  const styles = SIZE_CLASSES[size];
+export const BrandLogo: React.FC<BrandLogoProps> = ({
+  size = 'md',
+  variant = 'light',
+  className = '',
+}) => {
+  const src =
+    variant === 'dark' ? '/logo-skomda-mengajar.png' : '/logo-skomda-mengajar-dark.png';
 
   return (
-    <span className={`inline-flex items-center ${styles.gap} ${className}`.trim()}>
-      <span
-        className={`${styles.tag} font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic`}
-      >
-        #SKOMDA
-      </span>
-      <span
-        className={`bg-[#e20113] text-white ${styles.pill} font-extrabold uppercase rounded-full transform -rotate-3 origin-center inline-block tracking-wider select-none`}
-      >
-        MENGAJAR
-      </span>
-    </span>
+    <img
+      src={src}
+      alt="#SKOMDA MENGAJAR"
+      className={`w-auto object-contain select-none shrink-0 ${SIZE_CLASSES[size]} ${className}`.trim()}
+      draggable={false}
+    />
   );
 };

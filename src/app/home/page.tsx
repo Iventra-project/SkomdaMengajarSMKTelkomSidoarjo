@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useApp, formatGroupNumber } from '../../context/AppContext';
 import { SkomdaJourneyTrack } from '../../components/SkomdaJourneyTrack';
 import { Navbar } from '../../components/Navbar';
+import { BrandLogo } from '../../components/BrandLogo';
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -989,14 +990,11 @@ export const PostLoginHomePage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 pb-12 border-b border-slate-200/80">
             {/* Col 1: Identity */}
             <div className="md:col-span-5 space-y-3.5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#E50914] text-white flex items-center justify-center font-black text-xs shadow-xs">
-                  SM
-                </div>
-                <div>
-                  <span className="text-sm font-black text-[#141416] tracking-tight block">SKOMDA MENGAJAR 2026</span>
-                  <span className="text-[11px] text-slate-400 font-medium">SMK Telkom Sidoarjo</span>
-                </div>
+              <div className="flex items-center gap-3">
+                <BrandLogo size="md" />
+                <span className="text-[11px] text-slate-400 font-semibold border-l border-slate-200 pl-3">
+                  SMK Telkom Sidoarjo
+                </span>
               </div>
               <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
                 Inisiatif vokasi dan pengabdian masyarakat untuk mendampingi literasi digital, komputasi kreatif, dan teknologi tepat guna di 12 SMP Kabupaten Sidoarjo.

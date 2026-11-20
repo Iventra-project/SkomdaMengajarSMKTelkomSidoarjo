@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useApp, formatGroupNumber } from '../context/AppContext';
+import { BrandLogo } from './BrandLogo';
 import {
   Menu,
   X,
@@ -126,18 +127,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {/* Right Brand Badge */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-[#E50914] text-white flex items-center justify-center font-black text-xs shadow-[0_0_12px_rgba(229,9,20,0.4)]">
-              SM
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-xs sm:text-sm tracking-tight text-white">
-                #SKOMDA
-              </span>
-              <span className="bg-[#E50914]/20 text-[#E50914] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#E50914]/30">
-                2026
-              </span>
-            </div>
+          <div className="flex items-center">
+            <BrandLogo size="sm" variant="dark" />
           </div>
         </div>
       </header>
@@ -171,19 +162,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Left: Compact #SKOMDA Logo Badge */}
         <button
           onClick={() => handleNavClick('beranda')}
-          className="flex items-center gap-2.5 cursor-pointer group shrink-0 text-left"
+          className="flex items-center cursor-pointer group shrink-0 text-left"
         >
-          <div className="w-8 h-8 rounded-full bg-[#E50914] text-white flex items-center justify-center font-black text-xs shadow-[0_0_12px_rgba(229,9,20,0.4)] group-hover:scale-105 transition-transform">
-            SM
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="font-extrabold text-sm tracking-tight text-white group-hover:text-red-400 transition-colors">
-              #SKOMDA
-            </span>
-            <span className="bg-[#E50914]/20 text-[#E50914] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#E50914]/40">
-              2026
-            </span>
-          </div>
+          <BrandLogo size="sm" variant="dark" className="group-hover:scale-105 transition-transform" />
         </button>
 
         {/* Center: Glowing Active Indicator Links (Desktop) */}

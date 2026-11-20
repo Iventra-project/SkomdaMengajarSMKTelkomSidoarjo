@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { BrandLogo } from '../../components/BrandLogo';
 import { groupsData, Group, generateMockMembers } from '../../data/mockData';
 
 export const DaftarKelompokPage: React.FC = () => {
@@ -89,11 +90,8 @@ export const DaftarKelompokPage: React.FC = () => {
           <span>Kembali ke Beranda</span>
         </button>
 
-        <div className="hidden sm:flex items-center gap-2.5">
-          <span className="text-xs font-extrabold tracking-tight text-[#141416]">#SKOMDA</span>
-          <span className="bg-[#E50914] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-            2026
-          </span>
+        <div className="hidden sm:flex items-center">
+          <BrandLogo size="sm" />
         </div>
       </div>
 
