@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useApp } from '../../../../context/AppContext';
+import { BrandLogo } from '../../../../components/BrandLogo';
 
 export const AdminKelompokDetailPage: React.FC = () => {
   const {
@@ -44,13 +45,8 @@ export const AdminKelompokDetailPage: React.FC = () => {
         <div className="flex flex-col space-y-5">
           {/* Top Brand */}
           <div className="flex flex-col gap-1 pb-4 border-b border-slate-100">
-            <button onClick={() => navigate('/')} className="flex items-center gap-2 cursor-pointer text-left">
-              <span className="text-[17px] uppercase tracking-tight text-slate-900 font-extrabold italic">
-                #SKOMDA MENGAJAR
-              </span>
-              <span className="inline-block bg-[#e20113] text-white text-[10px] font-bold px-1.5 py-0.5 rounded uppercase -rotate-3">
-                ADMIN
-              </span>
+            <button onClick={() => navigate('/')} className="flex items-center cursor-pointer text-left">
+              <BrandLogo size="md" />
             </button>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               #IMPACT2026 / SMK TELKOM SIDOARJO
@@ -471,19 +467,18 @@ export const AdminKelompokDetailPage: React.FC = () => {
                           <div>
                             <span className="text-slate-400">Status Validasi:</span>{' '}
                             <span
-                              className={`font-bold ${
-                                bannerStatus === 'approved'
-                                  ? 'text-emerald-700'
-                                  : bannerStatus === 'revision'
+                              className={`font-bold ${bannerStatus === 'approved'
+                                ? 'text-emerald-700'
+                                : bannerStatus === 'revision'
                                   ? 'text-amber-700'
                                   : 'text-amber-600'
-                              }`}
+                                }`}
                             >
                               {bannerStatus === 'approved'
                                 ? 'Disetujui'
                                 : bannerStatus === 'revision'
-                                ? 'Perlu Revisi'
-                                : 'Menunggu Review'}
+                                  ? 'Perlu Revisi'
+                                  : 'Menunggu Review'}
                             </span>
                           </div>
                         </div>
@@ -597,9 +592,8 @@ export const AdminKelompokDetailPage: React.FC = () => {
                             return (
                               <tr
                                 key={m.id}
-                                className={`transition-colors ${
-                                  isPending ? 'bg-amber-50/30 hover:bg-amber-50/50' : 'hover:bg-slate-50'
-                                }`}
+                                className={`transition-colors ${isPending ? 'bg-amber-50/30 hover:bg-amber-50/50' : 'hover:bg-slate-50'
+                                  }`}
                               >
                                 <td className="py-2.5 px-3 text-slate-400 font-mono text-[11px]">
                                   {String(index + 1).padStart(2, '0')}
@@ -624,11 +618,10 @@ export const AdminKelompokDetailPage: React.FC = () => {
                                 <td className="py-2.5 px-3 text-center">
                                   <button
                                     onClick={() => toggleMemberStatus(m.id)}
-                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition-transform hover:scale-105 ${
-                                      m.status === 'valid'
-                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                        : 'bg-amber-100 text-amber-800 border border-amber-200'
-                                    }`}
+                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition-transform hover:scale-105 ${m.status === 'valid'
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      : 'bg-amber-100 text-amber-800 border border-amber-200'
+                                      }`}
                                   >
                                     {m.status === 'valid' ? 'Valid' : 'Menunggu'}
                                   </button>
@@ -759,13 +752,12 @@ export const AdminKelompokDetailPage: React.FC = () => {
                   {sprintTasks.map((task) => (
                     <div
                       key={task.id}
-                      className={`p-3 rounded-lg border space-y-1.5 transition-colors ${
-                        task.column === 'todo'
-                          ? 'bg-slate-50 border-slate-200'
-                          : task.column === 'in_progress'
+                      className={`p-3 rounded-lg border space-y-1.5 transition-colors ${task.column === 'todo'
+                        ? 'bg-slate-50 border-slate-200'
+                        : task.column === 'in_progress'
                           ? 'bg-amber-50/70 border-amber-200'
                           : 'bg-emerald-50/60 border-emerald-200'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between text-[10px] font-bold uppercase">
                         <span
@@ -773,31 +765,29 @@ export const AdminKelompokDetailPage: React.FC = () => {
                             task.column === 'todo'
                               ? 'text-slate-500'
                               : task.column === 'in_progress'
-                              ? 'text-amber-800'
-                              : 'text-emerald-700'
+                                ? 'text-amber-800'
+                                : 'text-emerald-700'
                           }
                         >
                           {task.column === 'todo'
                             ? 'Akan Dikerjakan'
                             : task.column === 'in_progress'
-                            ? 'Dalam Proses Review'
-                            : 'Telah Selesai'}
+                              ? 'Dalam Proses Review'
+                              : 'Telah Selesai'}
                         </span>
                         <span
-                          className={`w-2 h-2 rounded-full ${
-                            task.column === 'todo'
-                              ? 'bg-slate-400'
-                              : task.column === 'in_progress'
+                          className={`w-2 h-2 rounded-full ${task.column === 'todo'
+                            ? 'bg-slate-400'
+                            : task.column === 'in_progress'
                               ? 'bg-amber-500 animate-pulse'
                               : 'bg-emerald-500'
-                          }`}
+                            }`}
                         />
                       </div>
 
                       <p
-                        className={`text-xs font-semibold leading-snug ${
-                          task.column === 'done' ? 'line-through text-slate-500' : 'text-slate-800'
-                        }`}
+                        className={`text-xs font-semibold leading-snug ${task.column === 'done' ? 'line-through text-slate-500' : 'text-slate-800'
+                          }`}
                       >
                         {task.title}
                       </p>

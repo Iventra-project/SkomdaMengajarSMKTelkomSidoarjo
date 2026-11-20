@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { DarkStagePillSwitcher } from '../../components/Navbar';
+import { BrandLogo } from '../../components/BrandLogo';
 import {
   Home,
   LayoutDashboard,
@@ -222,9 +223,9 @@ export const WorkspacePage: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/home')}
-              className="font-black text-sm tracking-tight text-slate-900 hover:text-[#E50914] transition-colors"
+              className="flex items-center cursor-pointer text-left"
             >
-              SKOMDA<span className="text-[#E50914]">.</span>
+              <BrandLogo size="md" />
             </button>
             <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
               Kelompok {currentGroup.number}
@@ -245,7 +246,7 @@ export const WorkspacePage: React.FC = () => {
 
           {/* Right Controls: School Badge, Notification Bell, User Avatar */}
           <div className="flex items-center gap-2.5">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
               <MapPin className="w-3.5 h-3.5 text-[#E50914]" />
               <span className="truncate max-w-[150px]">{currentGroup.schoolName}</span>
             </div>
@@ -347,12 +348,12 @@ export const WorkspacePage: React.FC = () => {
                   {viewStage === 1 || viewStage === 2
                     ? 'Struktur & Peran Tim'
                     : viewStage === 3
-                    ? 'Modul Ajar & Slide PPT'
-                    : viewStage === 4
-                    ? 'X-Banner (60x160 cm)'
-                    : viewStage === 5
-                    ? 'Pelaksanaan & QR Feedback'
-                    : 'Laporan Akhir & Publikasi'}
+                      ? 'Modul Ajar & Slide PPT'
+                      : viewStage === 4
+                        ? 'X-Banner (60x160 cm)'
+                        : viewStage === 5
+                          ? 'Pelaksanaan & QR Feedback'
+                          : 'Laporan Akhir & Publikasi'}
                 </h2>
 
                 {/* Dynamic Description per Stage */}
@@ -528,12 +529,12 @@ export const WorkspacePage: React.FC = () => {
                         {viewStage <= 2
                           ? 'DIVISI RELAWAN TIM'
                           : viewStage === 3
-                          ? 'MODUL FASE D INFORMATIKA'
-                          : viewStage === 4
-                          ? 'LITERASI DIGITAL & KREATIF'
-                          : viewStage === 5
-                          ? 'QR FEEDBACK SISWA SMP'
-                          : 'LEMBAR LPJ RESMI 2026'}
+                            ? 'MODUL FASE D INFORMATIKA'
+                            : viewStage === 4
+                              ? 'LITERASI DIGITAL & KREATIF'
+                              : viewStage === 5
+                                ? 'QR FEEDBACK SISWA SMP'
+                                : 'LEMBAR LPJ RESMI 2026'}
                       </h3>
                     </div>
                   </div>
@@ -565,10 +566,10 @@ export const WorkspacePage: React.FC = () => {
                           {viewStage <= 2
                             ? `${members.length} Siswa Relawan Terdaftar`
                             : viewStage === 3
-                            ? 'Silabus Komputasi Kreatif'
-                            : viewStage === 4
-                            ? 'Desain DKV & Panduan Cetak'
-                            : 'Dokumentasi & Rekap Skor 4.8/5'}
+                              ? 'Silabus Komputasi Kreatif'
+                              : viewStage === 4
+                                ? 'Desain DKV & Panduan Cetak'
+                                : 'Dokumentasi & Rekap Skor 4.8/5'}
                         </p>
                         <div className="flex items-center gap-1 text-[8px] text-white/70">
                           <span>SMK Telkom Sidoarjo</span>

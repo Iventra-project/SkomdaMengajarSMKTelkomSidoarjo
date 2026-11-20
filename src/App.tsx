@@ -50,7 +50,6 @@ const AppRouter: React.FC = () => {
       {/* Public Pages */}
       {currentPath === '/' && <HomePage />}
       {currentPath === '/login' && <LoginPage />}
-
       {/* Protected Ketua/User Routes (Blocked for Admin & Unauthenticated) */}
       {currentPath === '/home' && currentUser && currentUser.role !== 'admin' && <PostLoginHomePage />}
       {(currentPath === '/workspace' || currentPath === '/dashboard/ketua') &&

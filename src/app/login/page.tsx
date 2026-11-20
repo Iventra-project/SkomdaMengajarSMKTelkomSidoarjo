@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Navbar } from '../../components/Navbar';
+import { BrandLogo } from '../../components/BrandLogo';
 
 export const LoginPage: React.FC = () => {
   const { navigate, currentUser, showToast, groups, login, claimGroupLeader } = useApp();
@@ -132,14 +133,7 @@ export const LoginPage: React.FC = () => {
                 </div>
 
                 <div className="pt-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-3xl font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic">
-                      #SKOMDA
-                    </span>
-                    <span className="bg-[#e20113] text-white text-base uppercase px-3 py-1 rounded-lg transform -rotate-3 origin-center font-extrabold shadow-xs">
-                      MENGAJAR
-                    </span>
-                  </div>
+                  <BrandLogo size="lg" />
                   <p className="text-sm text-slate-600 mt-3 max-w-md leading-relaxed">
                     Ruang koordinasi resmi bagi ketua kelompok relawan Skomda Mengajar angkatan 2026 dan guru pembimbing lapangan SMK Telkom Sidoarjo.
                   </p>

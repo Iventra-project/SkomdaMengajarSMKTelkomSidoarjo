@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
+import { BrandLogo } from './BrandLogo';
 
 export const BannerPreviewModal: React.FC = () => {
   const { isBannerModalOpen, setIsBannerModalOpen, bannerStatus } = useApp();
@@ -38,12 +39,7 @@ export const BannerPreviewModal: React.FC = () => {
           <div className="relative w-full max-w-[280px] aspect-[9/20] bg-white rounded-lg border-2 border-slate-300 shadow-lg overflow-hidden flex flex-col justify-between p-4">
             {/* Top Banner Header */}
             <div className="flex flex-col items-center text-center space-y-1 pb-3 border-b border-slate-200">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-extrabold italic text-slate-900 tracking-tight">#SKOMDA</span>
-                <span className="bg-[#e20113] text-white text-[9px] font-bold px-1.5 py-0.2 rounded uppercase">
-                  MENGAJAR
-                </span>
-              </div>
+              <BrandLogo size="xs" />
               <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">
                 #IMPACT2026 / SMK TELKOM SIDOARJO
               </span>
