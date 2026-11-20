@@ -737,7 +737,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setCurrentUser(leaderUser);
     showToast(`Aktivasi berhasil! Selamat datang, ${student.name} (Ketua Kel. ${formatted})!`, 'success');
-    navigate('/home');
+    navigate('/dashboard/ketua');
     return { ok: true, user: leaderUser };
   };
 
@@ -885,7 +885,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       };
       setCurrentUser(trialUser);
       showToast('Login berhasil ke Akun Simulasi Sandbox (KEL-00)!', 'success');
-      navigate('/home');
+      navigate('/dashboard/ketua');
       return { ok: true, user: trialUser };
     }
 
@@ -957,7 +957,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         `Login berhasil sebagai ${targetGroup.leaderName} (Ketua Kel. ${targetGroup.number})!`,
         'success'
       );
-      navigate('/home');
+      navigate('/dashboard/ketua');
       return { ok: true, user: leaderUser };
     }
 
@@ -1030,7 +1030,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       `Aktivasi & login berhasil! Selamat datang, ${memberHit.name} (Ketua Kel. ${formattedGrpNum})!`,
       'success'
     );
-    navigate('/home');
+    navigate('/dashboard/ketua');
     return { ok: true, user: leaderUser };
   };
 

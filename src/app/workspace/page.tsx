@@ -1,52 +1,38 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { BrandLogo } from '../../components/BrandLogo';
 import {
-  Home,
-  LayoutDashboard,
-  FileText,
-  Users,
-  Search,
   Bell,
-  AlertCircle,
-  ArrowRight,
-  ArrowLeft,
-  Download,
-  Upload,
-  Plus,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   ExternalLink,
-  ChevronRight,
+  FileText,
+  LogOut,
+  Upload,
+  Users,
   X,
-  Sparkles,
-  Calendar,
-  CheckCircle2,
-  ListTodo,
+  AlertCircle,
   Lock,
   MessageSquare,
-  ShieldAlert,
-  Send,
-  Eye,
-  FolderOpen,
-  HelpCircle,
-  LogOut,
-  Layers,
-  MapPin,
-  CheckSquare,
-  Square,
-  BadgeAlert,
-  GraduationCap,
+  ArrowRight,
+  Calendar as CalendarIcon,
+  CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 
-interface ScheduleItem {
-  id: string;
-  time: string;
+interface StageCardData {
+  number: number;
+  code: string;
   title: string;
-  status: 'Terkonfirmasi' | 'Terjadwal';
-  location: string;
+  fullName: string;
+  progress: number;
+  metric: string;
+  status: 'completed' | 'active' | 'locked';
+  locked: boolean;
+  deliverables: string[];
 }
 
 export const WorkspacePage: React.FC = () => {
@@ -56,1179 +42,879 @@ export const WorkspacePage: React.FC = () => {
     activeGroup,
     members,
     toggleMemberStatus,
-    sprintTasks,
-    moveTaskColumn,
-    addTask,
     bannerStatus,
     bannerFeedback,
     submitGroupFile,
     supervisorMemo,
     showToast,
     logout,
+    getGroupRoster,
   } = useApp();
 
-  // Current active group (locked strictly to authenticated leader's group)
   const currentGroup = activeGroup;
   const activeStageNumber = currentGroup.currentStep || 4;
-  const [selectedStage, setSelectedStage] = useState<number>(activeStageNumber);
+  const groupNumberStr = currentGroup.number || '03';
 
-  // Sync selected stage if activeStageNumber changes
-  useEffect(() => {
-    setSelectedStage(activeStageNumber);
-  }, [activeStageNumber]);
+  // 8 Members of this group roster
+  const groupMembers = useMemo(() => {
+    return getGroupRoster(groupNumberStr);
+  }, [getGroupRoster, groupNumberStr]);
 
-  // Mobile drawer state
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  // State: Filter tabs for stages
+  const [stageTabFilter, setStageTabFilter] = useState<'all' | 'active' | 'completed' | 'locked'>('all');
 
-  // Filter tabs for stage hero
-  const [stageFilter, setStageFilter] = useState<'all' | 'active' | 'archive'>('all');
+  // State: Timeline filters
+  const [timelineFilter, setTimelineFilter] = useState<'all' | 'urgent' | 'completed'>('all');
 
-  // Modals & Drawers state
+  // State: Calendar
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<number>(15);
+
+  // State: Modals & Drawers
+  const [selectedStageDrawer, setSelectedStageDrawer] = useState<StageCardData | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showAdvisorModal, setShowAdvisorModal] = useState(false);
+  const [showAdvisorDrawer, setShowAdvisorDrawer] = useState(false);
   const [showMembersDrawer, setShowMembersDrawer] = useState(false);
-  const [showAssetsModal, setShowAssetsModal] = useState(false);
-  const [showAllSchedulesModal, setShowAllSchedulesModal] = useState(false);
 
   // Upload modal inputs
+  const [uploadDeliverableName, setUploadDeliverableName] = useState('Desain X-Banner 60×160 cm & Poster A3');
   const [uploadFileUrl, setUploadFileUrl] = useState('');
-  const [uploadFileName, setUploadFileName] = useState('X-Banner 60×160 cm v3 Final');
   const [uploadNotes, setUploadNotes] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmittingFile, setIsSubmittingFile] = useState(false);
 
-  // Inline Quick Task input
-  const [quickTaskText, setQuickTaskText] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  // Stages Definition
+  const stages: StageCardData[] = useMemo(() => [
+    {
+      number: 1,
+      code: `KEL-${groupNumberStr} • TAHAP 01`,
+      title: 'Bentuk Tim Relawan',
+      fullName: 'Tahap 01: Pembentukan Tim & Pemetaan Roster',
+      progress: 100,
+      metric: '8/8 Anggota Lengkap',
+      status: 'completed',
+      locked: false,
+      deliverables: ['Struktur Organisasi Tim', 'Daftar Kontak & Roster Siswa', 'Kesepakatan Jadwal Koordinasi'],
+    },
+    {
+      number: 2,
+      code: `KEL-${groupNumberStr} • TAHAP 02`,
+      title: 'Pilih & Tetapkan Ketua',
+      fullName: 'Tahap 02: Penetapan & Verifikasi Ketua Regu',
+      progress: 100,
+      metric: 'Akun Terverifikasi',
+      status: 'completed',
+      locked: false,
+      deliverables: ['Berita Acara Pemilihan Ketua', 'Aktivasi Kredensial Tunggal', 'Sinkronisasi Surat Mandat'],
+    },
+    {
+      number: 3,
+      code: `KEL-${groupNumberStr} • TAHAP 03`,
+      title: 'Susun Modul & Materi',
+      fullName: 'Tahap 03: Penyusunan Modul Praktikum Lab',
+      progress: 100,
+      metric: 'Disetujui Kurikulum',
+      status: 'completed',
+      locked: false,
+      deliverables: ['Silabus Praktikum 6 JP', 'Modul Canva & Literasi AI', 'Lembar Kerja Siswa SMP'],
+    },
+    {
+      number: 4,
+      code: `KEL-${groupNumberStr} • TAHAP 04`,
+      title: 'Siapkan Desain & Banner',
+      fullName: 'Tahap 04: Finalisasi Slide & Cetak X-Banner',
+      progress: bannerStatus === 'approved' ? 100 : 67,
+      metric: bannerStatus === 'approved' ? 'Disetujui' : bannerStatus === 'pending' ? 'Review Kurikulum' : '4/6 Tugas Selesai',
+      status: 'active',
+      locked: false,
+      deliverables: [
+        'Desain X-Banner 60×160 cm Resmi',
+        'Slide Presentasi Interaktif Canva',
+        'Layout Feed Instagram Publikasi',
+        'Simulasi Uji Presentasi Tim',
+      ],
+    },
+    {
+      number: 5,
+      code: `KEL-${groupNumberStr} • TAHAP 05`,
+      title: 'Mengajar di SMP Mitra',
+      fullName: 'Tahap 05: Pelaksanaan Praktikum Lapangan SMP',
+      progress: 0,
+      metric: 'Tenggat 22 Feb',
+      status: 'locked',
+      locked: true,
+      deliverables: ['Presensi Kehadiran Siswa SMP', 'Foto & Video Dokumentasi Praktikum', 'Berita Acara Tatap Muka'],
+    },
+    {
+      number: 6,
+      code: `KEL-${groupNumberStr} • TAHAP 06`,
+      title: 'Laporan Akhir & Evaluasi',
+      fullName: 'Tahap 06: Penilaian Akhir & Laporan Pertanggungjawaban',
+      progress: 0,
+      metric: 'Tenggat 28 Feb',
+      status: 'locked',
+      locked: true,
+      deliverables: ['Laporan Akhir Pelaksanaan', 'Kumpulan Karya Digital Siswa', 'Penilaian Mandiri Tim'],
+    },
+  ], [groupNumberStr, bannerStatus]);
 
-  // 6 Stages Data definition
-  const stagesData = useMemo(() => {
+  // Filtered Stages
+  const filteredStages = useMemo(() => {
+    if (stageTabFilter === 'active') return stages.filter((s) => s.status === 'active');
+    if (stageTabFilter === 'completed') return stages.filter((s) => s.status === 'completed');
+    if (stageTabFilter === 'locked') return stages.filter((s) => s.status === 'locked');
+    return stages;
+  }, [stages, stageTabFilter]);
+
+  // Timeline Deliverables synced with context
+  const timelineDeliverables = useMemo(() => {
     return [
       {
-        number: 1,
-        code: '01 TIM',
-        title: 'Bentuk Tim',
-        fullName: 'Tahap 01: Pembentukan Tim & Roster',
-        progress: 100,
-        metric: '8/8 Anggota',
-        metricSub: 'Lengkap & Terdaftar',
-        status: 'completed',
-        locked: false,
+        id: 'deliv-1',
+        title: 'Desain X-Banner 60×160 cm & Poster Promosi',
+        stage: 'Tahap 04',
+        deadlineDate: '15 Feb 2026',
+        dayNumber: 15,
+        countdown: '4 hari lagi',
+        isUrgent: true,
+        status:
+          bannerStatus === 'approved'
+            ? 'Disetujui'
+            : bannerStatus === 'pending'
+            ? 'Menunggu Review'
+            : 'Perlu Pengunggahan',
+        statusCode: bannerStatus,
       },
       {
-        number: 2,
-        code: '02 KETUA',
-        title: 'Pilih Ketua',
-        fullName: 'Tahap 02: Penetapan & Aktivasi Ketua',
-        progress: 100,
-        metric: '1/1 Ketua',
-        metricSub: 'Akun Terverifikasi',
-        status: 'completed',
-        locked: false,
+        id: 'deliv-2',
+        title: 'Slide Presentasi Interaktif Canva & Modul Lab Siswa',
+        stage: 'Tahap 04',
+        deadlineDate: '18 Feb 2026',
+        dayNumber: 18,
+        countdown: '7 hari lagi',
+        isUrgent: false,
+        status: 'Sedang Disusun',
+        statusCode: 'in_progress',
       },
       {
-        number: 3,
-        code: '03 MATERI',
-        title: 'Susun Materi',
-        fullName: 'Tahap 03: Penyusunan Modul & Silabus',
-        progress: 100,
-        metric: '4/4 Berkas',
-        metricSub: 'Disetujui Kurikulum',
-        status: 'completed',
-        locked: false,
+        id: 'deliv-3',
+        title: 'Simulasi Tatap Muka Praktikum dengan Guru Pembimbing',
+        stage: 'Tahap 05',
+        deadlineDate: '20 Feb 2026',
+        dayNumber: 20,
+        countdown: '9 hari lagi',
+        isUrgent: false,
+        status: 'Terjadwal',
+        statusCode: 'scheduled',
       },
       {
-        number: 4,
-        code: '04 DESAIN',
-        title: 'Siapkan Desain',
-        fullName: 'Tahap 04: Publikasi Desain & Banner',
-        progress: 67,
-        metric: '2/3 Desain',
-        metricSub: '1 Menunggu Review',
-        status: 'active',
-        locked: false,
-      },
-      {
-        number: 5,
-        code: '05 SMP',
-        title: 'Mengajar SMP',
-        fullName: 'Tahap 05: Implementasi Kelas SMP Mitra',
-        progress: 0,
-        metric: '0/3 Kelas',
-        metricSub: 'Terkunci',
-        status: 'locked',
-        locked: true,
-      },
-      {
-        number: 6,
-        code: '06 LPJ',
-        title: 'Laporan Akhir',
-        fullName: 'Tahap 06: Refleksi & Laporan LPJ',
-        progress: 0,
-        metric: '0/2 Laporan',
-        metricSub: 'Terkunci',
-        status: 'locked',
-        locked: true,
+        id: 'deliv-4',
+        title: 'Pelaksanaan Mengajar di Lab Komputer SMP Mitra',
+        stage: 'Tahap 05',
+        deadlineDate: '22 Feb 2026',
+        dayNumber: 22,
+        countdown: '11 hari lagi',
+        isUrgent: false,
+        status: 'Terkunci',
+        statusCode: 'locked',
       },
     ];
+  }, [bannerStatus]);
+
+  const filteredTimeline = useMemo(() => {
+    if (timelineFilter === 'urgent') return timelineDeliverables.filter((d) => d.isUrgent);
+    if (timelineFilter === 'completed') return timelineDeliverables.filter((d) => d.status === 'Disetujui');
+    return timelineDeliverables;
+  }, [timelineDeliverables, timelineFilter]);
+
+  // Deadline days set for calendar dots
+  const deadlineDays = [15, 18, 20, 22, 25, 28];
+
+  // Calendar dates matrix for February 2026
+  // Feb 1, 2026 was a Sunday
+  const calendarDays = useMemo(() => {
+    const days: { date: number; isCurrentMonth: boolean; hasDeadline: boolean }[] = [];
+    // Pad previous month days (Mon start: 6 padding days from previous Jan)
+    for (let p = 26; p <= 31; p++) {
+      days.push({ date: p, isCurrentMonth: false, hasDeadline: false });
+    }
+    // Feb days 1 - 28
+    for (let d = 1; d <= 28; d++) {
+      days.push({
+        date: d,
+        isCurrentMonth: true,
+        hasDeadline: deadlineDays.includes(d),
+      });
+    }
+    // Next month pad
+    for (let n = 1; n <= 8; n++) {
+      days.push({ date: n, isCurrentMonth: false, hasDeadline: false });
+    }
+    return days;
   }, []);
 
-  // Filtered stages for hero card
-  const filteredStages = useMemo(() => {
-    if (stageFilter === 'active') {
-      return stagesData.filter((s) => s.number === activeStageNumber);
-    }
-    if (stageFilter === 'archive') {
-      return stagesData.filter((s) => s.number < activeStageNumber);
-    }
-    return stagesData;
-  }, [stagesData, stageFilter, activeStageNumber]);
+  // Selected date details
+  const selectedDateEvents = useMemo(() => {
+    return timelineDeliverables.filter((t) => t.dayNumber === selectedCalendarDate);
+  }, [selectedCalendarDate, timelineDeliverables]);
 
-  // Stage click handler
-  const handleStageSelect = (stageNum: number) => {
-    if (stageNum > activeStageNumber) {
-      showToast(`Tahap 0${stageNum} masih terkunci. Selesaikan Tahap 0${activeStageNumber} terlebih dahulu.`, 'warning');
-      return;
-    }
-    setSelectedStage(stageNum);
-    if (stageNum < activeStageNumber) {
-      showToast(`Membuka arsip Tahap 0${stageNum} (Mode Baca & Unduh Dokumen)`, 'info');
-    }
-  };
-
-  // Upload handler
-  const handleUploadSubmit = (e: React.FormEvent) => {
+  // Handle submit file
+  const handleSubmitFile = (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadFileUrl.trim()) {
-      showToast('Masukkan link URL Google Drive atau berkas desain.', 'warning');
+      showToast('Masukkan URL tautan berkas (Google Drive/Canva/Figma)', 'warning');
       return;
     }
-
-    setIsUploading(true);
+    setIsSubmittingFile(true);
     setTimeout(() => {
-      submitGroupFile(
-        currentGroup.number,
-        uploadFileUrl.trim(),
-        uploadNotes.trim() || `${uploadFileName} diserahkan oleh ${currentUser?.name || currentGroup.leaderName}`
-      );
-      setIsUploading(false);
+      submitGroupFile(groupNumberStr, uploadFileUrl.trim(), uploadNotes.trim() || undefined);
+      setIsSubmittingFile(false);
       setShowUploadModal(false);
       setUploadFileUrl('');
       setUploadNotes('');
-      showToast('Berkas berhasil diserahkan untuk peninjauan Pembimbing & Kurikulum!', 'success');
+      showToast('Berkas berhasil diserahkan ke Pembimbing!', 'success');
     }, 600);
   };
 
-  // Add quick task handler
-  const handleAddQuickTask = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!quickTaskText.trim()) return;
-    addTask(quickTaskText.trim(), 'medium', currentUser?.name || currentGroup.leaderName);
-    setQuickTaskText('');
-    showToast('Tugas anggota berhasil ditambahkan!', 'success');
+  const handleLogoutSession = async () => {
+    await logout('/login');
   };
 
-  // Schedules mock data
-  const scheduleItems: ScheduleItem[] = [
-    {
-      id: 'sc-1',
-      time: '09:00 WIB',
-      title: 'Briefing Desain X-Banner & Feed IG Tim',
-      status: 'Terkonfirmasi',
-      location: 'Ruang Diskusi Lantai 2',
-    },
-    {
-      id: 'sc-2',
-      time: '13:30 WIB',
-      title: 'Konsultasi Dra. Sri Wahyuni (Review Banner v2)',
-      status: 'Terjadwal',
-      location: 'Ruang Guru Pembimbing',
-    },
-    {
-      id: 'sc-3',
-      time: '15:00 WIB',
-      title: 'Survei Lab Komputer SMPN 1 Buduran',
-      status: 'Terkonfirmasi',
-      location: 'Lab Komputer SMPN 1 Buduran',
-    },
-    {
-      id: 'sc-4',
-      time: '16:30 WIB',
-      title: 'Cek Kesiapan Akun Siswa Scratch & Canva',
-      status: 'Terjadwal',
-      location: 'Online via Google Meet',
-    },
-  ];
-
-  // Deliverables status for Card 3A
-  const deliverables = [
-    {
-      id: 'del-1',
-      name: 'Desain Feed IG Tim',
-      tag: 'Publikasi Digital',
-      status: 'Belum diunggah',
-      statusColor: 'text-rose-600 bg-rose-50 border-rose-200',
-      action: 'upload',
-    },
-    {
-      id: 'del-2',
-      name: 'Final X-Banner 60×160',
-      tag: 'Cetak Promosi',
-      status: bannerStatus === 'approved' ? 'Disetujui' : 'Menunggu Review',
-      statusColor:
-        bannerStatus === 'approved'
-          ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-          : 'text-amber-700 bg-amber-50 border-amber-200',
-      action: bannerStatus === 'approved' ? 'done' : 'check',
-    },
-    {
-      id: 'del-3',
-      name: 'Modul Sesi 1 & 2',
-      tag: 'Materi Literasi',
-      status: 'Disetujui Kurikulum',
-      statusColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-      action: 'done',
-    },
-  ];
-
-  const isArchiveMode = selectedStage < activeStageNumber;
-
   return (
-    <div className="min-h-screen bg-[#F6F6F4] text-[#141416] font-sans antialiased flex flex-col lg:flex-row overflow-x-hidden selection:bg-[#E50914] selection:text-white">
+    <div className="min-h-screen w-full bg-[#F8F9FA] text-[#141416] font-sans antialiased selection:bg-[#E50914]/10 selection:text-[#E50914] flex flex-col">
       {/* ══════════════════════════════════════════════════════════════════════════
-          1. LEFT FIXED SIDEBAR (w-[250px] DESKTOP, COLLAPSIBLE DRAWER ON MOBILE)
+          1. CLEAN TOP NAVIGATION BAR (MINIMALIST LMS STYLE)
       ══════════════════════════════════════════════════════════════════════════ */}
-      {/* Mobile Drawer Backdrop */}
-      {isMobileSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-xs transition-opacity"
-          onClick={() => setIsMobileSidebarOpen(false)}
-        />
-      )}
-
-      <aside
-        className={`fixed top-0 bottom-0 left-0 w-[250px] bg-white border-r border-slate-200/80 z-50 flex flex-col justify-between py-5 px-4 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          isMobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
-        }`}
-      >
-        {/* Top Area: Brand & Group Selector Card */}
-        <div className="flex flex-col gap-4 overflow-y-auto pr-1">
-          {/* Header & Logo Badge */}
-          <div className="flex items-center justify-between pb-1">
-            <button
-              onClick={() => navigate('/home')}
-              className="flex items-center gap-2 cursor-pointer group text-left"
-            >
-              <BrandLogo size="md" />
-            </button>
-            <button
-              onClick={() => setIsMobileSidebarOpen(false)}
-              className="lg:hidden p-1.5 text-slate-400 hover:text-slate-800 rounded-lg"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Locked Group Selector Card */}
-          <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black tracking-wider uppercase text-slate-400">
-                Kelompok Anda
-              </span>
-              <span className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-red-100 text-[#E50914]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
-                Fase Aktif
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#E50914] text-white flex items-center justify-center font-black text-xs shrink-0">
-                {currentGroup.number}
+      <header className="sticky top-0 z-30 w-full bg-white border-b border-slate-200/80 px-4 sm:px-8 py-3.5 shadow-2xs">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          {/* Left: Brand Badge & Main Tabs */}
+          <div className="flex items-center gap-6 sm:gap-8">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#E50914] text-white flex items-center justify-center font-black text-xs shadow-xs">
+                SM
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-black text-[#141416] truncate">
-                  KEL-{currentGroup.number} • {currentGroup.schoolName}
-                </div>
-                <div className="text-[10px] text-slate-500 truncate">
-                  Ketua: {currentUser?.name || currentGroup.leaderName}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Primary Active Pill: Dashboard */}
-          <button
-            onClick={() => {
-              setSelectedStage(activeStageNumber);
-              setIsMobileSidebarOpen(false);
-            }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-full bg-[#141416] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
-          >
-            <LayoutDashboard className="w-4 h-4 text-white shrink-0" />
-            <span>Dashboard</span>
-            <span className="ml-auto w-2 h-2 rounded-full bg-[#E50914]" />
-          </button>
-
-          {/* Navigation Group 1: ALUR TAHAPAN */}
-          <div className="space-y-1.5 pt-2">
-            <span className="px-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-              ALUR TAHAPAN
-            </span>
-            <div className="space-y-1">
-              {stagesData.map((stg) => {
-                const isCurrentActive = selectedStage === stg.number;
-                const isPast = stg.number < activeStageNumber;
-                const isLocked = stg.locked;
-
-                return (
-                  <button
-                    key={stg.number}
-                    onClick={() => {
-                      handleStageSelect(stg.number);
-                      setIsMobileSidebarOpen(false);
-                    }}
-                    disabled={isLocked}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                      isCurrentActive
-                        ? 'bg-red-50 text-[#E50914] font-bold border border-red-200'
-                        : isLocked
-                        ? 'text-slate-400 cursor-not-allowed opacity-60'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <span className="font-mono text-[11px] font-bold">
-                        0{stg.number}
-                      </span>
-                      <span className="truncate">{stg.title}</span>
-                    </div>
-
-                    <div className="shrink-0 flex items-center">
-                      {isPast && (
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      )}
-                      {stg.number === activeStageNumber && (
-                        <span className="text-[10px] font-black px-1.5 py-0.2 rounded-md bg-[#E50914] text-white">
-                          67%
-                        </span>
-                      )}
-                      {isLocked && <Lock className="w-3 h-3 text-slate-400" />}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Navigation Group 2: WORKSPACE */}
-          <div className="space-y-1.5 pt-2">
-            <span className="px-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-              WORKSPACE
-            </span>
-            <div className="space-y-1">
-              <button
-                onClick={() => {
-                  setShowMembersDrawer(true);
-                  setIsMobileSidebarOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Users className="w-4 h-4 text-slate-500" />
-                  <span>Anggota Tim</span>
-                </div>
-                <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700">
-                  {members.length}
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-sm tracking-tight text-[#141416]">#SKOMDA</span>
+                <span className="bg-[#E50914]/10 text-[#E50914] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#E50914]/20">
+                  2026
                 </span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowUploadModal(true);
-                  setIsMobileSidebarOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Upload className="w-4 h-4 text-slate-500" />
-                  <span>Unggah Berkas</span>
-                </div>
-                <span className="w-2 h-2 rounded-full bg-[#E50914]" />
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowAssetsModal(true);
-                  setIsMobileSidebarOpen(false);
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <FolderOpen className="w-4 h-4 text-slate-500" />
-                <span>Aset & Template</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  navigate('/home');
-                  setIsMobileSidebarOpen(false);
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <Home className="w-4 h-4 text-slate-500" />
-                <span>Rekam Jejak</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Sidebar: Highlight Card & Profile */}
-        <div className="pt-3 border-t border-slate-100 space-y-2.5">
-          {/* Soft Crimson Highlight Card */}
-          <div className="bg-[#FFF1F2] border border-[#FECDD3] rounded-2xl p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase text-rose-800 tracking-wider">
-                Status Pembimbing
-              </span>
-              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-rose-200 text-rose-900">
-                Aktif
-              </span>
-            </div>
-            <div className="text-[11px] font-bold text-slate-900">
-              Dra. Sri Wahyuni, M.Pd
-            </div>
-            <button
-              onClick={() => {
-                setShowAdvisorModal(true);
-                setIsMobileSidebarOpen(false);
-              }}
-              className="w-full py-1.5 px-2.5 rounded-lg bg-white hover:bg-rose-50 text-[10px] font-extrabold text-[#E50914] border border-[#FECDD3] flex items-center justify-between transition-colors cursor-pointer"
-            >
-              <span>1 berkas menunggu review</span>
-              <ChevronRight className="w-3 h-3" />
-            </button>
-          </div>
-
-          {/* User Profile Pill & Logout */}
-          <div className="flex items-center justify-between px-1">
-            <div className="min-w-0 pr-2">
-              <div className="text-xs font-extrabold text-[#141416] truncate">
-                {currentUser?.name || currentGroup.leaderName}
-              </div>
-              <div className="text-[10px] text-slate-400">
-                Ketua KEL-{currentGroup.number}
               </div>
             </div>
-            <button
-              onClick={() => logout('/login')}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-              title="Keluar Sesi"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </aside>
 
-      {/* ══════════════════════════════════════════════════════════════════════════
-          2. MAIN CONTENT AREA (OFFSET lg:ml-[250px] TO PRESERVE FIXED SIDEBAR)
-      ══════════════════════════════════════════════════════════════════════════ */}
-      <div className="flex-1 lg:ml-[250px] min-h-screen p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
-        {/* ─── TOP HEADER BAR ─── */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Left: Dynamic Greeting */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsMobileSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 cursor-pointer"
-              title="Buka Menu"
-            >
-              <Layers className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-extrabold text-[#141416] tracking-tight font-display">
-                Selamat bekerja, {(currentUser?.name || currentGroup.leaderName).split(' ')[0]}
-              </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Kelompok {currentGroup.number} • {currentGroup.schoolName} • Tahap 0{activeStageNumber}: Siapkan Desain & Cetak
-              </p>
-            </div>
+            {/* Nav Links */}
+            <nav className="flex items-center gap-1 sm:gap-2">
+              <button
+                onClick={() => navigate('/dashboard/ketua')}
+                className="relative px-3.5 py-1.5 text-xs font-bold text-[#141416] transition-colors cursor-pointer"
+              >
+                <span>Dashboard</span>
+                <span className="absolute bottom-0 left-3.5 right-3.5 h-[2.5px] bg-[#E50914] rounded-full" />
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="px-3.5 py-1.5 text-xs font-medium text-slate-500 hover:text-[#141416] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              >
+                <span>Beranda Utama</span>
+              </button>
+              <button
+                onClick={() => navigate('/kelompok')}
+                className="hidden sm:inline-flex px-3.5 py-1.5 text-xs font-medium text-slate-500 hover:text-[#141416] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              >
+                <span>Direktori Tim</span>
+              </button>
+            </nav>
           </div>
 
-          {/* Center-Right: Search Pill, Status Badge, Bell, and Primary CTA */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Search Pill */}
-            <div className="hidden sm:flex items-center gap-2 bg-white border border-slate-200/80 rounded-full px-3.5 py-1.5 text-xs text-slate-500 shadow-2xs">
-              <Search className="w-3.5 h-3.5 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari berkas atau tugas..."
-                className="bg-transparent border-none outline-none text-xs text-slate-800 placeholder:text-slate-400 w-36 lg:w-44"
-              />
-            </div>
-
-            {/* Group Status Pill */}
-            <div className="px-3.5 py-1.5 rounded-full bg-red-50 text-[#E50914] text-xs font-bold border border-red-200 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#E50914] animate-pulse" />
-              <span>Tahap 0{activeStageNumber} Aktif</span>
-            </div>
-
+          {/* Right: Group Badge, Profile & Actions */}
+          <div className="flex items-center gap-3 sm:gap-4">
             {/* Notification Bell */}
             <button
-              onClick={() => setShowAdvisorModal(true)}
-              className="w-9 h-9 rounded-full bg-white hover:bg-slate-100 text-slate-700 flex items-center justify-center border border-slate-200/80 shadow-2xs transition-colors cursor-pointer relative"
-              title="Notifikasi & Catatan Pembimbing"
+              onClick={() => setShowAdvisorDrawer(true)}
+              title="Arahan & Notifikasi Pembimbing"
+              className="relative p-2 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
             >
               <Bell className="w-4 h-4" />
-              <span className="w-2 h-2 rounded-full bg-[#E50914] absolute top-2 right-2 border-2 border-white" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#E50914] ring-2 ring-white" />
             </button>
 
-            {/* Primary Dark CTA Button */}
-            <button
-              onClick={() => setShowUploadModal(true)}
-              className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 rounded-full bg-[#141416] hover:bg-[#28292d] text-white text-xs font-bold uppercase tracking-wider transition-all shadow-sm hover:scale-[1.02] cursor-pointer"
-            >
-              <span>&gt; Unggah Berkas</span>
-            </button>
-          </div>
-        </header>
-
-        {/* ─── ARCHIVE NOTICE (IF BROWSING PREVIOUS COMPLETED STAGE) ─── */}
-        {isArchiveMode && (
-          <div className="w-full bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-emerald-900 shadow-2xs">
-            <div className="flex items-center gap-2 font-bold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Tahap 0{selectedStage} Selesai • Mode Arsip &amp; Unduh Dokumen</span>
-              <span className="hidden md:inline font-normal text-emerald-700">
-                (Seluruh dokumen tahap ini telah disahkan oleh pembimbing lapangan)
+            {/* Group Badge Pill */}
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200/80 text-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-extrabold text-[#141416] text-[11px]">
+                KEL-{groupNumberStr} • {currentGroup.schoolName}
               </span>
             </div>
+
+            {/* Leader Avatar & Profile Info */}
+            <div className="flex items-center gap-2.5 pl-2 sm:border-l sm:border-slate-200">
+              <div className="w-8 h-8 rounded-full bg-[#141416] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                {currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : 'NP'}
+              </div>
+              <div className="hidden sm:block text-left">
+                <span className="block text-xs font-bold text-[#141416] leading-tight max-w-[130px] truncate">
+                  {currentUser?.name || currentGroup.leaderName}
+                </span>
+                <span className="block text-[10px] text-slate-400 font-medium">Ketua Kelompok</span>
+              </div>
+            </div>
+
+            {/* Logout Button */}
             <button
-              onClick={() => setSelectedStage(activeStageNumber)}
-              className="px-3.5 py-1 bg-white hover:bg-emerald-100/60 text-emerald-800 font-extrabold rounded-full border border-emerald-300 transition-colors cursor-pointer shrink-0"
+              onClick={handleLogoutSession}
+              title="Keluar dari akun ketua"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-[#E50914] hover:bg-rose-50 transition-colors cursor-pointer ml-1"
             >
-              Kembali ke Tahap Aktif (0{activeStageNumber}) →
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Keluar</span>
             </button>
           </div>
-        )}
+        </div>
+      </header>
 
-        {/* ─── 7-CARD MINI KPI STRIP ─── */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-          {/* Card 1: Anggota Tim */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs flex flex-col justify-between">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Anggota Tim
-            </div>
-            <div className="text-2xl font-black text-[#141416] mt-1">
-              8/8
-            </div>
-            <div className="text-[11px] font-extrabold text-emerald-600 mt-1 flex items-center gap-1">
-              <span>↗ Lengkap</span>
-            </div>
-          </div>
+      {/* ══════════════════════════════════════════════════════════════════════════
+          2. SPACIOUS 2-COLUMN ASYMMETRIC MAIN CONTENT CANVAS
+      ══════════════════════════════════════════════════════════════════════════ */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-          {/* Card 2: Berkas Disetujui */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs flex flex-col justify-between">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Berkas Disetujui
-            </div>
-            <div className="text-2xl font-black text-[#141416] mt-1">
-              4
-            </div>
-            <div className="text-[11px] font-extrabold text-emerald-600 mt-1 flex items-center gap-1">
-              <span>↗ Tahap 1-3</span>
-            </div>
-          </div>
+          {/* ────────────────────────────────────────────────────────────────────
+              LEFT COLUMN (lg:col-span-8): TIMELINE, ADVISOR NOTE, 6-STAGE GRID
+          ──────────────────────────────────────────────────────────────────── */}
+          <div className="lg:col-span-8 space-y-8">
 
-          {/* Card 3: Menunggu Review */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs flex flex-col justify-between">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Menunggu Review
-            </div>
-            <div className="text-2xl font-black text-[#141416] mt-1">
-              1
-            </div>
-            <div className="text-[11px] font-extrabold text-amber-600 mt-1 flex items-center gap-1">
-              <span>X-Banner</span>
-            </div>
-          </div>
+            {/* ─── A. TIMELINE SECTION (SUBMISSION REMINDERS) ─── */}
+            <section className="space-y-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black text-[#141416] tracking-tight">Timeline</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Daftar tenggat pengumpulan berkas wajib kelompok Anda</p>
+                </div>
 
-          {/* Card 4: Perlu Revisi */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs flex flex-col justify-between">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Perlu Revisi
-            </div>
-            <div className="text-2xl font-black text-[#141416] mt-1">
-              0
-            </div>
-            <div className="text-[11px] font-extrabold text-slate-500 mt-1 flex items-center gap-1">
-              <span>Aman</span>
-            </div>
-          </div>
-
-          {/* Card 5: Sisa Waktu */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs flex flex-col justify-between">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Sisa Waktu
-            </div>
-            <div className="text-2xl font-black text-[#141416] mt-1">
-              12
-            </div>
-            <div className="text-[11px] font-extrabold text-slate-500 mt-1 flex items-center gap-1">
-              <span>Hari lagi</span>
-            </div>
-          </div>
-
-          {/* Card 6: Materi & Modul */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs flex flex-col justify-between">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Materi &amp; Modul
-            </div>
-            <div className="text-2xl font-black text-[#141416] mt-1">
-              100%
-            </div>
-            <div className="text-[11px] font-extrabold text-emerald-600 mt-1 flex items-center gap-1">
-              <span>Siap</span>
-            </div>
-          </div>
-
-          {/* Card 7: Progres Total (CRIMSON RED HIGHLIGHT CARD) */}
-          <div className="bg-[#E50914] text-white rounded-2xl p-4 shadow-sm border border-red-600 flex flex-col justify-between">
-            <div className="text-[11px] font-bold text-red-100 uppercase tracking-wider">
-              Progres Total
-            </div>
-            <div className="text-2xl font-black text-white mt-1">
-              67%
-            </div>
-            <div className="text-[11px] font-extrabold text-red-100 mt-1 flex items-center gap-1">
-              <span>↗ Tahap 04</span>
-            </div>
-          </div>
-        </section>
-
-        {/* ─── 3. CENTER HERO CARD: ALUR & PROGRES KELOMPOK (6-STAGE PIPELINE) ─── */}
-        <section className="bg-white rounded-[24px] p-6 border border-slate-200/70 shadow-sm">
-          {/* Header Row */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-100">
-            <div>
-              <h2 className="text-lg font-black text-[#141416] tracking-tight">
-                Alur &amp; Progres Kelompok
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Tahapan terstruktur dari pembentukan tim hingga publikasi luaran di SMP mitra
-              </p>
-            </div>
-
-            {/* Filter Pills */}
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-full text-xs font-bold">
-              <button
-                onClick={() => setStageFilter('all')}
-                className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
-                  stageFilter === 'all'
-                    ? 'bg-white text-[#141416] shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                Semua Tahap
-              </button>
-              <button
-                onClick={() => setStageFilter('active')}
-                className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
-                  stageFilter === 'active'
-                    ? 'bg-white text-[#141416] shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                Tahap Aktif
-              </button>
-              <button
-                onClick={() => setStageFilter('archive')}
-                className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
-                  stageFilter === 'archive'
-                    ? 'bg-white text-[#141416] shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                Arsip
-              </button>
-            </div>
-          </div>
-
-          {/* 6-Column Horizontal Stage Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 mt-5">
-            {filteredStages.map((stg) => {
-              const isSelected = selectedStage === stg.number;
-              const isActive = stg.number === activeStageNumber;
-              const isPast = stg.number < activeStageNumber;
-              const isLocked = stg.locked;
-
-              return (
-                <div
-                  key={stg.number}
-                  onClick={() => handleStageSelect(stg.number)}
-                  className={`rounded-2xl p-4 border transition-all cursor-pointer flex flex-col justify-between min-h-[148px] ${
-                    isSelected
-                      ? 'border-[#E50914] bg-red-50/20 shadow-xs ring-1 ring-[#E50914]/30'
-                      : isLocked
-                      ? 'border-slate-200/60 bg-slate-50/70 opacity-60 cursor-not-allowed'
-                      : 'border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-2xs'
-                  }`}
-                >
-                  {/* Top Row: Stage Code Badge + Completion % */}
-                  <div className="flex items-center justify-between gap-1">
-                    <span
-                      className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                        isActive
-                          ? 'bg-[#E50914] text-white shadow-2xs'
-                          : isPast
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-slate-200 text-slate-600'
-                      }`}
-                    >
-                      {stg.code}
-                    </span>
-
-                    <span
-                      className={`text-[11px] font-black ${
-                        isActive
-                          ? 'text-[#E50914]'
-                          : isPast
-                          ? 'text-emerald-700'
-                          : 'text-slate-400'
-                      }`}
-                    >
-                      {stg.progress}%
-                    </span>
-                  </div>
-
-                  {/* Middle Visual: Diagonal Hatched Pattern Container with Solid Crimson Red Fill */}
-                  <div className="my-3 space-y-1">
-                    <div
-                      className="w-full h-3 rounded-full overflow-hidden p-0.5 border border-slate-200"
-                      style={{
-                        background:
-                          'repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 6px, #e2e8f0 6px, #e2e8f0 12px)',
-                      }}
-                    >
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          isPast
-                            ? 'bg-emerald-500'
-                            : isActive
-                            ? 'bg-[#E50914]'
-                            : 'bg-transparent'
+                {/* Filter Selector */}
+                <div className="flex items-center gap-2">
+                  <div className="flex bg-slate-200/70 p-0.5 rounded-xl text-xs">
+                    {(['all', 'urgent', 'completed'] as const).map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setTimelineFilter(tab)}
+                        className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                          timelineFilter === tab ? 'bg-white text-[#141416] shadow-2xs' : 'text-slate-600 hover:text-[#141416]'
                         }`}
-                        style={{ width: `${stg.progress}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Bottom Metric: Large bold counter with sub-label */}
-                  <div>
-                    <div className="text-sm font-black text-[#141416]">
-                      {stg.metric}
-                    </div>
-                    <div className="text-[10px] text-slate-500 truncate">
-                      {stg.metricSub}
-                    </div>
+                      >
+                        {tab === 'all' ? 'Semua' : tab === 'urgent' ? 'Mendesak' : 'Selesai'}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </section>
+              </div>
 
-        {/* ─── 4. BOTTOM 3-COLUMN OPERATIONAL BENTO GRID ─── */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
-          {/* ══════════════════════════════════════════════════════════════════════
-              COLUMN 1: AGENDA & JADWAL TIM
-          ══════════════════════════════════════════════════════════════════════ */}
-          <div className="bg-white rounded-[24px] p-5 sm:p-6 border border-slate-200/70 shadow-sm flex flex-col justify-between gap-4">
-            <div>
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-slate-100 text-[#141416] flex items-center justify-center">
-                    <Calendar className="w-4 h-4 text-slate-700" />
+              {/* Timeline Container Card */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs divide-y divide-slate-100">
+                {filteredTimeline.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-400">
+                    Tidak ada tenggat yang sesuai dengan filter.
+                  </div>
+                ) : (
+                  filteredTimeline.map((item) => (
+                    <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      {/* Left: Date Badge & Title */}
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col items-center justify-center shrink-0">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase leading-none">FEB</span>
+                          <span className="text-base font-black text-[#141416] leading-none mt-0.5">{item.dayNumber}</span>
+                        </div>
+
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[11px] font-bold text-[#E50914] bg-rose-50 px-2 py-0.5 rounded-md">
+                              {item.stage}
+                            </span>
+                            {item.isUrgent && (
+                              <span className="text-[10px] font-extrabold uppercase text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                                {item.countdown}
+                              </span>
+                            )}
+                            <span className="text-xs text-slate-400 font-medium">Tenggat: {item.deadlineDate}</span>
+                          </div>
+                          <h4 className="text-sm font-bold text-[#141416] mt-1 leading-snug">{item.title}</h4>
+                        </div>
+                      </div>
+
+                      {/* Right: Status Pill & Action */}
+                      <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+                        <span
+                          className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
+                            item.statusCode === 'approved'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : item.statusCode === 'pending'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : 'bg-slate-50 text-slate-600 border-slate-200'
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+
+                        <button
+                          onClick={() => {
+                            setUploadDeliverableName(item.title);
+                            setShowUploadModal(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#141416] hover:bg-[#E50914] text-white transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Unggah Berkas</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+
+            {/* ─── B. ARAHAN & PENGUMUMAN PEMBIMBING ─── */}
+            <section className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs relative overflow-hidden">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-[#E50914]/10 text-[#E50914] flex items-center justify-center shrink-0 font-black text-sm">
+                    GP
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-[#141416]">
-                      Agenda &amp; Jadwal Tim
-                    </h3>
-                    <p className="text-[11px] text-slate-400">
-                      Rangkaian kegiatan Skomda Mengajar
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-[#141416]">
+                        {currentGroup.mentorName}
+                      </h3>
+                      <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+                        Guru Pembimbing
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-2 leading-relaxed max-w-2xl">
+                      "{supervisorMemo || 'Pastikan file X-Banner 60×160 cm sudah disesuaikan dengan template resmi sekolah mitra dan modul Scratch dipersiapkan untuk 40 siswa lab.'}"
                     </p>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => setShowAllSchedulesModal(true)}
-                  className="text-xs font-bold text-[#E50914] hover:underline cursor-pointer"
+                  onClick={() => setShowAdvisorDrawer(true)}
+                  className="shrink-0 text-xs font-bold text-[#E50914] hover:underline inline-flex items-center gap-1 cursor-pointer"
                 >
-                  Semua jadwal &gt;
+                  <span>Riwayat Feedback</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
+            </section>
 
-              {/* Time-slotted schedule rows */}
-              <div className="divide-y divide-slate-100 mt-3 space-y-1">
-                {scheduleItems.map((item) => (
-                  <div key={item.id} className="py-2.5 flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[10px] font-bold text-slate-400 font-mono">
-                        {item.time}
-                      </div>
-                      <div className="text-xs font-bold text-[#141416] mt-0.5 leading-snug">
-                        {item.title}
-                      </div>
-                      <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-2.5 h-2.5 text-slate-400" />
-                        <span className="truncate">{item.location}</span>
-                      </div>
-                    </div>
+            {/* ─── C. PROGRES & TAHAPAN KELOMPOK (3-COLUMN BENTO GRID) ─── */}
+            <section className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black text-[#141416] tracking-tight">Progres &amp; Tahapan Kelompok</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Alur penyelesaian 6 tahap resmi Skomda Mengajar 2026</p>
+                </div>
 
-                    <span
-                      className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                        item.status === 'Terkonfirmasi'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                {/* Underline Tabs */}
+                <div className="flex items-center gap-4 text-xs font-bold border-b border-slate-200 pb-1">
+                  {(['all', 'active', 'completed', 'locked'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setStageTabFilter(tab)}
+                      className={`pb-1 transition-all cursor-pointer ${
+                        stageTabFilter === tab
+                          ? 'text-[#E50914] border-b-2 border-[#E50914]'
+                          : 'text-slate-400 hover:text-slate-700'
                       }`}
                     >
-                      {item.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Bottom summary note */}
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-600 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>4 agenda terjadwal minggu ini di {currentGroup.schoolName}</span>
-            </div>
-          </div>
-
-          {/* ══════════════════════════════════════════════════════════════════════
-              COLUMN 2: CATATAN & REVIEW PEMBIMBING
-          ══════════════════════════════════════════════════════════════════════ */}
-          <div className="bg-white rounded-[24px] p-5 sm:p-6 border border-slate-200/70 shadow-sm flex flex-col justify-between gap-4">
-            <div>
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-red-50 text-[#E50914] flex items-center justify-center">
-                    <MessageSquare className="w-4 h-4 text-[#E50914]" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-[#141416]">
-                      Catatan &amp; Review Pembimbing
-                    </h3>
-                    <p className="text-[11px] text-slate-400">
-                      Arahan resmi dosen / guru pendamping
-                    </p>
-                  </div>
-                </div>
-
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-red-50 text-[#E50914] border border-red-200">
-                  1 menunggu
-                </span>
-              </div>
-
-              {/* Advisor Info Bar */}
-              <div className="flex items-center gap-2.5 mt-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                  SW
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-[#141416] truncate">
-                    Dra. Sri Wahyuni, M.Pd
-                  </div>
-                  <div className="text-[10px] text-slate-500">
-                    Guru Pembimbing Kelompok {currentGroup.number}
-                  </div>
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 shrink-0">
-                  Prioritas Tinggi
-                </span>
-              </div>
-
-              {/* Feedback Quote Bubble */}
-              <div className="mt-3 p-3.5 bg-rose-50/50 border border-rose-200/60 rounded-2xl relative">
-                <p className="text-xs text-slate-700 italic leading-relaxed">
-                  &ldquo;Pastikan logo Tut Wuri Handayani dan logo SMPN 1 Buduran posisinya sejajar di bagian header banner. Untuk materi presentasi jangan terlalu padat teks, prioritaskan studi kasus visual.&rdquo;
-                </p>
-                <div className="text-[10px] font-semibold text-slate-400 mt-2 flex items-center justify-between">
-                  <span>Ditinjau 12 menit lalu</span>
-                  <span className="text-slate-600 font-bold">X-Banner 60×160 v2</span>
+                      {tab === 'all'
+                        ? 'Semua Tahap'
+                        : tab === 'active'
+                        ? 'Sedang Berjalan'
+                        : tab === 'completed'
+                        ? 'Selesai'
+                        : 'Terkunci'}
+                    </button>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            {/* Interactive Actions */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                onClick={() => setShowAdvisorModal(true)}
-                className="py-2.5 px-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold transition-colors cursor-pointer text-center"
-              >
-                Periksa Detail
-              </button>
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className="py-2.5 px-3 rounded-xl bg-[#E50914] hover:bg-[#b4000c] text-white text-xs font-bold transition-all shadow-xs cursor-pointer text-center flex items-center justify-center gap-1"
-              >
-                <span>Unggah Revisi</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
+              {/* 3-Column Card Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {filteredStages.map((stg) => {
+                  const isActive = stg.status === 'active';
+                  const isDone = stg.status === 'completed';
+                  const isLocked = stg.status === 'locked';
 
-          {/* ══════════════════════════════════════════════════════════════════════
-              COLUMN 3: 3 STACKED COMPACT ACTION CARDS
-          ══════════════════════════════════════════════════════════════════════ */}
-          <div className="flex flex-col gap-4">
-            {/* Card 3A: Berkas Belum Lengkap */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs space-y-2.5">
-              <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-                <div className="flex items-center gap-1.5 text-xs font-black text-[#141416]">
-                  <AlertCircle className="w-3.5 h-3.5 text-[#E50914]" />
-                  <span>Berkas Belum Lengkap</span>
-                </div>
-                <span className="text-[10px] font-bold text-slate-500">
-                  2/3 Terkumpul
-                </span>
-              </div>
-
-              <div className="space-y-1.5">
-                {deliverables.map((del) => (
-                  <div
-                    key={del.id}
-                    className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs"
-                  >
-                    <div className="min-w-0 pr-2">
-                      <div className="font-bold text-[#141416] truncate text-[11px]">
-                        {del.name}
-                      </div>
-                      <div className="text-[10px] text-slate-400">
-                        {del.tag}
-                      </div>
-                    </div>
-                    {del.action === 'upload' ? (
-                      <button
-                        onClick={() => setShowUploadModal(true)}
-                        className="px-2.5 py-1 rounded-lg bg-[#E50914] hover:bg-[#b4000c] text-white font-bold text-[10px] transition-colors cursor-pointer shrink-0"
-                      >
-                        Unggah
-                      </button>
-                    ) : (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${del.statusColor}`}>
-                        {del.status}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Card 3B: Tenggat Terdekat */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs space-y-2">
-              <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-                <div className="flex items-center gap-1.5 text-xs font-black text-[#141416]">
-                  <Clock className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Tenggat Terdekat</span>
-                </div>
-                <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.2 rounded-full">
-                  Kritis
-                </span>
-              </div>
-
-              <div className="space-y-1.5 text-xs">
-                <div className="flex items-center justify-between py-1 border-b border-slate-50">
-                  <span className="text-slate-700 text-[11px]">Pengumpulan Desain Final</span>
-                  <span className="font-extrabold text-[#E50914] text-[10px] bg-red-50 px-2 py-0.5 rounded-md">
-                    4 hari lagi
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-1 border-b border-slate-50">
-                  <span className="text-slate-700 text-[11px]">Simulasi Mengajar Lab</span>
-                  <span className="font-bold text-amber-700 text-[10px] bg-amber-50 px-2 py-0.5 rounded-md">
-                    9 hari lagi
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-slate-700 text-[11px]">Hari Pertama di SMP Mitra</span>
-                  <span className="font-bold text-slate-600 text-[10px] bg-slate-100 px-2 py-0.5 rounded-md">
-                    12 hari lagi
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 3C: Tugas Anggota Hari Ini */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs space-y-2.5">
-              <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-                <div className="flex items-center gap-1.5 text-xs font-black text-[#141416]">
-                  <ListTodo className="w-3.5 h-3.5 text-[#E50914]" />
-                  <span>Tugas Anggota Hari Ini</span>
-                </div>
-                <span className="text-[10px] font-extrabold text-slate-500">
-                  {sprintTasks.filter((t) => t.column === 'done').length}/{sprintTasks.length} Selesai
-                </span>
-              </div>
-
-              {/* Tasks List */}
-              <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
-                {sprintTasks.slice(0, 4).map((task) => {
-                  const isDone = task.column === 'done';
                   return (
                     <div
-                      key={task.id}
-                      onClick={() =>
-                        moveTaskColumn(task.id, isDone ? 'in_progress' : 'done')
-                      }
-                      className={`flex items-start gap-2 p-2 rounded-xl border transition-all cursor-pointer ${
-                        isDone
-                          ? 'bg-emerald-50/40 border-emerald-200 text-slate-400'
-                          : 'bg-slate-50 border-slate-100 hover:bg-slate-100 text-slate-800'
+                      key={stg.number}
+                      onClick={() => !isLocked && setSelectedStageDrawer(stg)}
+                      className={`group relative bg-white rounded-2xl border overflow-hidden flex flex-col justify-between transition-all duration-200 ${
+                        isLocked
+                          ? 'border-slate-200/60 opacity-70 cursor-not-allowed'
+                          : 'border-slate-200/90 hover:border-slate-300 hover:shadow-md cursor-pointer hover:-translate-y-0.5'
                       }`}
                     >
-                      <button type="button" className="mt-0.5 shrink-0 text-slate-500">
-                        {isDone ? (
-                          <CheckSquare className="w-4 h-4 text-emerald-600" />
-                        ) : (
-                          <Square className="w-4 h-4 text-slate-400" />
-                        )}
-                      </button>
-                      <div className="min-w-0 flex-1">
-                        <div
-                          className={`text-[11px] font-bold leading-tight ${
-                            isDone ? 'line-through text-slate-400' : 'text-slate-800'
-                          }`}
-                        >
-                          {task.title}
+                      {/* Geometric SVG Header Pattern */}
+                      <div
+                        className={`h-24 w-full relative overflow-hidden flex items-end p-4 ${
+                          isActive
+                            ? 'bg-gradient-to-br from-[#E50914] to-[#99050D] text-white'
+                            : isDone
+                            ? 'bg-gradient-to-br from-slate-800 to-slate-900 text-white'
+                            : 'bg-slate-100 text-slate-400'
+                        }`}
+                      >
+                        {/* Background SVG Motif */}
+                        <svg className="absolute inset-0 w-full h-full opacity-20 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+                          <defs>
+                            <pattern id={`pattern-${stg.number}`} width="20" height="20" patternUnits="userSpaceOnUse">
+                              <circle cx="2" cy="2" r="1.5" fill="currentColor" />
+                            </pattern>
+                          </defs>
+                          <rect width="100%" height="100%" fill={`url(#pattern-${stg.number})`} />
+                        </svg>
+
+                        {/* Top-Right Status Badge */}
+                        <div className="absolute top-3 right-3">
+                          {isDone ? (
+                            <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
+                              <Check className="w-3.5 h-3.5" />
+                            </span>
+                          ) : isActive ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white text-[#E50914] text-[10px] font-extrabold uppercase shadow-xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-ping" />
+                              Aktif
+                            </span>
+                          ) : (
+                            <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center">
+                              <Lock className="w-3.5 h-3.5" />
+                            </span>
+                          )}
                         </div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">
-                          {task.assignee}
+
+                        {/* Code Chip */}
+                        <span className="relative z-10 text-[10px] font-mono font-bold tracking-wider uppercase opacity-90">
+                          {stg.code}
+                        </span>
+                      </div>
+
+                      {/* Content Body */}
+                      <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h3 className="text-sm font-bold text-[#141416] group-hover:text-[#E50914] transition-colors leading-snug">
+                            {stg.title}
+                          </h3>
+                          <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">{stg.metric}</p>
+                        </div>
+
+                        {/* Bottom Slim Progress Bar */}
+                        <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                            <span>Progres</span>
+                            <span className="font-bold text-slate-700">{stg.progress}%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-500 rounded-full ${
+                                isActive ? 'bg-[#E50914]' : isDone ? 'bg-emerald-500' : 'bg-slate-300'
+                              }`}
+                              style={{ width: `${stg.progress}%` }}
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
+            </section>
 
-              {/* Inline Quick Add Task */}
-              <form onSubmit={handleAddQuickTask} className="flex items-center gap-1.5 pt-1">
-                <input
-                  type="text"
-                  value={quickTaskText}
-                  onChange={(e) => setQuickTaskText(e.target.value)}
-                  placeholder="+ Tambah tugas baru..."
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#E50914]"
-                />
-                <button
-                  type="submit"
-                  disabled={!quickTaskText.trim()}
-                  className="px-2.5 py-1.5 rounded-lg bg-[#141416] hover:bg-[#2e2f34] text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-40"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </form>
-            </div>
           </div>
-        </section>
-      </div>
+
+          {/* ────────────────────────────────────────────────────────────────────
+              RIGHT SIDEBAR (lg:col-span-4): CALENDAR & ROSTER WIDGETS
+          ──────────────────────────────────────────────────────────────────── */}
+          <div className="lg:col-span-4 space-y-6">
+
+            {/* ─── WIDGET 1: KALENDER TENGGAT ─── */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="w-4 h-4 text-[#E50914]" />
+                  <h3 className="text-sm font-extrabold text-[#141416]">Kalender Tenggat</h3>
+                </div>
+                <span className="text-xs font-bold text-slate-700">Februari 2026</span>
+              </div>
+
+              {/* Day Headers */}
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 uppercase">
+                <span>Min</span>
+                <span>Sen</span>
+                <span>Sel</span>
+                <span>Rab</span>
+                <span>Kam</span>
+                <span>Jum</span>
+                <span>Sab</span>
+              </div>
+
+              {/* Days Matrix */}
+              <div className="grid grid-cols-7 gap-1 text-center text-xs">
+                {calendarDays.map((d, idx) => {
+                  const isSelected = d.isCurrentMonth && d.date === selectedCalendarDate;
+                  const isToday = d.isCurrentMonth && d.date === 11; // Feb 11 example active
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => d.isCurrentMonth && setSelectedCalendarDate(d.date)}
+                      disabled={!d.isCurrentMonth}
+                      className={`relative h-8 rounded-lg flex items-center justify-center transition-all ${
+                        !d.isCurrentMonth
+                          ? 'text-slate-300 cursor-default'
+                          : isSelected
+                          ? 'bg-[#E50914] text-white font-extrabold shadow-xs'
+                          : isToday
+                          ? 'bg-rose-50 text-[#E50914] font-bold border border-rose-200'
+                          : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>{d.date}</span>
+
+                      {/* Small Red Indicator Dot for Deadlines */}
+                      {d.hasDeadline && !isSelected && (
+                        <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-[#E50914]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Selected Date Events Info Box */}
+              <div className="pt-3 border-t border-slate-100">
+                <span className="text-[11px] font-bold text-slate-400 block mb-1.5">
+                  Agenda Tanggal {selectedCalendarDate} Februari:
+                </span>
+                {selectedDateEvents.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedDateEvents.map((evt) => (
+                      <div key={evt.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-[#141416]">{evt.title}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
+                          <span>{evt.stage}</span>
+                          <span className="text-[#E50914] font-bold">{evt.status}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">Tidak ada tenggat berkas wajib pada tanggal ini.</p>
+                )}
+              </div>
+            </div>
+
+            {/* ─── WIDGET 2: ANGGOTA TIM KELOMPOK ─── */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#E50914]" />
+                  <h3 className="text-sm font-extrabold text-[#141416]">Anggota Tim Kelompok</h3>
+                </div>
+                <span className="text-[11px] font-bold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full">
+                  {groupMembers.length} Relawan
+                </span>
+              </div>
+
+              {/* Roster List */}
+              <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
+                {groupMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                          member.isLeader ? 'bg-[#E50914] text-white' : 'bg-slate-200 text-slate-700'
+                        }`}
+                      >
+                        {member.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="truncate">
+                        <span className="block text-xs font-bold text-[#141416] truncate">{member.name}</span>
+                        <span className="block text-[10px] text-slate-400 font-mono">NIS: {member.nis}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          member.isLeader
+                            ? 'bg-rose-50 text-[#E50914] border border-rose-200'
+                            : 'bg-white text-slate-600 border border-slate-200'
+                        }`}
+                      >
+                        {member.role}
+                      </span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" title="Aktif" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </main>
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          MODAL 1: UNGGAH BERKAS MODAL
+          3. SLIDE-OVER DRAWER: STAGE DETAILS & CHECKLIST
       ══════════════════════════════════════════════════════════════════════════ */}
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-red-50 text-[#E50914] flex items-center justify-center">
-                  <Upload className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-[#141416]">
-                    Unggah Berkas Tahap 0{selectedStage}
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Kelompok {currentGroup.number} • {currentGroup.schoolName}
-                  </p>
-                </div>
+      {selectedStageDrawer && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white h-full shadow-2xl border-l border-slate-200 flex flex-col justify-between animate-in slide-in-from-right duration-200">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+              <div>
+                <span className="text-[10px] font-mono font-bold text-[#E50914] uppercase tracking-wider">
+                  {selectedStageDrawer.code}
+                </span>
+                <h3 className="text-base font-extrabold text-[#141416] mt-0.5">
+                  {selectedStageDrawer.fullName}
+                </h3>
               </div>
               <button
-                onClick={() => setShowUploadModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg"
+                onClick={() => setSelectedStageDrawer(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-[#141416] hover:bg-slate-200 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleUploadSubmit} className="space-y-4">
+            {/* Body */}
+            <div className="p-6 space-y-6 overflow-y-auto flex-1">
               <div>
-                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block mb-1">
-                  Nama Berkas / Item Desain
-                </label>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                  Daftar Berkas &amp; Capaian Tahap:
+                </span>
+                <div className="space-y-2.5">
+                  {selectedStageDrawer.deliverables.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                        <Check className="w-3 h-3" />
+                      </span>
+                      <span className="font-semibold text-slate-700">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Status Notice */}
+              <div className="p-4 rounded-xl bg-rose-50/60 border border-rose-100 space-y-1">
+                <span className="text-xs font-bold text-[#E50914] block">Status Verifikasi Kurikulum</span>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {selectedStageDrawer.number === 4
+                    ? bannerStatus === 'approved'
+                      ? 'Berkas telah ditinjau dan disetujui penuh oleh Pembimbing Kurikulum.'
+                      : 'Berkas aktif dan dapat diperbarui sebelum batas waktu verifikasi lapangan.'
+                    : 'Tahap ini telah diselesaikan dan tersimpan dalam arsip digital.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
+              <button
+                onClick={() => {
+                  setSelectedStageDrawer(null);
+                  setShowUploadModal(true);
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold bg-[#E50914] hover:bg-[#b4000c] text-white transition-colors cursor-pointer text-center shadow-xs"
+              >
+                Unggah Berkas Baru
+              </button>
+              <button
+                onClick={() => setSelectedStageDrawer(null)}
+                className="py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          4. MODAL: UNGGAH BERKAS STAGE
+      ══════════════════════════════════════════════════════════════════════════ */}
+      {showUploadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div>
+                <span className="text-[10px] font-bold text-[#E50914] uppercase tracking-wider">
+                  Penyerahan Berkas • KEL-{groupNumberStr}
+                </span>
+                <h3 className="text-base font-extrabold text-[#141416] mt-0.5">Unggah Berkas ke Pembimbing</h3>
+              </div>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitFile} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Nama Berkas Deliverable</label>
                 <input
                   type="text"
-                  value={uploadFileName}
-                  onChange={(e) => setUploadFileName(e.target.value)}
-                  placeholder="Contoh: X-Banner 60×160 cm v3 Final"
+                  value={uploadDeliverableName}
+                  onChange={(e) => setUploadDeliverableName(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#E50914] focus:bg-white"
                   required
-                  className="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 focus:border-[#E50914] rounded-xl text-xs text-slate-900 outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block mb-1">
-                  Link Google Drive / Cloud File
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Tautan File (Google Drive / Canva / Figma)
                 </label>
                 <input
                   type="url"
+                  placeholder="https://canva.com/design/... atau https://drive.google.com/..."
                   value={uploadFileUrl}
                   onChange={(e) => setUploadFileUrl(e.target.value)}
-                  placeholder="https://drive.google.com/file/d/..."
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#E50914] focus:bg-white"
                   required
-                  className="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 focus:border-[#E50914] rounded-xl text-xs text-slate-900 outline-none"
                 />
-                <span className="text-[10px] text-slate-400 mt-1 block">
-                  Pastikan akses link diatur ke &ldquo;Anyone with link can view&rdquo;.
-                </span>
+                <span className="text-[11px] text-slate-400 mt-1 block">Pastikan izin akses tautan diatur ke "Siapa saja dengan tautan dapat melihat".</span>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block mb-1">
-                  Catatan Revisi untuk Pembimbing
-                </label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Catatan Tambahan untuk Pembimbing</label>
                 <textarea
+                  rows={3}
+                  placeholder="Tuliskan catatan progres atau revisi yang telah diperbaiki..."
                   value={uploadNotes}
                   onChange={(e) => setUploadNotes(e.target.value)}
-                  placeholder="Contoh: Revisi perataan logo dan penyesuaian font sesuai arahan Dra. Sri Wahyuni."
-                  rows={3}
-                  className="w-full py-2 px-3 bg-slate-50 border border-slate-200 focus:border-[#E50914] rounded-xl text-xs text-slate-900 outline-none"
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#E50914] focus:bg-white"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="pt-2 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setShowUploadModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  disabled={isUploading}
-                  className="px-5 py-2 rounded-xl bg-[#E50914] hover:bg-[#b4000c] text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                  disabled={isSubmittingFile}
+                  className="px-5 py-2 text-xs font-bold bg-[#E50914] hover:bg-[#b4000c] text-white rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {isUploading ? (
-                    <span>Mengirim...</span>
-                  ) : (
-                    <>
-                      <Send className="w-3.5 h-3.5" />
-                      <span>Kirim Berkas Review</span>
-                    </>
-                  )}
+                  {isSubmittingFile ? 'Mengirim...' : 'Kirim Berkas'}
                 </button>
               </div>
             </form>
@@ -1237,303 +923,49 @@ export const WorkspacePage: React.FC = () => {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          MODAL 2: ADVISOR FEEDBACK DRAWER/MODAL
+          5. DRAWER: RIWAYAT MASUKAN & ARAHAN PEMBIMBING
       ══════════════════════════════════════════════════════════════════════════ */}
-      {showAdvisorModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
-                  SW
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-[#141416]">
-                    Catatan Pembimbing Lapangan
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Dra. Sri Wahyuni, M.Pd • Koordinator Kelompok {currentGroup.number}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAdvisorModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-2">
-              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#E50914] text-white">
-                Review Tahap 04: Desain Banner
-              </span>
-              <p className="text-xs text-slate-800 leading-relaxed pt-1">
-                &ldquo;Pastikan logo Tut Wuri Handayani dan logo SMPN 1 Buduran posisinya sejajar di bagian header banner. Untuk materi presentasi jangan terlalu padat teks, prioritaskan studi kasus visual.&rdquo;
-              </p>
-              <div className="text-[10px] text-slate-400 pt-2 border-t border-rose-200/60 flex items-center justify-between">
-                <span>Catatan dikirim via Portal Kurikulum</span>
-                <span className="font-semibold text-rose-800">Status: Menunggu Revisi</span>
-              </div>
-            </div>
-
-            {supervisorMemo && (
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700">
-                <span className="font-bold block text-[11px] text-slate-500 mb-1">
-                  Memo Tambahan:
+      {showAdvisorDrawer && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white h-full shadow-2xl border-l border-slate-200 flex flex-col justify-between animate-in slide-in-from-right duration-200">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div>
+                <span className="text-[10px] font-bold text-[#E50914] uppercase tracking-wider">
+                  Koordinasi Pembimbing
                 </span>
-                {supervisorMemo}
-              </div>
-            )}
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                onClick={() => setShowAdvisorModal(false)}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
-              >
-                Tutup
-              </button>
-              <button
-                onClick={() => {
-                  setShowAdvisorModal(false);
-                  setShowUploadModal(true);
-                }}
-                className="px-5 py-2 rounded-xl bg-[#E50914] hover:bg-[#b4000c] text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
-              >
-                Unggah Revisi Sekarang →
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════════════
-          MODAL 3: ANGGOTA TIM ROSTER DRAWER
-      ══════════════════════════════════════════════════════════════════════════ */}
-      {showMembersDrawer && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-900 flex items-center justify-center font-bold">
-                  <Users className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-[#141416]">
-                    Roster Anggota Tim Kelompok {currentGroup.number}
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    {members.length} Relawan Terdaftar di {currentGroup.schoolName}
-                  </p>
-                </div>
+                <h3 className="text-base font-extrabold text-[#141416] mt-0.5">Catatan &amp; Evaluasi Lapangan</h3>
               </div>
               <button
-                onClick={() => setShowMembersDrawer(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg cursor-pointer"
+                onClick={() => setShowAdvisorDrawer(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="overflow-y-auto space-y-2 flex-1 pr-1">
-              {members.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold shrink-0">
-                      {member.name.charAt(0)}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-extrabold text-[#141416] truncate">
-                        {member.name}
-                      </div>
-                      <div className="text-[10px] text-slate-500 flex items-center gap-1.5">
-                        <span>Role: {member.role}</span>
-                        <span>•</span>
-                        <span className="font-semibold text-slate-700">{member.initials || 'SKD'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                      member.status === 'valid'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                    }`}
-                  >
-                    {member.status === 'valid' ? 'Terverifikasi' : 'Pending'}
-                  </span>
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-[#141416]">{currentGroup.mentorName}</span>
+                  <span className="text-slate-400 text-[11px]">Baru saja</span>
                 </div>
-              ))}
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 flex justify-end shrink-0">
-              <button
-                onClick={() => setShowMembersDrawer(false)}
-                className="px-5 py-2 rounded-xl bg-[#141416] text-white text-xs font-bold"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════════════
-          MODAL 4: ASET & TEMPLATE RESMI
-      ══════════════════════════════════════════════════════════════════════════ */}
-      {showAssetsModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-900 flex items-center justify-center">
-                  <FolderOpen className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-[#141416]">
-                    Aset &amp; Template Resmi
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Standar materi dan publikasi Skomda Mengajar 2026
-                  </p>
-                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {supervisorMemo || 'Silakan lanjutkan penyempurnaan desain standing banner dan siapkan simulasi internal kelompok bersama seluruh relawan.'}
+                </p>
               </div>
+
+              {bannerFeedback && (
+                <div className="p-4 rounded-2xl bg-rose-50/50 border border-rose-200/70 space-y-2">
+                  <span className="text-xs font-bold text-[#E50914] block">Masukan Berkas Terakhir</span>
+                  <p className="text-xs text-slate-700 leading-relaxed">{bannerFeedback}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
               <button
-                onClick={() => setShowAssetsModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              <a
-                href="#download-banner"
-                onClick={(e) => {
-                  e.preventDefault();
-                  showToast('Mengunduh Template X-Banner 60×160 cm (.AI & PSD)...', 'success');
-                }}
-                className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-red-100 text-[#E50914] flex items-center justify-center font-bold text-xs">
-                    AI
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-[#141416]">Template X-Banner 60×160 cm</div>
-                    <div className="text-[10px] text-slate-500">Format CMYK 300 DPI Siap Cetak</div>
-                  </div>
-                </div>
-                <Download className="w-4 h-4 text-slate-500" />
-              </a>
-
-              <a
-                href="#download-logo"
-                onClick={(e) => {
-                  e.preventDefault();
-                  showToast('Mengunduh Paket Logo Vektor Skomda (.SVG & PNG)...', 'success');
-                }}
-                className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
-                    SVG
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-[#141416]">Logo Vektor Skomda Mengajar</div>
-                    <div className="text-[10px] text-slate-500">Transparan High-Res & Tut Wuri Handayani</div>
-                  </div>
-                </div>
-                <Download className="w-4 h-4 text-slate-500" />
-              </a>
-
-              <a
-                href="#download-modul"
-                onClick={(e) => {
-                  e.preventDefault();
-                  showToast('Membuka Silabus & Modul Pembelajaran SMP (.PDF)...', 'info');
-                }}
-                className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
-                    PDF
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-[#141416]">Pedoman Kurikulum &amp; Silabus</div>
-                    <div className="text-[10px] text-slate-500">Disahkan MGMP Informatika Sidoarjo</div>
-                  </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-slate-500" />
-              </a>
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 flex justify-end">
-              <button
-                onClick={() => setShowAssetsModal(false)}
-                className="px-5 py-2 rounded-xl bg-[#141416] text-white text-xs font-bold"
-              >
-                Selesai
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════════════
-          MODAL 5: SEMUA JADWAL MODAL
-      ══════════════════════════════════════════════════════════════════════════ */}
-      {showAllSchedulesModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-[#E50914]" />
-                <div>
-                  <h3 className="text-sm font-black text-[#141416]">
-                    Agenda Pelaksanaan Lengkap
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Kelompok {currentGroup.number} • {currentGroup.schoolName}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAllSchedulesModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-              {scheduleItems.map((item) => (
-                <div key={item.id} className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-extrabold text-[#E50914]">
-                      {item.time}
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                      {item.status}
-                    </span>
-                  </div>
-                  <div className="text-xs font-bold text-slate-900">{item.title}</div>
-                  <div className="text-[10px] text-slate-500 flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-slate-400" />
-                    <span>{item.location}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <button
-                onClick={() => setShowAllSchedulesModal(false)}
-                className="px-5 py-2 rounded-xl bg-[#141416] text-white text-xs font-bold"
+                onClick={() => setShowAdvisorDrawer(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
               >
                 Tutup
               </button>

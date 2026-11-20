@@ -24,15 +24,9 @@ const AppRouter: React.FC = () => {
     // 1. Unauthenticated users cannot access protected routes
     if (!currentUser) {
       if (
-        currentPath === '/admin' ||
-        currentPath === '/dashboard/admin' ||
-        currentPath === '/admin/kelompok/03' ||
-        currentPath === '/dashboard/admin/review'
+        currentPath.startsWith('/admin') ||
+        currentPath.startsWith('/dashboard/admin')
       ) {
-        navigate('/login?role=admin');
-        return;
-      }
-      if (currentPath === '/admin/login') {
         navigate('/login?role=admin');
         return;
       }
@@ -47,26 +41,25 @@ const AppRouter: React.FC = () => {
     if (currentUser.role === 'admin') {
       if (
         currentPath === '/workspace' ||
-        currentPath === '/dashboard/ketua' ||
+        currentPath.startsWith('/dashboard/ketua') ||
         currentPath === '/home' ||
         currentPath === '/login' ||
-        currentPath === '/admin/login'
+        currentPath.startsWith('/admin/login')
       ) {
         navigate('/admin');
       }
     } else if (currentUser.role === 'leader' || currentUser.role === 'user') {
       if (
-        currentPath === '/admin' ||
-        currentPath === '/admin/login' ||
-        currentPath === '/dashboard/admin' ||
-        currentPath === '/admin/kelompok/03' ||
-        currentPath === '/dashboard/admin/review'
+        currentPath.startsWith('/admin') ||
+        currentPath.startsWith('/dashboard/admin')
       ) {
         showToast('Akses ditolak: Area khusus Guru Pembimbing & Admin Kurikulum.', 'warning');
-        navigate('/home');
+        navigate('/dashboard/ketua');
       } else if (currentPath === '/login') {
-        navigate('/home');
+        navigate('/dashboard/ketua');
       }
+      // Note: Visiting '/' or '/kelompok' as an authenticated leader is fully allowed
+      // without being force-redirected, showing "← Kembali ke Dashboard".
     }
   }, [currentUser, currentPath, navigate, showToast]);
 

@@ -12,9 +12,11 @@ export const DaftarKelompokPage: React.FC = () => {
   >('all');
   const [selectedRosterGroup, setSelectedRosterGroup] = useState<Group | null>(null);
 
-  const activeGroupList = (groups && groups.length > 0 ? groups : groupsData).filter(
-    (g) => g.number !== '00'
-  );
+  const activeGroupList = useMemo(() => {
+    return (groups && groups.length > 0 ? groups : groupsData)
+      .filter((g) => g.number !== '00')
+      .sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
+  }, [groups]);
 
   const filteredGroups = useMemo(() => {
     return activeGroupList.filter((g) => {

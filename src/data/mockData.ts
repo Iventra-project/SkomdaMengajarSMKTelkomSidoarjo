@@ -603,7 +603,10 @@ export const rawGroupsData: Group[] = [
 ];
 
 export const groupsData: Group[] = [
-  ...rawGroupsData.map((g) => {
+  ...[...rawGroupsData]
+    .filter((g) => g.number !== '00')
+    .sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10))
+    .map((g) => {
     const num = parseInt(g.number, 10);
     const isUnassigned = num === 23 || num === 24 || g.leaderName.includes('Belum');
     return {

@@ -7,9 +7,7 @@ import {
   groupsData,
   Group,
   generateMockMembers,
-  showcaseProjects,
   documentaryStories,
-  ShowcaseProject,
   DocumentaryMoment,
 } from '../data/mockData';
 
@@ -107,16 +105,18 @@ export const HomePage: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'sidoarjo-candi' | 'buduran-sedati' | 'waru-taman' | 'has-leader' | 'pending-leader'>('all');
-  const [isGroupsExpanded, setIsGroupsExpanded] = useState(false);
-  const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
-  const [isDocExpanded, setIsDocExpanded] = useState(false);
   const [selectedStep, setSelectedStep] = useState(4);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<ShowcaseProject | null>(null);
-  const [selectedStory, setSelectedStory] = useState<DocumentaryMoment | null>(null);
   const [selectedRosterGroup, setSelectedRosterGroup] = useState<Group | null>(null);
+  const [isDocExpanded, setIsDocExpanded] = useState(false);
+  const [selectedStory, setSelectedStory] = useState<DocumentaryMoment | null>(null);
 
-  const activeGroupList = (groups && groups.length > 0 ? groups : groupsData).filter((g) => g.number !== '00');
+  // Strictly sorted ascending KEL-01 to KEL-24 (excluding simulation account 00)
+  const activeGroupList = useMemo(() => {
+    return (groups && groups.length > 0 ? groups : groupsData)
+      .filter((g) => g.number !== '00')
+      .sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
+  }, [groups]);
 
   const filteredGroups = useMemo(() => {
     return activeGroupList.filter((g) => {
@@ -141,11 +141,15 @@ export const HomePage: React.FC = () => {
       if (selectedFilter === 'pending-leader') return isPending;
       return true;
     });
-  }, [searchQuery, selectedFilter]);
+  }, [activeGroupList, searchQuery, selectedFilter]);
 
-  const shownGroups = filteredGroups.slice(0, 4);
-  const shownProjects = isProjectsExpanded ? showcaseProjects : showcaseProjects.slice(0, 4);
-  const shownStories = isDocExpanded ? documentaryStories : documentaryStories.slice(0, 4);
+  const shownGroups = useMemo(() => {
+    return filteredGroups.slice(0, 4);
+  }, [filteredGroups]);
+
+  const shownStories = useMemo(() => {
+    return isDocExpanded ? documentaryStories : documentaryStories.slice(0, 4);
+  }, [isDocExpanded]);
 
   const activeStepData = STEPS.find((s) => s.num === selectedStep) || STEPS[3];
 
@@ -640,7 +644,7 @@ export const HomePage: React.FC = () => {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════════════
-            5. REKAM JEJAK PELAKSANAAN 2025 (UNIFORM GRID)
+            5. REKAM PELAKSANAAN & GALERI 2025 (UNIFORM 4-COLUMN SYMMETRIC GRID)
         ══════════════════════════════════════════════════════════════════════════ */}
         <section className="w-full bg-[#f8f9fa] py-16 md:py-20 border-b border-slate-200/80" id="jejak">
           <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
@@ -651,11 +655,11 @@ export const HomePage: React.FC = () => {
                   03 / REKAM JEJAK
                 </span>
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
-                  Rekam Pelaksanaan & Galeri 2025
+                  Rekam Pelaksanaan &amp; Galeri 2025
                 </h2>
               </div>
               <span className="text-xs font-bold bg-white border border-slate-200 text-slate-700 px-3.5 py-1.5 rounded-xl shadow-2xs">
-                100% Selesai & Terverifikasi
+                100% Selesai &amp; Terverifikasi
               </span>
             </div>
 
@@ -729,72 +733,215 @@ export const HomePage: React.FC = () => {
                 </button>
               </div>
             )}
+          </div>
+        </section>
 
-            {/* ══════════════ SUBSECTION: PROJEK YANG DIBUAT (4 CARDS) ══════════════ */}
-            <div className="mt-14 pt-10 border-t border-slate-200">
-              <div className="flex items-center justify-between mb-6">
+        {/* ══════════════════════════════════════════════════════════════════════════
+            6. STANDAR KURIKULUM & BERKAS (HIGH-CRAFT BENTO EDITORIAL)
+        ══════════════════════════════════════════════════════════════════════════ */}
+        <section className="w-full bg-white py-16 md:py-24 border-b border-slate-200/80" id="kurikulum">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
+              {/* Left Column (lg:col-span-6): Curriculum Pillars */}
+              <div className="lg:col-span-6 flex flex-col justify-between h-full">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-[#e20113]">
-                    ARTEFAK PEMBELAJARAN
-                  </span>
-                  <h3 className="text-xl font-extrabold text-slate-900 mt-0.5">Karya Nyata Siswa SMP</h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2 h-2 rounded-full bg-[#E50914]" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-[#E50914]">
+                      04 / STANDAR PEDOMAN
+                    </span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#141416] tracking-tight">
+                    Pedoman &amp; Standar Kurikulum
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-lg leading-relaxed">
+                    Setiap modul pembelajaran dan materi praktikum disusun selaras dengan capaian pembelajaran fase D kurikulum nasional dan diverifikasi MGMP Informatika Sidoarjo.
+                  </p>
                 </div>
-                <span className="text-xs font-semibold text-slate-400">
-                  {shownProjects.length}/{showcaseProjects.length} Artefak
-                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+                  {[
+                    {
+                      num: '01',
+                      icon: 'verified_user',
+                      label: 'Disahkan MGMP',
+                      sub: 'Informatika Kab. Sidoarjo',
+                      desc: 'Validasi silabus & standar kompetensi resmi tenaga pendidik.',
+                    },
+                    {
+                      num: '02',
+                      icon: 'menu_book',
+                      label: 'Struktur 6 JP',
+                      sub: '30% Teori • 70% Praktik',
+                      desc: 'Fokus praktikum langsung di lab komputer SMP mitra.',
+                    },
+                    {
+                      num: '03',
+                      icon: 'fact_check',
+                      label: 'Rubrik Penilaian',
+                      sub: 'Kreativitas & Logika',
+                      desc: 'Tolok ukur capaian karya digital & kemandirian siswa SMP.',
+                    },
+                    {
+                      num: '04',
+                      icon: 'emoji_events',
+                      label: 'Kurikulum Merdeka',
+                      sub: 'Capaian Fase D SMP',
+                      desc: 'Integrasi literasi digital, berpikir komputasional & etika AI.',
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="group relative p-5 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between hover:-translate-y-1 hover:border-[#E50914]/30 hover:shadow-md transition-all duration-200 shadow-2xs"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100/70 text-[#E50914] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                        </div>
+                        <span className="text-[11px] font-mono font-bold text-slate-400 group-hover:text-[#E50914] transition-colors">
+                          {item.num}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-bold text-[#141416] group-hover:text-[#E50914] transition-colors">
+                          {item.label}
+                        </h4>
+                        <p className="text-[11px] font-semibold text-[#E50914] mt-0.5">
+                          {item.sub}
+                        </p>
+                        <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                          {item.desc}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* 4 Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {shownProjects.map((proj) => (
-                  <div
-                    key={proj.id}
-                    onClick={() => setSelectedProject(proj)}
-                    className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden cursor-pointer group hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between"
-                  >
-                    <div className="aspect-[16/10] bg-slate-100 relative overflow-hidden">
-                      <img
-                        src={proj.image}
-                        alt={proj.title}
-                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <span className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-xs text-slate-900 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shadow-2xs">
-                        {proj.tag}
+              {/* Right Column (lg:col-span-6): PAKET DOKUMEN RESMI GURU & TIM (BENTO CONTAINER) */}
+              <div className="lg:col-span-6">
+                <div className="rounded-[28px] bg-slate-50/70 p-6 sm:p-7 border border-slate-200/80 shadow-xs flex flex-col gap-4">
+                  {/* Container Header */}
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-200/80">
+                    <div>
+                      <span className="text-xs font-bold text-[#141416] uppercase tracking-wider block">
+                        Paket Dokumen Resmi Guru &amp; Tim
+                      </span>
+                      <span className="text-[11px] text-slate-500 mt-0.5 block">
+                        Berkas acuan operasional dan berita acara cetak
                       </span>
                     </div>
-
-                    <div className="p-4 flex flex-col justify-between flex-1">
-                      <div>
-                        <h4 className="text-xs font-extrabold text-slate-900 group-hover:text-[#e20113] transition-colors line-clamp-1">
-                          {proj.title}
-                        </h4>
-                        <p className="text-xs text-slate-500 mt-1 leading-snug line-clamp-2">{proj.desc}</p>
-                      </div>
-
-                      <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-                        <span className="text-slate-400 font-medium truncate max-w-[130px]">{proj.school}</span>
-                        <span className="font-bold text-[#e20113] group-hover:underline">Lihat Rincian</span>
-                      </div>
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200/80 uppercase tracking-wide">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Terverifikasi
+                    </span>
                   </div>
-                ))}
+
+                  {/* Document Rows */}
+                  {[
+                    {
+                      type: 'PDF',
+                      typeBadge: 'bg-rose-50 text-rose-600 border-rose-200/80',
+                      name: 'Buku Panduan Mentor Skomda v4.2',
+                      meta: 'Pedoman Lengkap Pembimbing • 4.8 MB',
+                      date: 'Update Feb 2026',
+                    },
+                    {
+                      type: 'DOCX',
+                      typeBadge: 'bg-blue-50 text-blue-600 border-blue-200/80',
+                      name: 'Format RPP & Berita Acara Tatap Muka',
+                      meta: 'Template Administrasi Mengajar • 1.2 MB',
+                      date: 'Format Resmi',
+                    },
+                    {
+                      type: 'XLSX',
+                      typeBadge: 'bg-emerald-50 text-emerald-600 border-emerald-200/80',
+                      name: 'Rubrik Penilaian Akhir Siswa SMP',
+                      meta: 'Matriks Evaluasi Belajar • 850 KB',
+                      date: 'Fase D Standar',
+                    },
+                  ].map((doc) => (
+                    <div
+                      key={doc.name}
+                      className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white border border-slate-200/80 rounded-2xl hover:border-slate-300 hover:shadow-xs transition-all gap-3.5"
+                    >
+                      <div className="flex items-start sm:items-center gap-3.5">
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-extrabold border shrink-0 ${doc.typeBadge}`}>
+                          {doc.type}
+                        </span>
+                        <div>
+                          <p className="text-xs sm:text-sm font-bold text-[#141416] group-hover:text-[#E50914] transition-colors leading-snug">
+                            {doc.name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[11px] text-slate-500 font-medium">{doc.meta}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-[10px] font-semibold text-slate-400">{doc.date}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => showToast(`Mengunduh berkas ${doc.name}...`, 'info')}
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-[#141416] text-white group-hover:bg-[#E50914] transition-colors shadow-2xs cursor-pointer shrink-0"
+                      >
+                        <span>Unduh</span>
+                        <span className="material-symbols-outlined text-[15px]">download</span>
+                      </button>
+                    </div>
+                  ))}
+
+                  <div className="pt-2 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-200/60">
+                    <span>Distribusi arsip digital Direktorat Kurikulum 2026</span>
+                    <span className="font-mono">REF: MGMP-SDA-26</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════════════════════
+            5. CALL-TO-ACTION (LAYERED HIGH-DEPTH CRIMSON CARD)
+        ══════════════════════════════════════════════════════════════════════════ */}
+        <section className="py-16 sm:py-20 px-5 sm:px-8 md:px-10 bg-white">
+          <div className="max-w-7xl mx-auto rounded-[32px] bg-gradient-to-br from-[#E50914] via-[#C80812] to-[#99050D] text-white p-8 sm:p-12 lg:p-14 shadow-[0_24px_48px_-16px_rgba(229,9,20,0.35)] relative overflow-hidden">
+            {/* Subtle Architectural Geometric Background Elements */}
+            <div className="absolute -right-16 -bottom-16 w-96 h-96 rounded-full border-[32px] border-white/10 opacity-15 pointer-events-none" />
+            <div className="absolute right-32 -top-24 w-80 h-80 rounded-full border-[16px] border-white/10 opacity-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+              <div className="max-w-2xl">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-widest text-rose-100 bg-black/25 px-3 py-1 rounded-full mb-3.5 backdrop-blur-xs border border-white/10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-300" />
+                  Saluran Pendampingan Resmi
+                </span>
+                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                  Ketua Regu? Butuh bantuan perizinan atau kurikulum?
+                </h3>
+                <p className="text-xs sm:text-sm text-rose-100/90 mt-3 font-normal leading-relaxed max-w-xl">
+                  Tim kurikulum dan kemitraan SMK Telkom Sidoarjo siap mendampingi proses koordinasi dengan pihak sekolah mitra secara cepat dan responsif.
+                </p>
               </div>
 
-              {/* Expand / Collapse Button for Projects */}
-              {showcaseProjects.length > 4 && (
-                <div className="mt-8 flex justify-center">
-                  <button
-                    onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-[#e20113] hover:text-[#e20113] text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-2xs cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-[17px]">
-                      {isProjectsExpanded ? 'expand_less' : 'grid_view'}
-                    </span>
-                    <span>{isProjectsExpanded ? 'Ringkas Projek' : `+${showcaseProjects.length - 4} Projek Lainnya`}</span>
-                  </button>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-3.5 shrink-0">
+                <button
+                  onClick={() => navigate(isLoggedIn ? '/workspace' : '/login')}
+                  className="inline-flex items-center gap-2 px-6 h-12 bg-white text-[#141416] font-bold text-xs uppercase tracking-wider rounded-full hover:scale-[1.02] shadow-lg transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[18px] text-[#E50914]">terminal</span>
+                  <span>Buka Workspace →</span>
+                </button>
+                <button
+                  onClick={() => showToast('Menghubungkan ke helpdesk kurikulum...', 'info')}
+                  className="inline-flex items-center gap-2 px-6 h-12 bg-white/15 backdrop-blur-md border border-white/25 text-white font-bold text-xs uppercase tracking-wider rounded-full hover:bg-white/25 transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[18px]">support_agent</span>
+                  <span>Hubungi Koordinator</span>
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -831,8 +978,8 @@ export const HomePage: React.FC = () => {
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#141416] block">Akses Cepat</span>
               <ul className="space-y-2.5 text-slate-500">
                 <li><a href="#alur" className="hover:text-[#E50914] hover:underline transition-colors">Alur Pelaksanaan</a></li>
-                <li><a href="#jejak" className="hover:text-[#E50914] hover:underline transition-colors">Rekam Jejak 2025</a></li>
                 <li><button onClick={() => navigate('/kelompok')} className="hover:text-[#E50914] hover:underline transition-colors cursor-pointer text-left">Direktori Kelompok</button></li>
+                <li><a href="#kurikulum" className="hover:text-[#E50914] hover:underline transition-colors">Standar Kurikulum</a></li>
                 <li><button onClick={() => navigate(isLoggedIn ? '/workspace' : '/login')} className="hover:text-[#E50914] hover:underline transition-colors cursor-pointer text-left">Workspace Tim</button></li>
               </ul>
             </div>
@@ -841,9 +988,9 @@ export const HomePage: React.FC = () => {
             <div className="md:col-span-2 space-y-3 text-xs">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#141416] block">Dokumen</span>
               <ul className="space-y-2.5 text-slate-500">
-                <li><button onClick={() => showToast('Membuka Buku Panduan Skomda 2026...', 'info')} className="hover:text-[#E50914] hover:underline transition-colors cursor-pointer text-left">Buku Panduan 2026</button></li>
-                <li><button onClick={() => showToast('Membuka Format RPP Fase D...', 'info')} className="hover:text-[#E50914] hover:underline transition-colors cursor-pointer text-left">Format RPP Fase D</button></li>
-                <li><button onClick={() => showToast('Membuka Rubrik Penilaian...', 'info')} className="hover:text-[#E50914] hover:underline transition-colors cursor-pointer text-left">Rubrik Penilaian</button></li>
+                <li><a href="#kurikulum" className="hover:text-[#E50914] hover:underline transition-colors">Buku Panduan 2026</a></li>
+                <li><a href="#kurikulum" className="hover:text-[#E50914] hover:underline transition-colors">Format RPP Fase D</a></li>
+                <li><a href="#kurikulum" className="hover:text-[#E50914] hover:underline transition-colors">Rubrik Penilaian</a></li>
                 <li><button onClick={() => navigate('/login?role=admin')} className="hover:text-[#E50914] hover:underline transition-colors cursor-pointer text-left">Portal Guru &amp; Admin</button></li>
               </ul>
             </div>
@@ -878,62 +1025,8 @@ export const HomePage: React.FC = () => {
       </footer>
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          9. MODALS (Project & Story Detail)
+          MODAL: DOKUMENTASI CERITA REKAM JEJAK
       ══════════════════════════════════════════════════════════════════════════ */}
-      {selectedProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <span className="text-xs font-bold text-slate-900">{selectedProject.title}</span>
-              <button
-                onClick={() => setSelectedProject(null)}
-                className="p-1 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-800 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
-            <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
-              <div className="aspect-[16/10] rounded-xl overflow-hidden bg-slate-100">
-                <img
-                  src={selectedProject.image}
-                  alt={selectedProject.title}
-                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="bg-[#e20113] text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
-                  {selectedProject.tag}
-                </span>
-                <span className="text-xs text-slate-500 font-semibold">{selectedProject.school}</span>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                {selectedProject.fullDesc ?? selectedProject.desc}
-              </p>
-              {selectedProject.tools && (
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {selectedProject.tools.map((t) => (
-                    <span key={t} className="bg-slate-100 text-slate-700 text-[11px] font-semibold px-2.5 py-1 rounded-md">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100 text-xs">
-                <div>
-                  <span className="text-slate-400 text-[11px] block">Durasi:</span>
-                  <span className="font-bold text-slate-800">{selectedProject.duration ?? '2 Pertemuan (6 JP)'}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 text-[11px] block">Siswa Terdampak:</span>
-                  <span className="font-bold text-slate-800">{selectedProject.studentsTrained ?? 40} Siswa SMP</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {selectedStory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
@@ -951,7 +1044,10 @@ export const HomePage: React.FC = () => {
                 <img
                   src={selectedStory.image}
                   alt={selectedStory.title}
-                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = FALLBACK_IMAGE;
+                  }}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -1061,7 +1157,7 @@ export const HomePage: React.FC = () => {
             {/* Modal Footer */}
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
               <span className="text-[11px] text-slate-400">
-                Data resmi MGMP & Skomda Mengajar 2026
+                Data resmi MGMP &amp; Skomda Mengajar 2026
               </span>
               <button
                 onClick={() => setSelectedRosterGroup(null)}

@@ -87,7 +87,7 @@ export const LoginPage: React.FC = () => {
       if (currentUser.role === 'admin') {
         navigate('/admin');
       } else {
-        navigate('/home');
+        navigate('/dashboard/ketua');
       }
     }
   }, [currentUser, navigate]);

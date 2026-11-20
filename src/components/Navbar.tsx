@@ -47,6 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       const sections =
         variant === 'public'
           ? [
+              { id: 'kurikulum', el: document.getElementById('kurikulum') },
               { id: 'jejak', el: document.getElementById('jejak') },
               { id: 'kelompok', el: document.getElementById('kelompok') },
               { id: 'alur', el: document.getElementById('alur') },
@@ -149,6 +150,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'alur', label: 'ALUR PROGRES', anchor: 'alur' },
     { id: 'kelompok', label: 'KELOMPOK', anchor: 'kelompok' },
     { id: 'jejak', label: 'REKAM JEJAK', anchor: 'jejak' },
+    { id: 'kurikulum', label: 'PANDUAN', anchor: 'kurikulum' },
   ];
 
   const homeLinks = [
@@ -211,36 +213,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right CTA / Session Badge */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {variant === 'public' ? (
-            /* Pre-Login CTA */
-            <button
-              onClick={() => navigate('/login')}
-              className="inline-flex items-center gap-1.5 px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-[#E50914] hover:bg-[#b4000c] text-white transition-all shadow-[0_0_14px_rgba(229,9,20,0.45)] hover:shadow-[0_0_20px_rgba(229,9,20,0.65)] hover:scale-[1.02] cursor-pointer"
-            >
-              <span>Login <span className="hidden sm:inline">Ketua / Admin</span></span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          ) : (
-            /* Post-Login Session Actions */
+          {currentUser ? (
             <div className="flex items-center gap-2 sm:gap-2.5">
-              {/* Compact User Badge */}
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-bold text-zinc-200 text-[11px]">
-                  KEL-{userGroupNum} • {shortLeaderName}
-                </span>
-              </div>
-
-              {/* Quick Red Pill to Dashboard */}
               <button
                 onClick={() => navigate('/dashboard/ketua')}
-                className="inline-flex items-center gap-1 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-[#E50914] hover:bg-[#b4000c] text-white transition-all shadow-[0_0_12px_rgba(229,9,20,0.4)] hover:shadow-[0_0_16px_rgba(229,9,20,0.6)] cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-[#E50914] hover:bg-[#b4000c] text-white transition-all shadow-[0_0_12px_rgba(229,9,20,0.4)] hover:shadow-[0_0_16px_rgba(229,9,20,0.6)] cursor-pointer"
               >
-                <span>Dashboard</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <span>← Kembali ke Dashboard</span>
               </button>
-
-              {/* Subtle Logout Icon Button */}
               <button
                 onClick={handleLogout}
                 title="Keluar Akun"
@@ -249,6 +229,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
+          ) : (
+            /* Pre-Login CTA */
+            <button
+              onClick={() => navigate('/login')}
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-[#E50914] hover:bg-[#b4000c] text-white transition-all shadow-[0_0_14px_rgba(229,9,20,0.45)] hover:shadow-[0_0_20px_rgba(229,9,20,0.65)] hover:scale-[1.02] cursor-pointer"
+            >
+              <span>Login <span className="hidden sm:inline">Ketua / Admin</span></span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           )}
 
           {/* Mobile Menu Trigger (< md) */}
