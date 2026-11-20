@@ -5,6 +5,18 @@ import { useApp, formatGroupNumber } from '../../context/AppContext';
 import { SkomdaJourneyTrack } from '../../components/SkomdaJourneyTrack';
 import { Navbar } from '../../components/Navbar';
 import {
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
+  ArrowRight,
+  UploadCloud,
+  FileText,
+  Sparkles,
+} from 'lucide-react';
+import {
   groupsData,
   showcaseProjects,
   documentaryStories,
@@ -15,7 +27,7 @@ import {
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80';
 
 export const PostLoginHomePage: React.FC = () => {
-  const { navigate, currentUser, logout, showToast, groups } = useApp();
+  const { navigate, currentUser, logout, showToast, groups, bannerStatus } = useApp();
 
   // Route protection
   useEffect(() => {
@@ -46,6 +58,185 @@ export const PostLoginHomePage: React.FC = () => {
   // Modals State
   const [selectedProject, setSelectedProject] = useState<ShowcaseProject | null>(null);
   const [selectedStory, setSelectedStory] = useState<DocumentaryMoment | null>(null);
+
+  // ─── TIMELINE & CALENDAR STATE & COMPUTATION ───
+  const [timelineFilter, setTimelineFilter] = useState<'all' | 'urgent' | 'completed'>('all');
+  const [calendarYear, setCalendarYear] = useState<number>(2026);
+  const [calendarMonth, setCalendarMonth] = useState<number>(1); // 0 = Jan, 1 = Feb
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<number>(15);
+
+  const monthNames = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+
+  const handlePrevMonth = () => {
+    if (calendarMonth === 0) {
+      setCalendarMonth(11);
+      setCalendarYear((y) => y - 1);
+    } else {
+      setCalendarMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (calendarMonth === 11) {
+      setCalendarMonth(0);
+      setCalendarYear((y) => y + 1);
+    } else {
+      setCalendarMonth((m) => m + 1);
+    }
+  };
+
+  // Synchronized Deliverable Timeline Items (Connected directly to AppContext bannerStatus & stage)
+  const timelineItems = useMemo(() => {
+    const bannerState =
+      bannerStatus === 'approved'
+        ? 'Disetujui'
+        : bannerStatus === 'pending'
+        ? 'Menunggu Review'
+        : 'Belum Diunggah';
+
+    return [
+      {
+        id: 'deliv-1',
+        title: 'Desain X-Banner 60×160 cm Siap Cetak',
+        stage: 'Tahap 04',
+        stageNum: 4,
+        date: '15 Feb',
+        fullDate: '15 Februari 2026',
+        dayNumber: 15,
+        month: 1, // Feb
+        year: 2026,
+        time: '23:59 WIB',
+        countdown: bannerState === 'Disetujui' ? 'Selesai' : '4 hari lagi',
+        isUrgent: bannerState !== 'Disetujui',
+        status: bannerState,
+        statusColor:
+          bannerState === 'Disetujui'
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            : bannerState === 'Menunggu Review'
+            ? 'bg-amber-50 text-amber-700 border-amber-200'
+            : 'bg-rose-50 text-rose-700 border-rose-200',
+        category: 'Desain & Publikasi',
+      },
+      {
+        id: 'deliv-2',
+        title: 'Desain Feed Instagram & Dokumentasi Tim',
+        stage: 'Tahap 04',
+        stageNum: 4,
+        date: '17 Feb',
+        fullDate: '17 Februari 2026',
+        dayNumber: 17,
+        month: 1,
+        year: 2026,
+        time: '23:59 WIB',
+        countdown: '6 hari lagi',
+        isUrgent: true,
+        status: 'Belum Diunggah',
+        statusColor: 'bg-rose-50 text-rose-700 border-rose-200',
+        category: 'Media Sosial',
+      },
+      {
+        id: 'deliv-3',
+        title: 'Simulasi Mengajar Lab Komputer Bersama Pembimbing',
+        stage: 'Tahap 04',
+        stageNum: 4,
+        date: '20 Feb',
+        fullDate: '20 Februari 2026',
+        dayNumber: 20,
+        month: 1,
+        year: 2026,
+        time: '13:30 WIB',
+        countdown: '9 hari lagi',
+        isUrgent: false,
+        status: 'Terjadwal',
+        statusColor: 'bg-blue-50 text-blue-700 border-blue-200',
+        category: 'Bimbingan Lapangan',
+      },
+      {
+        id: 'deliv-4',
+        title: 'Pelaksanaan Hari Pertama Mengajar di SMP Mitra',
+        stage: 'Tahap 05',
+        stageNum: 5,
+        date: '23 Feb',
+        fullDate: '23 Februari 2026',
+        dayNumber: 23,
+        month: 1,
+        year: 2026,
+        time: '08:00 WIB',
+        countdown: '12 hari lagi',
+        isUrgent: false,
+        status: 'Tahap 05',
+        statusColor: 'bg-slate-100 text-slate-700 border-slate-200',
+        category: 'Kelas Interaktif',
+      },
+      {
+        id: 'deliv-5',
+        title: 'Pengesahan Modul Ajar & Silabus Fase D',
+        stage: 'Tahap 03',
+        stageNum: 3,
+        date: '10 Feb',
+        fullDate: '10 Februari 2026',
+        dayNumber: 10,
+        month: 1,
+        year: 2026,
+        time: '17:00 WIB',
+        countdown: 'Selesai',
+        isUrgent: false,
+        status: 'Disetujui',
+        statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        category: 'Kurikulum Merdeka',
+      },
+      {
+        id: 'deliv-6',
+        title: 'Penetapan & Aktivasi Akun Ketua Kelompok',
+        stage: 'Tahap 02',
+        stageNum: 2,
+        date: '05 Feb',
+        fullDate: '05 Februari 2026',
+        dayNumber: 5,
+        month: 1,
+        year: 2026,
+        time: '12:00 WIB',
+        countdown: 'Selesai',
+        isUrgent: false,
+        status: 'Disetujui',
+        statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        category: 'Organisasi Tim',
+      },
+    ];
+  }, [bannerStatus]);
+
+  const filteredTimeline = useMemo(() => {
+    if (timelineFilter === 'urgent') {
+      return timelineItems.filter((item) => item.isUrgent);
+    }
+    if (timelineFilter === 'completed') {
+      return timelineItems.filter((item) => item.status === 'Disetujui');
+    }
+    return timelineItems;
+  }, [timelineItems, timelineFilter]);
+
+  const selectedDateAgenda = useMemo(() => {
+    return timelineItems.find(
+      (item) =>
+        item.dayNumber === selectedCalendarDate &&
+        item.month === calendarMonth &&
+        item.year === calendarYear
+    );
+  }, [timelineItems, selectedCalendarDate, calendarMonth, calendarYear]);
+
+  // Calendar cells matrix generator (Monday first)
+  const calendarCells = useMemo(() => {
+    const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+    const offset = (firstDay + 6) % 7;
+    const totalDays = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+    const cells: { day: number | null }[] = [];
+    for (let i = 0; i < offset; i++) cells.push({ day: null });
+    for (let d = 1; d <= totalDays; d++) cells.push({ day: d });
+    return cells;
+  }, [calendarYear, calendarMonth]);
 
   const shownProjects = isProjectsExpanded ? showcaseProjects : showcaseProjects.slice(0, 4);
   const shownStories = isDocExpanded ? documentaryStories : documentaryStories.slice(0, 4);
@@ -307,7 +498,327 @@ export const PostLoginHomePage: React.FC = () => {
         </section>
 
         {/* ══════════════════════════════════════════════════════════════════════════
-            4. REKAM JEJAK PELAKSANAAN 2025 (UNIFORM SYMMETRIC PHOTO GRID)
+            4. DEADLINE CALENDAR & SUBMISSION REMINDER TIMELINE
+        ══════════════════════════════════════════════════════════════════════════ */}
+        <section className="w-full bg-white py-14 sm:py-16 md:py-20 border-b border-slate-200/80" id="kalender">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
+            {/* Section Tag & Heading */}
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-8 border-b border-slate-100">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-widest text-[#E50914] flex items-center gap-1.5">
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  <span>JADWAL &amp; TENGGAT PENGUMPULAN</span>
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#141416] tracking-tight mt-1.5">
+                  Timeline Pengingat &amp; Kalender Berkas
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-xl">
+                  Pantau seluruh tenggat wajib pengumpulan desain, modul ajar, dan jadwal asistensi lapangan bersama guru pembimbing.
+                </p>
+              </div>
+
+              {/* Status pill summary */}
+              <div className="flex items-center gap-2">
+                <span className="px-3.5 py-1.5 rounded-full bg-red-50 text-[#E50914] text-xs font-bold border border-red-200 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#E50914] animate-pulse" />
+                  <span>Tenggat Terdekat: 15 Feb 2026</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Two-Column Bento Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-8 items-start">
+              {/* ─── LEFT COLUMN (lg:col-span-7): TIMELINE PENGINGAT ─── */}
+              <div className="lg:col-span-7 bg-white rounded-[24px] p-6 sm:p-7 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                <div>
+                  {/* Card Header & Filter Pills */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-100">
+                    <div>
+                      <h3 className="text-base font-extrabold text-[#141416] tracking-tight">
+                        Timeline Pengingat Pengumpulan
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Daftar tenggat berkas &amp; jadwal wajib kelompok Anda
+                      </p>
+                    </div>
+
+                    {/* Filter Pills */}
+                    <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-full text-xs font-bold self-start sm:self-auto">
+                      <button
+                        onClick={() => setTimelineFilter('all')}
+                        className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
+                          timelineFilter === 'all'
+                            ? 'bg-white text-[#141416] shadow-2xs'
+                            : 'text-slate-500 hover:text-slate-900'
+                        }`}
+                      >
+                        Semua
+                      </button>
+                      <button
+                        onClick={() => setTimelineFilter('urgent')}
+                        className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
+                          timelineFilter === 'urgent'
+                            ? 'bg-white text-[#141416] shadow-2xs'
+                            : 'text-slate-500 hover:text-slate-900'
+                        }`}
+                      >
+                        Mendesak
+                      </button>
+                      <button
+                        onClick={() => setTimelineFilter('completed')}
+                        className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
+                          timelineFilter === 'completed'
+                            ? 'bg-white text-[#141416] shadow-2xs'
+                            : 'text-slate-500 hover:text-slate-900'
+                        }`}
+                      >
+                        Selesai
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Timeline Rows */}
+                  <div className="divide-y divide-slate-100 mt-2">
+                    {filteredTimeline.map((item) => {
+                      const isComplete = item.status === 'Disetujui';
+                      return (
+                        <div
+                          key={item.id}
+                          className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/70 p-2.5 rounded-2xl transition-colors"
+                        >
+                          {/* Left: Date Badge + Info */}
+                          <div className="flex items-start gap-3.5 min-w-0">
+                            {/* Date Badge */}
+                            <div
+                              className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-bold shrink-0 border ${
+                                item.isUrgent
+                                  ? 'bg-red-50 text-[#E50914] border-red-200'
+                                  : isComplete
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : 'bg-slate-100 text-slate-700 border-slate-200'
+                              }`}
+                            >
+                              <span className="text-sm font-black leading-none">
+                                {item.dayNumber}
+                              </span>
+                              <span className="text-[10px] font-bold uppercase mt-0.5 leading-none">
+                                Feb
+                              </span>
+                            </div>
+
+                            {/* Details */}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                  {item.stage}
+                                </span>
+                                <span className="text-[11px] text-slate-400">•</span>
+                                <span className="text-[11px] font-semibold text-slate-500">
+                                  {item.category}
+                                </span>
+                              </div>
+
+                              <h4 className="text-sm font-bold text-[#141416] mt-1 leading-snug">
+                                {item.title}
+                              </h4>
+
+                              <div className="flex items-center gap-2 mt-1.5 text-[11px] flex-wrap">
+                                <span className="text-slate-400 flex items-center gap-1 font-mono">
+                                  <Clock className="w-3 h-3 text-slate-400" />
+                                  Tenggat: {item.time}
+                                </span>
+                                <span className="text-slate-300">•</span>
+                                <span
+                                  className={`font-bold px-2 py-0.2 rounded-full text-[10px] border ${
+                                    item.countdown === 'Selesai'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : item.isUrgent
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-slate-100 text-slate-600 border-slate-200'
+                                  }`}
+                                >
+                                  {item.countdown}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right Action: Status Pill + Button */}
+                          <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0">
+                            <span
+                              className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border ${item.statusColor}`}
+                            >
+                              {item.status}
+                            </span>
+
+                            <button
+                              onClick={() => navigate('/dashboard/ketua')}
+                              className="inline-flex items-center gap-1 text-xs font-bold text-[#E50914] hover:text-[#b4000c] hover:underline cursor-pointer"
+                            >
+                              <span>{isComplete ? 'Lihat di Workspace →' : 'Unggah →'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Bottom sync status note */}
+                <div className="mt-4 pt-4 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    Sinkron otomatis dengan Lembar Kerja Kelompok {userGroupNum}
+                  </span>
+                  <button
+                    onClick={() => navigate('/dashboard/ketua')}
+                    className="font-bold text-[#E50914] hover:underline cursor-pointer"
+                  >
+                    Buka Dashboard →
+                  </button>
+                </div>
+              </div>
+
+              {/* ─── RIGHT COLUMN (lg:col-span-5): KALENDER PENGUMPULAN ─── */}
+              <div className="lg:col-span-5 bg-white rounded-[24px] p-6 sm:p-7 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                <div>
+                  {/* Calendar Header with Month/Year Navigation */}
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-red-50 text-[#E50914] flex items-center justify-center font-bold">
+                        <CalendarIcon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-extrabold text-[#141416]">
+                          {monthNames[calendarMonth]} {calendarYear}
+                        </h3>
+                        <p className="text-[11px] text-slate-400">
+                          Jadwal Kurikulum 2026
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={handlePrevMonth}
+                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                        title="Bulan Sebelumnya"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={handleNextMonth}
+                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                        title="Bulan Berikutnya"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Day Names Grid */}
+                  <div className="grid grid-cols-7 gap-1 text-center font-bold text-[11px] text-slate-400 mt-4 mb-2 uppercase tracking-wider">
+                    <span>Sen</span>
+                    <span>Sel</span>
+                    <span>Rab</span>
+                    <span>Kam</span>
+                    <span>Jum</span>
+                    <span>Sab</span>
+                    <span className="text-[#E50914]">Min</span>
+                  </div>
+
+                  {/* Calendar Days Matrix */}
+                  <div className="grid grid-cols-7 gap-1 text-center">
+                    {/* Calendar Day Cells */}
+                    {calendarCells.map((cell, idx) => {
+                      if (!cell.day) {
+                        return <div key={`empty-${idx}`} className="h-9 w-full" />;
+                      }
+
+                      const dayNum = cell.day;
+                      const isToday =
+                        dayNum === 11 && calendarMonth === 1 && calendarYear === 2026;
+                      const isSelected = dayNum === selectedCalendarDate;
+                      const hasDeadline = timelineItems.some(
+                        (item) =>
+                          item.dayNumber === dayNum &&
+                          item.month === calendarMonth &&
+                          item.year === calendarYear
+                      );
+
+                      return (
+                        <button
+                          key={`day-${dayNum}`}
+                          onClick={() => setSelectedCalendarDate(dayNum)}
+                          className={`relative h-10 w-full rounded-xl flex flex-col items-center justify-center text-xs font-semibold transition-all cursor-pointer ${
+                            isToday
+                              ? 'bg-[#E50914] text-white font-bold shadow-xs'
+                              : isSelected
+                              ? 'bg-red-50 text-[#E50914] font-bold ring-2 ring-[#E50914]'
+                              : 'text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span>{dayNum}</span>
+
+                          {/* Crimson Red Dot Indicator for Deadlines */}
+                          {hasDeadline && !isToday && (
+                            <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-[#E50914]" />
+                          )}
+                          {hasDeadline && isToday && (
+                            <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-white" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ─── AGENDA TANGGAL TERPILIH CARD ─── */}
+                <div className="mt-5 p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                      Agenda: {selectedCalendarDate} {monthNames[calendarMonth]} {calendarYear}
+                    </span>
+                    {selectedDateAgenda && (
+                      <span className={`text-[9px] font-extrabold uppercase px-2 py-0.2 rounded-full border ${selectedDateAgenda.statusColor}`}>
+                        {selectedDateAgenda.status}
+                      </span>
+                    )}
+                  </div>
+
+                  {selectedDateAgenda ? (
+                    <div>
+                      <h4 className="text-xs font-bold text-[#141416]">
+                        {selectedDateAgenda.title}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {selectedDateAgenda.stage} • Waktu: {selectedDateAgenda.time} ({selectedDateAgenda.countdown})
+                      </p>
+                      <button
+                        onClick={() => navigate('/dashboard/ketua')}
+                        className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141416] hover:bg-[#28292d] text-white text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+                      >
+                        <span>Buka Tugas →</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-xs text-slate-600">
+                        Tidak ada tenggat pengumpulan berkas wajib pada tanggal ini.
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Gunakan waktu ini untuk koordinasi internal dan persiapan materi tim.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════════════════════
+            5. REKAM JEJAK PELAKSANAAN 2025 (UNIFORM SYMMETRIC PHOTO GRID)
         ══════════════════════════════════════════════════════════════════════════ */}
         <section className="w-full bg-[#f8f9fa] py-16 md:py-20 border-b border-slate-200/80" id="jejak">
           <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
