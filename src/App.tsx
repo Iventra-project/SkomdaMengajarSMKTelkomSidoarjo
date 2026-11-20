@@ -6,6 +6,7 @@
 import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { HomePage } from './app/page';
+import { DaftarKelompokPage } from './app/kelompok/page';
 import { LoginPage } from './app/login/page';
 import { AdminLoginPage } from './app/admin/login/page';
 import { PostLoginHomePage } from './app/home/page';
@@ -35,7 +36,7 @@ const AppRouter: React.FC = () => {
         navigate('/login?role=admin');
         return;
       }
-      if (currentPath !== '/' && currentPath !== '/login') {
+      if (currentPath !== '/' && currentPath !== '/kelompok' && currentPath !== '/login') {
         navigate('/login');
         return;
       }
@@ -73,6 +74,7 @@ const AppRouter: React.FC = () => {
     <div className="relative min-h-screen bg-[#f9f9f9] text-[#1a1c1c] flex flex-col font-sans overflow-x-hidden">
       {/* Public / Auth Pages */}
       {currentPath === '/' && <HomePage />}
+      {currentPath === '/kelompok' && <DaftarKelompokPage />}
       {currentPath === '/login' && <LoginPage />}
       {currentPath === '/admin/login' && <AdminLoginPage />}
 

@@ -143,7 +143,7 @@ export const HomePage: React.FC = () => {
     });
   }, [searchQuery, selectedFilter]);
 
-  const shownGroups = isGroupsExpanded ? filteredGroups : filteredGroups.slice(0, 4);
+  const shownGroups = filteredGroups.slice(0, 4);
   const shownProjects = isProjectsExpanded ? showcaseProjects : showcaseProjects.slice(0, 4);
   const shownStories = isDocExpanded ? documentaryStories : documentaryStories.slice(0, 4);
 
@@ -620,29 +620,21 @@ export const HomePage: React.FC = () => {
                 </div>
               )}
 
-              {/* Show More / Show Less Button */}
-              {filteredGroups.length > 4 && (
-                <div className="mt-8 flex flex-col items-center gap-2">
-                  <button
-                    onClick={() => setIsGroupsExpanded(!isGroupsExpanded)}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-200 hover:border-[#e20113] hover:text-[#e20113] text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-2xs cursor-pointer group"
-                  >
-                    <span className="material-symbols-outlined text-[17px] group-hover:translate-y-0.5 transition-transform">
-                      {isGroupsExpanded ? 'expand_less' : 'expand_more'}
-                    </span>
-                    <span>
-                      {isGroupsExpanded
-                        ? 'Tampilkan Lebih Sedikit (4 Kelompok)'
-                        : `Lihat Semua Kelompok (+${filteredGroups.length - 4} Lainnya)`}
-                    </span>
-                  </button>
-                  {!isGroupsExpanded && (
-                    <span className="text-[11px] text-slate-400 font-medium">
-                      {filteredGroups.length - 4} kelompok disembunyikan agar halaman tetap rapi
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* Navigate to Dedicated All-Groups Page */}
+              <div className="mt-8 flex flex-col items-center gap-2.5">
+                <button
+                  onClick={() => navigate('/kelompok')}
+                  className="inline-flex items-center gap-2 px-7 py-3.5 bg-[#141416] hover:bg-[#e20113] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer group"
+                >
+                  <span>Lihat Semua 24 Kelompok di Halaman Khusus</span>
+                  <span className="material-symbols-outlined text-[17px] group-hover:translate-x-1 transition-transform">
+                    arrow_forward
+                  </span>
+                </button>
+                <span className="text-[11px] text-slate-400 font-medium">
+                  Menampilkan 4 dari 24 kelompok resmi. Buka direktori lengkap untuk pencarian seluruh sekolah dan daftar anggota tim.
+                </span>
+              </div>
             </div>
           </section>
         )}

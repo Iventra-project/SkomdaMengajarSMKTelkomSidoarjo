@@ -14,6 +14,7 @@ import {
 export type RoutePath =
   | '/'
   | '/home'
+  | '/kelompok'
   | '/login'
   | '/login?role=admin'
   | '/admin/login'
@@ -138,6 +139,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const hash = window.location.hash.replace('#', '');
       const [pathOnly] = hash.split('?');
       if (pathOnly === '/home') return '/home';
+      if (pathOnly === '/kelompok') return '/kelompok';
       if (pathOnly === '/login') return '/login';
       if (pathOnly === '/admin/login') return '/login';
       if (pathOnly === '/admin' || pathOnly === '/dashboard/admin') return '/admin';
@@ -481,6 +483,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
 
       if (pathOnly === '/home') setCurrentPath('/home');
+      else if (pathOnly === '/kelompok') setCurrentPath('/kelompok');
       else if (pathOnly === '/login') setCurrentPath('/login');
       else if (pathOnly === '/admin' || pathOnly === '/dashboard/admin') setCurrentPath('/admin');
       else if (pathOnly === '/admin/kelompok/03' || pathOnly === '/admin-kelompok-03' || pathOnly === '/dashboard/admin/review') {
