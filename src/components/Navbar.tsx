@@ -47,13 +47,12 @@ export const Navbar: React.FC<NavbarProps> = ({
       const sections =
         variant === 'public'
           ? [
-              { id: 'kurikulum', el: document.getElementById('kurikulum') },
+              { id: 'jejak', el: document.getElementById('jejak') },
               { id: 'kelompok', el: document.getElementById('kelompok') },
               { id: 'alur', el: document.getElementById('alur') },
               { id: 'beranda', el: document.body },
             ]
           : [
-              { id: 'kurikulum', el: document.getElementById('kurikulum') },
               { id: 'jejak', el: document.getElementById('jejak') },
               { id: 'alur', el: document.getElementById('alur') },
               { id: 'beranda', el: document.body },
@@ -149,14 +148,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'beranda', label: 'BERANDA', anchor: 'hero' },
     { id: 'alur', label: 'ALUR PROGRES', anchor: 'alur' },
     { id: 'kelompok', label: 'KELOMPOK', anchor: 'kelompok' },
-    { id: 'kurikulum', label: 'PANDUAN', anchor: 'kurikulum' },
+    { id: 'jejak', label: 'REKAM JEJAK', anchor: 'jejak' },
   ];
 
   const homeLinks = [
     { id: 'beranda', label: 'BERANDA', anchor: 'hero' },
     { id: 'alur', label: 'ALUR PROGRES', anchor: 'alur' },
     { id: 'jejak', label: 'REKAM JEJAK', anchor: 'jejak' },
-    { id: 'kurikulum', label: 'PANDUAN', anchor: 'kurikulum' },
   ];
 
   const currentLinks = variant === 'public' ? publicLinks : homeLinks;
