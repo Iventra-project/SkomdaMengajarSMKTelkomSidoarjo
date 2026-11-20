@@ -753,7 +753,7 @@ const INITIAL_WAITING_GROUP: ActionRowItem[] = [
 ];
 
 export const AdminMonitoringPage: React.FC = () => {
-  const { navigate, showToast } = useApp();
+  const { navigate, showToast, submitBannerDecision, updateGroupLeader, resetGroupLeader } = useApp();
 
   // Navigation: 'beranda' | 'kelompok' | 'feedback' | 'pengaturan'
   const [activeScreen, setActiveScreen] = useState<'beranda' | 'kelompok' | 'feedback' | 'pengaturan'>('beranda');
@@ -863,6 +863,13 @@ export const AdminMonitoringPage: React.FC = () => {
     const currentGroup = reviewQueue[currentReviewIdx];
     if (!currentGroup) return;
 
+    // Synchronize to AppContext
+    submitBannerDecision(
+      'approved',
+      'Semua berkas tahap ini sudah diperiksa dan disetujui resmi oleh Kurikulum.',
+      currentGroup.number
+    );
+
     // Mark current group as approved
     setGroupsList((prev) =>
       prev.map((g) =>
@@ -880,8 +887,6 @@ export const AdminMonitoringPage: React.FC = () => {
 
     // Remove from waitingAdminItems
     setWaitingAdminItems((prev) => prev.filter((item) => item.groupId !== currentGroup.id));
-
-    showToast(`Berkas Kelompok ${currentGroup.number} disetujui.`, 'success');
 
     // Move to next review or finish
     if (currentReviewIdx + 1 < reviewQueue.length) {
@@ -901,6 +906,9 @@ export const AdminMonitoringPage: React.FC = () => {
       showToast('Tulis catatan revisi sebelum mengirim.', 'warning');
       return;
     }
+
+    // Synchronize to AppContext
+    submitBannerDecision('revision', revisionComment.trim(), currentGroup.number);
 
     // Update group to revisi
     setGroupsList((prev) =>
@@ -936,8 +944,6 @@ export const AdminMonitoringPage: React.FC = () => {
       },
     ]);
 
-    showToast(`Catatan revisi dikirim ke Ketua Kelompok ${currentGroup.number}.`, 'info');
-
     // Move to next or finish
     if (currentReviewIdx + 1 < reviewQueue.length) {
       setCurrentReviewIdx(currentReviewIdx + 1);
@@ -954,6 +960,9 @@ export const AdminMonitoringPage: React.FC = () => {
     const memberObj = assignLeaderGroup.members.find((m) => m.name === selectedLeaderMember);
     const nis = memberObj?.nis || `2024.11.${assignLeaderGroup.number}01`;
     const randomInitialPass = `skm-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // Synchronize with AppContext so / and /home see the newly assigned leader
+    updateGroupLeader(assignLeaderGroup.number, selectedLeaderMember);
 
     setGroupsList((prev) =>
       prev.map((g) =>
@@ -1586,6 +1595,26 @@ export const AdminMonitoringPage: React.FC = () => {
                             >
                               Reset kata sandi
                             </button>
+                            <button
+                              onClick={() => {
+                                resetGroupLeader(grp.number);
+                                setGroupsList((prev) =>
+                                  prev.map((g) =>
+                                    g.id === grp.id
+                                      ? {
+                                          ...g,
+                                          hasLeader: false,
+                                          leaderName: 'Belum ditentukan',
+                                        }
+                                      : g
+                                  )
+                                );
+                              }}
+                              className="text-xs text-red-600 hover:text-red-700 hover:underline cursor-pointer font-medium"
+                              title="Buka kunci agar kelompok dapat diklaim kembali"
+                            >
+                              Reset Akses Ketua
+                            </button>
                           </div>
                         ) : (
                           <div className="flex items-center justify-end gap-3">
@@ -1743,9 +1772,29 @@ export const AdminMonitoringPage: React.FC = () => {
                   <p className="text-xs font-medium text-[#6B6560] mt-0.5">
                     {currentReviewGroup.schoolName}
                   </p>
-                  <p className="text-xs text-[#21201E] mt-1">
-                    Ketua: {currentReviewGroup.leaderName || 'Belum ditentukan'}
-                  </p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-[#21201E]">
+                      Ketua: {currentReviewGroup.leaderName || 'Belum ditentukan'}
+                    </p>
+                    {currentReviewGroup.leaderName && !currentReviewGroup.leaderName.includes('Belum') && (
+                      <button
+                        onClick={() => {
+                          resetGroupLeader(currentReviewGroup.number);
+                          currentReviewGroup.leaderName = 'Belum ditentukan';
+                          setGroupsList((prev) =>
+                            prev.map((g) =>
+                              g.number === currentReviewGroup.number
+                                ? { ...g, hasLeader: false, leaderName: 'Belum ditentukan' }
+                                : g
+                            )
+                          );
+                        }}
+                        className="text-[11px] text-red-600 hover:text-red-700 hover:underline cursor-pointer font-medium"
+                      >
+                        Reset Akses Ketua
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Panel Body: Scrollable */}

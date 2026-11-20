@@ -1,3 +1,69 @@
+export interface TeamRosterMember {
+  id: string;
+  nis: string;
+  name: string;
+  role: string;
+  isLeader: boolean;
+}
+
+export const generateMockMembers = (groupNumber: string, leaderName: string, isLeaderAssigned: boolean): TeamRosterMember[] => {
+  if (groupNumber === '00') {
+    return [
+      { id: '00-1', nis: '000000', name: 'Ketua Uji Coba', role: 'Ketua Kelompok', isLeader: true },
+      { id: '00-2', nis: '000001', name: 'Anggota Simulasi 1', role: 'Sekretaris & Notulen', isLeader: false },
+      { id: '00-3', nis: '000002', name: 'Anggota Simulasi 2', role: 'Bendahara / Logistik', isLeader: false },
+      { id: '00-4', nis: '000003', name: 'Anggota Simulasi 3', role: 'Anggota Tim', isLeader: false },
+      { id: '00-5', nis: '000004', name: 'Anggota Simulasi 4', role: 'Anggota Tim', isLeader: false },
+    ];
+  }
+
+  const num = parseInt(groupNumber, 10) || 1;
+  const baseNis = 54124100 + num * 10;
+
+  const studentPool = [
+    'Ahmad Rizky Pratama',
+    'Nabila Putri Ramadhani',
+    'Dimas Bagus Wicaksono',
+    'Siti Nurhaliza',
+    'Bagus Pratama Putra',
+    'Kevin Alamsyah',
+    'Fahri Ramadhan',
+    'Rian Hidayat',
+    'Dewi Maharani',
+    'Putri Ayu Wandira',
+    'Zidan Maulana',
+    'Aulia Rahman',
+    'Anisa Rahmawati',
+    'Rizal Fauzi',
+    'Doni Firmansyah',
+    'Fandi Ahmad',
+    'Hendra Setiawan',
+    'Indra Djati',
+    'Joko Anwar',
+    'Kiki Narendra'
+  ];
+
+  const members: TeamRosterMember[] = [];
+  const count = num % 2 === 0 ? 8 : 7;
+  const hasAssignedLeader = Boolean(isLeaderAssigned && leaderName && !leaderName.includes('Belum'));
+
+  for (let i = 0; i < count; i++) {
+    const isFirst = i === 0;
+    const name = isFirst && hasAssignedLeader ? leaderName : studentPool[(num * 3 + i) % studentPool.length];
+    const role = isFirst && hasAssignedLeader ? 'Ketua Kelompok' : i === 1 ? 'Sekretaris & Notulen' : i === 2 ? 'Bendahara / Logistik' : 'Anggota Tim';
+
+    members.push({
+      id: `${groupNumber}-${i + 1}`,
+      nis: (baseNis + i).toString(),
+      name,
+      role,
+      isLeader: Boolean(isFirst && hasAssignedLeader),
+    });
+  }
+
+  return members;
+};
+
 export interface Member {
   id: string;
   name: string;
@@ -31,6 +97,10 @@ export interface Group {
     step6: 'locked';
   };
   notes?: string;
+  hasLeader?: boolean;
+  isLeaderLocked?: boolean;
+  leaderNis?: string;
+  leaderEmail?: string;
 }
 
 export interface SprintTask {
@@ -105,7 +175,7 @@ export const initialSprintTasks: SprintTask[] = [
   }
 ];
 
-export const groupsData: Group[] = [
+export const rawGroupsData: Group[] = [
   // ─── 4 Menunggu Review ──────────────────────────────────────────────────
   {
     id: '03',
@@ -530,6 +600,51 @@ export const groupsData: Group[] = [
     currentStep: 4,
     steps: { step1: 'done', step2: 'done', step3: 'done', step4: 'done', step5: 'locked', step6: 'locked' }
   }
+];
+
+export const groupsData: Group[] = [
+  ...rawGroupsData.map((g) => {
+    const num = parseInt(g.number, 10);
+    const isUnassigned = num === 23 || num === 24 || g.leaderName.includes('Belum');
+    return {
+      ...g,
+      hasLeader: !isUnassigned,
+      isLeaderLocked: !isUnassigned,
+      leaderName: isUnassigned ? 'Belum Ditentukan' : g.leaderName,
+      leaderNis: isUnassigned
+        ? undefined
+        : g.number === '03'
+        ? '54124130'
+        : (54124100 + num * 10).toString(),
+      leaderEmail: isUnassigned
+        ? undefined
+        : g.number === '03'
+        ? 'nabila.putri@smktelkom-sda.sch.id'
+        : `${g.leaderName.toLowerCase().replace(/[^a-z]/g, '.')}@smktelkom-sda.sch.id`,
+    };
+  }),
+  {
+    id: '00',
+    number: '00',
+    schoolName: 'SMP Mitra Simulasi',
+    schoolAddress: 'Lab Simulasi Vokasi, SMK Telkom Sidoarjo',
+    district: 'Sidoarjo',
+    leaderName: 'Ketua Uji Coba',
+    hasLeader: true,
+    isLeaderLocked: true,
+    leaderNis: '000000',
+    leaderEmail: 'uji.ketua@smktelkom-sda.sch.id',
+    mentorName: 'Guru Pembimbing Simulasi',
+    memberCount: 5,
+    featuredModule: 'Sandbox Workspace Uji Coba',
+    status: 'ontrack',
+    statusLabel: 'Sesuai Jadwal',
+    targetDate: '28 Feb 2026',
+    progressPercent: 75,
+    currentStep: 4,
+    steps: { step1: 'done', step2: 'done', step3: 'done', step4: 'done', step5: 'locked', step6: 'locked' },
+    notes: 'Akun sandbox terisolasi untuk simulasi dan pengujian sistem.',
+  },
 ];
 
 export const urgentAlerts: UrgentAlert[] = [

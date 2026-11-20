@@ -1,712 +1,757 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { useApp } from '../../context/AppContext';
-import { groupsData } from '../../data/mockData';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useApp, formatGroupNumber } from '../../context/AppContext';
+import { SkomdaJourneyTrack } from '../../components/SkomdaJourneyTrack';
+import { Navbar } from '../../components/Navbar';
 import {
-  Users,
-  Search,
-  CheckCircle2,
-  Lock,
-  ChevronRight,
-  ChevronLeft,
-  X,
-  UserCheck,
-  UserX,
-  School,
-  GraduationCap,
-  Calendar,
-  Layers,
-  ArrowRight,
-  BookOpen,
-  Palette,
-  LogOut,
-  Sparkles,
-  LayoutDashboard
-} from 'lucide-react';
+  groupsData,
+  showcaseProjects,
+  documentaryStories,
+  ShowcaseProject,
+  DocumentaryMoment,
+} from '../../data/mockData';
 
-const generateMockMembers = (groupNumber: string, leaderName: string, isLeaderAssigned: boolean) => {
-  const num = parseInt(groupNumber, 10) || 1;
-  const baseNis = 54124100 + num * 10;
-
-  const studentPool = [
-    'Ahmad Rizky Pratama',
-    'Nabila Putri Ramadhani',
-    'Dimas Bagus Wicaksono',
-    'Siti Nurhaliza',
-    'Bagus Pratama Putra',
-    'Kevin Alamsyah',
-    'Fahri Ramadhan',
-    'Rian Hidayat',
-    'Dewi Maharani',
-    'Putri Ayu Wandira',
-    'Zidan Maulana',
-    'Aulia Rahman',
-    'Anisa Rahmawati',
-    'Rizal Fauzi',
-    'Doni Firmansyah',
-    'Fandi Ahmad',
-    'Hendra Setiawan',
-    'Indra Djati',
-    'Joko Anwar',
-    'Kiki Narendra'
-  ];
-
-  const members = [];
-  const count = num % 2 === 0 ? 8 : 7;
-
-  for (let i = 0; i < count; i++) {
-    const isFirst = i === 0;
-    const name = isFirst && isLeaderAssigned ? leaderName : studentPool[(num * 3 + i) % studentPool.length];
-    const role = isFirst && isLeaderAssigned ? 'Ketua Kelompok' : i === 1 ? 'Sekretaris & Notulen' : i === 2 ? 'Bendahara / Logistik' : 'Anggota Tim';
-
-    members.push({
-      id: `${groupNumber}-${i + 1}`,
-      nis: (baseNis + i).toString(),
-      name,
-      role,
-      isLeader: isFirst && isLeaderAssigned,
-    });
-  }
-
-  return members;
-};
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80';
 
 export const PostLoginHomePage: React.FC = () => {
-  const { navigate, currentUser, logout, showToast } = useApp();
+  const { navigate, currentUser, logout, showToast, groups } = useApp();
 
-  // Filter & Search State
-  const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 6;
+  // Route protection
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/login');
+    } else if (currentUser.role === 'admin') {
+      navigate('/admin');
+    }
+  }, [currentUser, navigate]);
 
-  // Modal State for Other Groups Member Preview
-  const [selectedGroupModal, setSelectedGroupModal] = useState<typeof groupsData[0] | null>(null);
+  // User Group Resolution
+  const userGroupNum = currentUser?.groupNumber ? formatGroupNumber(currentUser.groupNumber) : '03';
+  const allGroups = groups && groups.length > 0 ? groups : groupsData;
+  const userGroup =
+    allGroups.find((g) => formatGroupNumber(g.number) === userGroupNum) ||
+    groupsData.find((g) => formatGroupNumber(g.number) === userGroupNum) ||
+    groupsData[2];
 
-  const userGroupNum = currentUser?.groupNumber ? String(currentUser.groupNumber).padStart(2, '0') : '01';
+  const userCurrentStage = userGroup?.currentStep || 4;
+  const userProgress = userGroup?.progressPercent || 67;
 
-  // Group items with region, status, and PINNING the user's own group to position 1
-  const enrichedGroups = useMemo(() => {
-    const mapped = groupsData.map((g) => {
-      const num = parseInt(g.number, 10);
-      const isLeaderPending = num === 23 || num === 24 || g.leaderName.includes('Belum');
-      const districtLower = g.district.toLowerCase();
+  // Track & Selection State
+  const [selectedStep, setSelectedStep] = useState<number>(userCurrentStage);
 
-      let regionCategory = 'other';
-      if (districtLower.includes('sidoarjo') || districtLower.includes('candi')) {
-        regionCategory = 'sidoarjo-candi';
-      } else if (districtLower.includes('buduran') || districtLower.includes('sedati')) {
-        regionCategory = 'buduran-sedati';
-      } else if (districtLower.includes('waru') || districtLower.includes('taman')) {
-        regionCategory = 'waru-taman';
-      } else if (districtLower.includes('porong') || districtLower.includes('krian') || districtLower.includes('tarik') || districtLower.includes('prambon')) {
-        regionCategory = 'porong-krian';
-      }
+  const [isProjectsExpanded, setIsProjectsExpanded] = useState<boolean>(false);
+  const [isDocExpanded, setIsDocExpanded] = useState<boolean>(false);
 
-      const isMyGroup = g.number === userGroupNum;
+  // Modals State
+  const [selectedProject, setSelectedProject] = useState<ShowcaseProject | null>(null);
+  const [selectedStory, setSelectedStory] = useState<DocumentaryMoment | null>(null);
 
-      return {
-        ...g,
-        isLeaderPending,
-        regionCategory,
-        isMyGroup,
-        displayLeader: isLeaderPending ? 'Belum Ditentukan' : g.leaderName,
-      };
-    });
+  const shownProjects = isProjectsExpanded ? showcaseProjects : showcaseProjects.slice(0, 4);
+  const shownStories = isDocExpanded ? documentaryStories : documentaryStories.slice(0, 4);
 
-    // Sort: user's own group always comes FIRST!
-    return mapped.sort((a, b) => {
-      if (a.isMyGroup) return -1;
-      if (b.isMyGroup) return 1;
-      return a.number.localeCompare(b.number);
-    });
-  }, [userGroupNum]);
-
-  // Filter Logic
-  const filteredGroups = useMemo(() => {
-    return enrichedGroups.filter((g) => {
-      if (activeCategory === 'sidoarjo-candi' && g.regionCategory !== 'sidoarjo-candi') return false;
-      if (activeCategory === 'buduran-sedati' && g.regionCategory !== 'buduran-sedati') return false;
-      if (activeCategory === 'waru-taman' && g.regionCategory !== 'waru-taman') return false;
-      if (activeCategory === 'porong-krian' && g.regionCategory !== 'porong-krian') return false;
-      if (activeCategory === 'no-leader' && !g.isLeaderPending) return false;
-
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const matchesSchool = g.schoolName.toLowerCase().includes(query);
-        const matchesNum = `kelompok ${g.number}`.toLowerCase().includes(query) || `kel-${g.number}`.toLowerCase().includes(query);
-        const matchesDistrict = g.district.toLowerCase().includes(query);
-        const matchesLeader = g.displayLeader.toLowerCase().includes(query);
-        return matchesSchool || matchesNum || matchesDistrict || matchesLeader;
-      }
-
-      return true;
-    });
-  }, [enrichedGroups, activeCategory, searchQuery]);
-
-  // Pagination calculation
-  const totalItems = filteredGroups.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-  const paginatedGroups = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredGroups.slice(start, start + itemsPerPage);
-  }, [filteredGroups, currentPage]);
-
-  const handleCategoryChange = (cat: string) => {
-    setActiveCategory(cat);
-    setCurrentPage(1);
+  const getStageTitle = (stage: number) => {
+    switch (stage) {
+      case 1:
+        return 'Fase Aktif: Pembentukan Kelompok Relawan (Tahap 01)';
+      case 2:
+        return 'Fase Aktif: Pembentukan Ketua Tim (Tahap 02)';
+      case 3:
+        return 'Fase Aktif: Susun RPP & Modul Ajar (Tahap 03)';
+      case 4:
+        return 'Fase Aktif: Siapkan Desain & X-Banner (Tahap 04)';
+      case 5:
+        return 'Fase Aktif: Penerjunan & Mengajar di SMP (Tahap 05)';
+      case 6:
+        return 'Fase Aktif: Laporan Akhir & Gelar Karya (Tahap 06)';
+      default:
+        return `Fase Aktif: Tahap 0${stage}`;
+    }
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    setCurrentPage(1);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    showToast('Berhasil keluar dari akun.', 'info');
-    navigate('/');
+  const handleLogout = () => {
+    void logout();
   };
 
   return (
-    <div className="w-full bg-[#FAFAFA] text-slate-900 antialiased min-h-screen flex flex-col font-sans selection:bg-red-500 selection:text-white">
-      {/* ================= 1. POST-LOGIN NAVBAR ================= */}
-      <header className="sticky top-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
-        <div className="h-16 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          {/* Left Brand */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <span className="text-xl font-black text-slate-950 tracking-tight select-none">
-                #SKOMDA
-              </span>
-              <span className="bg-red-600 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full tracking-wider shadow-sm select-none">
-                MENGAJAR
-              </span>
-            </div>
-            <div className="hidden sm:flex items-center gap-2 border-l border-slate-200 pl-3 text-[11px] font-semibold text-slate-400">
-              <span className="text-red-600 font-bold">#Impact2026</span>
-              <span>•</span>
-              <span>SMK Telkom Sidoarjo</span>
-            </div>
-          </div>
+    <div className="w-full min-h-screen bg-white text-slate-900 antialiased selection:bg-[#e20113] selection:text-white">
+      {/* ══════════════════════════════════════════════════════════════════════════
+          1. FLOATING DARK PILL NAVBAR (UNIFIED SKOMDA CAPSULE)
+      ══════════════════════════════════════════════════════════════════════════ */}
+      <Navbar variant="home" />
 
-          {/* Right Action: Logged In User Pill + Logout */}
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200/80 text-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-bold text-slate-800">{currentUser?.name || 'Ketua Kelompok'}</span>
-              <span className="text-slate-400">•</span>
-              <span className="font-bold text-red-600">KEL-{userGroupNum}</span>
-            </div>
-
-            <button
-              onClick={() => navigate('/dashboard/ketua')}
-              className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-full transition shadow-xs cursor-pointer"
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Dashboard Kelompok</span>
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="p-2 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-full transition cursor-pointer"
-              title="Keluar"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content (Identical Familiar Layout to Public Page) */}
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 space-y-8">
-
-        {/* User Welcome Alert Banner */}
-        <div className="p-4 rounded-2xl bg-red-50/80 border border-red-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center font-black text-sm shrink-0">
-              {userGroupNum}
-            </div>
-            <div>
-              <div className="text-xs font-bold text-red-700 uppercase tracking-wider">
-                Selamat Datang, {currentUser?.name}
-              </div>
-              <div className="text-sm font-bold text-slate-900">
-                Anda login sebagai Ketua Kelompok {userGroupNum} ({enrichedGroups.find(g => g.isMyGroup)?.schoolName}).
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/dashboard/ketua')}
-            className="self-start sm:self-auto inline-flex items-center gap-2 px-5 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs cursor-pointer"
-          >
-            <span>Buka Dashboard Tim</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* ================= COMPACT HERO STRIP ================= */}
-        <section className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-xs">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-            {/* Left Headline */}
-            <div className="lg:col-span-7 space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 text-red-600 text-xs font-semibold border border-red-100">
-                <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
-                Skomda Mengajar 2026: Fase Aktif
-              </div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                Kembali Mengajar, Menginspirasi Nyata.
-              </h1>
-              <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl">
-                Kelola berkas modul, koordinasi anggota tim, dan pantau progres kelompok SMP Anda melalui sistem terpadu.
-              </p>
-            </div>
-
-            {/* Right Stat Pills */}
-            <div className="lg:col-span-5 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3">
-              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-red-100/70 text-red-600 flex items-center justify-center shrink-0">
-                  <School className="w-5 h-5" />
+      <main className="w-full">
+        {/* ══════════════════════════════════════════════════════════════════════════
+            2. HERO SECTION (100% IDENTICAL VISUAL ARCHITECTURE TO `/`)
+        ══════════════════════════════════════════════════════════════════════════ */}
+        <section id="hero" className="relative w-full bg-white border-b border-slate-100 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10 py-12 sm:py-16 md:py-20">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+              {/* Left Column: Typography, Actions, 4 Horizontal Metrics */}
+              <div className="lg:col-span-7 flex flex-col items-start text-left">
+                {/* Active Session Pill Badge */}
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-red-50/80 border border-red-200/70 rounded-full mb-6">
+                  <span className="w-2 h-2 rounded-full bg-[#E50914] animate-pulse" />
+                  <span className="text-xs font-bold tracking-wider text-[#E50914] uppercase">
+                    Sesi Aktif: Kelompok {userGroupNum}
+                  </span>
+                  <span className="text-red-300">•</span>
+                  <span className="text-xs font-medium text-slate-600">
+                    {userGroup?.schoolName || 'SMPN 1 Buduran'}
+                  </span>
                 </div>
-                <div>
-                  <div className="text-lg font-black text-slate-900 leading-none">12</div>
-                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">SMP Tujuan</div>
+
+                {/* Main Headline (Identical to `/`) */}
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[54px] font-extrabold text-slate-950 tracking-tight leading-[1.08] mb-4">
+                  Inspirasi Nyata, <br />
+                  <span className="text-[#e20113]">Siswa SMK Mengajar SMP.</span>
+                </h1>
+
+                {/* Subtitle (Identical to `/`) */}
+                <p className="text-base sm:text-lg text-slate-500 font-normal leading-relaxed mb-8 max-w-lg">
+                  180 siswa relawan SMK Telkom Sidoarjo mengajar teknologi aplikatif dan etika digital di 12 SMP Sidoarjo.
+                </p>
+
+                {/* Action Buttons: Primary CTA replaced with "Buka Dashboard Kelompok →" */}
+                <div className="flex flex-wrap items-center gap-3.5 mb-10">
+                  <button
+                    onClick={() => navigate('/dashboard/ketua')}
+                    className="inline-flex items-center gap-2.5 px-6 h-12 bg-[#E50914] hover:bg-[#b4000c] text-white font-bold text-xs uppercase tracking-wider rounded-full transition-all shadow-md hover:shadow-lg cursor-pointer group"
+                  >
+                    <span>Buka Dashboard Kelompok</span>
+                    <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center group-hover:translate-x-0.5 transition-transform">
+                      <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                    </span>
+                  </button>
+                  <a
+                    href="#alur"
+                    className="inline-flex items-center gap-2 px-5 h-12 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-950 border border-slate-200 font-bold text-xs uppercase tracking-wider rounded-full transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[18px] text-slate-500">list_alt</span>
+                    <span>Lihat Alur Pelaksanaan</span>
+                  </a>
+                </div>
+
+                {/* 4 Horizontal Stat Metrics (Exact as `/`) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-6 border-t border-slate-100 w-full max-w-xl">
+                  <div>
+                    <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight block">12</span>
+                    <span className="text-xs font-semibold text-slate-500 mt-0.5 block">SMP Mitra</span>
+                  </div>
+                  <div>
+                    <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight block">24</span>
+                    <span className="text-xs font-semibold text-slate-500 mt-0.5 block">Kelompok</span>
+                  </div>
+                  <div>
+                    <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight block">180</span>
+                    <span className="text-xs font-semibold text-slate-500 mt-0.5 block">Relawan</span>
+                  </div>
+                  <div>
+                    <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight block">1.4k+</span>
+                    <span className="text-xs font-semibold text-slate-500 mt-0.5 block">Siswa SMP</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-red-100/70 text-red-600 flex items-center justify-center shrink-0">
-                  <Layers className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-lg font-black text-slate-900 leading-none">24</div>
-                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Kelompok</div>
-                </div>
-              </div>
+              {/* Right Column: Editorial Teaching Photo Card (Exact as `/`) */}
+              <div className="lg:col-span-5 relative">
+                <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-xl shadow-slate-200/60 border border-slate-100 group">
+                  <img
+                    src="https://images.unsplash.com/photo-1577896851231-70ef18881754?w=1000&auto=format&fit=crop&q=80"
+                    alt="Aksi Nyata Siswa SMK Telkom Sidoarjo Mengajar di SMP Mitra"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = FALLBACK_IMAGE;
+                    }}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-103"
+                  />
 
-              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-red-100/70 text-red-600 flex items-center justify-center shrink-0">
-                  <GraduationCap className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-lg font-black text-slate-900 leading-none">180</div>
-                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Siswa</div>
-                </div>
-              </div>
+                  {/* Soft Gradient Scrim at Bottom Only */}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent p-6 text-white flex flex-col justify-end">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-[#e20113] text-white text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full tracking-wider">
+                        Aksi Nyata Relawan
+                      </span>
+                      <span className="text-xs text-slate-200 font-semibold">180 Siswa • 12 SMP Sidoarjo</span>
+                    </div>
 
-              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-red-100/70 text-red-600 flex items-center justify-center shrink-0">
-                  <Calendar className="w-5 h-5" />
+                    <h3 className="text-lg sm:text-xl font-bold text-white leading-snug">
+                      Siswa SMK Telkom Sidoarjo Berbagi Ilmu & Literasi Digital di Sekolah Mitra
+                    </h3>
+
+                    <p className="text-xs text-slate-300 mt-1.5 leading-relaxed line-clamp-2">
+                      Program pengabdian masyarakat terstruktur: mengajarkan dasar pemrograman, etika digital, dan media kreatif interaktif.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-lg font-black text-slate-900 leading-none">30</div>
-                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Hari Program</div>
+
+                {/* Subtle Meta Indicator below photo */}
+                <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400 font-medium px-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-emerald-500 text-[15px]">verified</span>
+                    Fase D Kurikulum Merdeka Informatika
+                  </span>
+                  <span>Disahkan MGMP Sidoarjo</span>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ================= 2. PROGRAM PROGRESS TRACKER (SERPENTINE PATH) ================= */}
-        <section className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                Alur & Progres Skomda Mengajar
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Tahapan terstruktur dari pembentukan tim hingga evaluasi luaran nyata di sekolah mitra.
-              </p>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-bold border border-red-200 self-start sm:self-auto">
-              <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
-              <span>Fase Aktif: Pembentukan Ketua Tim</span>
-            </div>
-          </div>
+        {/* ══════════════════════════════════════════════════════════════════════════
+            3. ALUR SECTION (ADAPTATION 2: DYNAMIC SINUSOIDAL JOURNEY TRACK)
+        ══════════════════════════════════════════════════════════════════════════ */}
+        <section className="w-full bg-[#f8f9fa] py-14 sm:py-16 md:py-20 border-b border-slate-200/80" id="alur">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
+            <div className="space-y-6">
+              <SkomdaJourneyTrack
+                currentActiveStep={userCurrentStage}
+                selectedStep={selectedStep}
+                onSelectStep={(step) => setSelectedStep(step)}
+                activePhaseTitle={
+                  selectedStep === userCurrentStage
+                    ? getStageTitle(userCurrentStage)
+                    : `Fase Terpilih: Tahap 0${selectedStep}`
+                }
+              />
 
-          <div className="w-full relative py-6 sm:py-8 overflow-x-auto select-none scrollbar-none">
-            <div className="min-w-[860px] relative h-48 flex items-center">
-              <svg
-                className="w-full h-full absolute inset-0 pointer-events-none"
-                fill="none"
-                preserveAspectRatio="none"
-                viewBox="0 0 1100 160"
-              >
-                <path
-                  id="journey-full-path"
-                  d="M 50,70 C 150,20 230,120 330,60 C 430,10 510,120 610,65 C 710,15 790,125 890,70 C 970,25 1020,80 1060,60"
-                  stroke="#CBD5E1"
-                  strokeDasharray="4 6"
-                  strokeWidth="2"
-                  style={{
-                    clipPath: 'polygon(27% 0%, 100% 0%, 100% 100%, 27% 100%)',
-                  }}
-                />
-                <path
-                  d="M 50,70 C 150,20 230,120 330,60 C 430,10 510,120 610,65 C 710,15 790,125 890,70 C 970,25 1020,80 1060,60"
-                  stroke="#DC2626"
-                  strokeWidth="2.5"
-                  strokeDasharray="4 6"
-                  style={{
-                    clipPath: 'polygon(0% 0%, 27% 0%, 27% 100%, 0% 100%)',
-                  }}
-                />
-              </svg>
+              {/* ─── KARTU TERPADU STATUS KELOMPOK DI TAHAP AKTIF ─── */}
+              <div className="mt-8 p-6 sm:p-8 bg-white border border-[#E8ECF2] rounded-3xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2.5 mb-3">
+                      <span className="bg-[#D7141F] text-white text-[11px] font-extrabold uppercase px-3 py-1 rounded-full">
+                        Kelompok {userGroupNum} · {userGroup?.schoolName || 'SMPN 1 Buduran'}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        Sesuai Jadwal
+                      </span>
+                      <span className="text-xs text-slate-400 font-medium">Tenggat: {userGroup?.targetDate || '15 Feb 2026'}</span>
+                    </div>
 
-              <div className="w-full grid grid-cols-6 gap-2 relative z-10 items-center">
-                <div className="flex flex-col items-center text-center transform -translate-y-4 group">
-                  <div className="w-16 h-16 rounded-2xl bg-red-600 text-white flex flex-col items-center justify-center mb-2 shadow-lg shadow-red-600/25 transition-transform group-hover:scale-105">
-                    <span className="text-[10px] font-bold text-white/90 leading-none mb-1">01</span>
-                    <Users className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-xs font-extrabold text-slate-900 leading-tight">Bentuk kelompok</span>
-                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">Penentuan anggota tim</span>
-                </div>
+                    <h3 className="text-xl sm:text-2xl font-extrabold text-[#0B1B3A] tracking-tight">
+                      {selectedStep === 4
+                        ? 'Tahap 04: Siapkan Desain Slide & X-Banner 60×160 cm'
+                        : selectedStep === 3
+                        ? 'Tahap 03: Penyusunan RPP & Modul Ajar Fase D'
+                        : selectedStep === 2
+                        ? 'Tahap 02: Penetapan Ketua & Pembimbing Lapangan'
+                        : selectedStep === 1
+                        ? 'Tahap 01: Pembentukan Kelompok Relawan Siswa'
+                        : selectedStep === 5
+                        ? 'Tahap 05: Penerjunan & Sesi Mengajar di Lab Komputer SMP'
+                        : 'Tahap 06: Refleksi, Laporan Akhir & Gelar Karya Artefak'}
+                    </h3>
 
-                <div className="flex flex-col items-center text-center transform translate-y-6 group">
-                  <div className="w-16 h-16 rounded-2xl bg-white border-2 border-red-500/80 text-red-600 shadow-md shadow-red-500/10 flex flex-col items-center justify-center mb-2 transition-transform group-hover:scale-105">
-                    <span className="text-[10px] font-bold text-red-500 leading-none mb-1">02</span>
-                    <UserCheck className="w-5 h-5 text-red-600" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-900 leading-tight">Pilih ketua</span>
-                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">Koordinator lapangan</span>
-                </div>
+                    <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed">
+                      {selectedStep === 4
+                        ? 'Fokus regu Anda saat ini adalah memfinalisasi slide presentasi interaktif dan tata letak banner promosi SMP mitra. 4 dari 6 tugas sprint telah selesai diverifikasi oleh pembimbing.'
+                        : 'Pantau target pelaksanaan, pembagian tugas anggota regu, serta koordinasi berkas dengan guru pembimbing lapangan untuk memastikan kelancaran kegiatan.'}
+                    </p>
 
-                <div className="flex flex-col items-center text-center transform -translate-y-6 group opacity-85 hover:opacity-100 transition-opacity">
-                  <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:border-slate-400 flex flex-col items-center justify-center mb-2 shadow-xs transition-transform group-hover:scale-105">
-                    <span className="text-[10px] font-medium text-slate-400 leading-none mb-1">03</span>
-                    <BookOpen className="w-5 h-5 text-slate-700" />
+                    {/* Mini checklist badges */}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50/70 border border-emerald-200/50 px-2.5 py-1 rounded-lg">
+                        <span className="material-symbols-outlined text-[14px]">check</span> Layout Canva Disetujui
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50/70 border border-emerald-200/50 px-2.5 py-1 rounded-lg">
+                        <span className="material-symbols-outlined text-[14px]">check</span> Aset Logo Terverifikasi
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50/70 border border-amber-200/50 px-2.5 py-1 rounded-lg">
+                        <span className="material-symbols-outlined text-[14px]">pending</span> Review X-Banner Cetak
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-xs font-bold text-slate-800 leading-tight">Susun materi</span>
-                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">Modul & silabus ajar</span>
-                </div>
 
-                <div className="flex flex-col items-center text-center transform translate-y-5 group opacity-85 hover:opacity-100 transition-opacity">
-                  <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:border-slate-400 flex flex-col items-center justify-center mb-2 shadow-xs transition-transform group-hover:scale-105">
-                    <span className="text-[10px] font-medium text-slate-400 leading-none mb-1">04</span>
-                    <Palette className="w-5 h-5 text-slate-700" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800 leading-tight">Siapkan desain</span>
-                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">Media visual & slide</span>
-                </div>
+                  {/* Progress Circle & Action Button */}
+                  <div className="shrink-0 flex sm:flex-row lg:flex-col items-center lg:items-end justify-between gap-5 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-14 h-14 flex items-center justify-center">
+                        <svg className="w-14 h-14 -rotate-90" viewBox="0 0 48 48">
+                          <circle cx="24" cy="24" r="20" stroke="#F1F5F9" strokeWidth="4" fill="none" />
+                          <circle
+                            cx="24"
+                            cy="24"
+                            r="20"
+                            stroke="#D7141F"
+                            strokeWidth="4"
+                            strokeDasharray="125.6"
+                            strokeDashoffset={125.6 - (125.6 * userProgress) / 100}
+                            strokeLinecap="round"
+                            fill="none"
+                          />
+                        </svg>
+                        <span className="absolute text-xs font-black text-[#0B1B3A]">{userProgress}%</span>
+                      </div>
+                      <div className="text-left">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Progres Sprint</span>
+                        <span className="text-xs font-bold text-slate-700">4 dari 6 Tugas Selesai</span>
+                      </div>
+                    </div>
 
-                <div className="flex flex-col items-center text-center transform -translate-y-4 group opacity-85 hover:opacity-100 transition-opacity">
-                  <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:border-slate-400 flex flex-col items-center justify-center mb-2 shadow-xs transition-transform group-hover:scale-105">
-                    <span className="text-[10px] font-medium text-slate-400 leading-none mb-1">05</span>
-                    <GraduationCap className="w-5 h-5 text-slate-700" />
+                    <button
+                      onClick={() => navigate('/dashboard/ketua')}
+                      className="inline-flex items-center justify-center gap-2 px-6 h-12 bg-[#D7141F] hover:bg-[#B80F1A] text-white font-bold text-xs uppercase tracking-wider rounded-full transition-all shadow-md hover:shadow-lg cursor-pointer group"
+                    >
+                      <span>Buka Lembar Kerja Tahap 0{selectedStep}</span>
+                      <span className="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">
+                        arrow_forward
+                      </span>
+                    </button>
                   </div>
-                  <span className="text-xs font-bold text-slate-800 leading-tight">Mengajar di SMP</span>
-                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">Sesi kelas interaktif</span>
-                </div>
-
-                <div className="flex flex-col items-center text-center transform translate-y-4 group opacity-85 hover:opacity-100 transition-opacity relative">
-                  <div className="absolute -top-3.5 right-6 sm:right-8 bg-red-600 text-white font-black text-[9px] uppercase px-2 py-0.5 rounded-sm transform -rotate-6 origin-center shadow-xs">
-                    FINISH
-                  </div>
-                  <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:border-slate-400 flex flex-col items-center justify-center mb-2 shadow-xs transition-transform group-hover:scale-105">
-                    <span className="text-[10px] font-medium text-slate-400 leading-none mb-1">06</span>
-                    <CheckCircle2 className="w-5 h-5 text-slate-700" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800 leading-tight">Laporan & feedback</span>
-                  <span className="text-[11px] text-slate-500 mt-0.5 leading-tight">Refleksi & publikasi</span>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ================= 3. GROUP FINDER WITH PINNED OWN GROUP ================= */}
-        <section className="space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* ══════════════════════════════════════════════════════════════════════════
+            4. REKAM JEJAK PELAKSANAAN 2025 (UNIFORM SYMMETRIC PHOTO GRID)
+        ══════════════════════════════════════════════════════════════════════════ */}
+        <section className="w-full bg-[#f8f9fa] py-16 md:py-20 border-b border-slate-200/80" id="jejak">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
+            {/* Section Header */}
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-slate-200">
               <div>
-                <h2 className="text-lg font-bold text-slate-900">Pembagian Kelompok</h2>
-                <p className="text-xs text-slate-500">
-                  Kelompok Anda disematkan di posisi teratas. Klik untuk membuka dashboard tim Anda.
+                <span className="text-xs font-bold uppercase tracking-widest text-[#e20113]">
+                  02 / REKAM JEJAK
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
+                  Rekam Pelaksanaan & Galeri 2025
+                </h2>
+              </div>
+              <span className="text-xs font-bold bg-white border border-slate-200 text-slate-700 px-3.5 py-1.5 rounded-xl shadow-2xs">
+                100% Selesai & Terverifikasi
+              </span>
+            </div>
+
+            {/* Uniform Symmetric Photo Grid (grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6) */}
+            <div className="pt-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {shownStories.map((story) => (
+                  <div
+                    key={story.id}
+                    onClick={() => setSelectedStory(story)}
+                    className="bg-white rounded-2xl overflow-hidden cursor-pointer group border border-slate-200/90 hover:border-slate-300 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between"
+                  >
+                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
+                      <img
+                        src={story.image}
+                        alt={story.title}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = FALLBACK_IMAGE;
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                        <span className="bg-[#e20113] text-white text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-md shadow-xs">
+                          {story.category}
+                        </span>
+                      </div>
+                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="bg-white/95 text-slate-800 text-[11px] font-extrabold px-2.5 py-0.5 rounded-md flex items-center gap-1 shadow-xs">
+                          <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                          Baca
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 flex flex-col justify-between flex-1">
+                      <div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium mb-1.5">
+                          <span>{story.school}</span>
+                          <span>{story.date}</span>
+                        </div>
+                        <h3 className="text-sm font-extrabold text-slate-900 group-hover:text-[#e20113] transition-colors leading-snug line-clamp-2">
+                          {story.title}
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
+                          {story.caption}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <span className="text-[11px] font-semibold text-slate-400">Dokumentasi 2025</span>
+                        <span className="font-bold text-[#e20113] group-hover:underline">Baca Selengkapnya →</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Expand / Collapse Button for Stories */}
+            {documentaryStories.length > 4 && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={() => setIsDocExpanded(!isDocExpanded)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-[#e20113] hover:text-[#e20113] text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-2xs cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[17px]">
+                    {isDocExpanded ? 'expand_less' : 'photo_library'}
+                  </span>
+                  <span>{isDocExpanded ? 'Ringkas Galeri' : `+${documentaryStories.length - 4} Foto Arsip Lainnya`}</span>
+                </button>
+              </div>
+            )}
+
+            {/* ══════════════ SUBSECTION: PROJEK YANG DIBUAT (4 CARDS) ══════════════ */}
+            <div className="mt-14 pt-10 border-t border-slate-200">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#e20113]">
+                    ARTEFAK PEMBELAJARAN
+                  </span>
+                  <h3 className="text-xl font-extrabold text-slate-900 mt-0.5">Karya Nyata Siswa SMP</h3>
+                </div>
+                <span className="text-xs font-semibold text-slate-400">
+                  {shownProjects.length}/{showcaseProjects.length} Artefak
+                </span>
+              </div>
+
+              {/* 4 Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {shownProjects.map((proj) => (
+                  <div
+                    key={proj.id}
+                    onClick={() => setSelectedProject(proj)}
+                    className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden cursor-pointer group hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between"
+                  >
+                    <div className="aspect-[16/10] bg-slate-100 relative overflow-hidden">
+                      <img
+                        src={proj.image}
+                        alt={proj.title}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = FALLBACK_IMAGE;
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <span className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-xs text-slate-900 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shadow-2xs">
+                        {proj.tag}
+                      </span>
+                    </div>
+
+                    <div className="p-4 flex flex-col justify-between flex-1">
+                      <div>
+                        <h4 className="text-xs font-extrabold text-slate-900 group-hover:text-[#e20113] transition-colors line-clamp-1">
+                          {proj.title}
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-1 leading-snug line-clamp-2">{proj.desc}</p>
+                      </div>
+
+                      <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <span className="text-slate-400 font-medium truncate max-w-[130px]">{proj.school}</span>
+                        <span className="font-bold text-[#e20113] group-hover:underline">Lihat Rincian</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Expand / Collapse Button for Projects */}
+              {showcaseProjects.length > 4 && (
+                <div className="mt-8 flex justify-center">
+                  <button
+                    onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-[#e20113] hover:text-[#e20113] text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-2xs cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[17px]">
+                      {isProjectsExpanded ? 'expand_less' : 'grid_view'}
+                    </span>
+                    <span>{isProjectsExpanded ? 'Ringkas Projek' : `+${showcaseProjects.length - 4} Projek Lainnya`}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════════════════════
+            6. STANDAR KURIKULUM & BERKAS
+        ══════════════════════════════════════════════════════════════════════════ */}
+        <section className="w-full bg-white py-16 md:py-20 border-b border-slate-200/80" id="kurikulum">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+              {/* Left Column: Accreditation Points */}
+              <div>
+                <span className="text-xs font-bold uppercase tracking-widest text-[#e20113]">
+                  04 / STANDAR PEDOMAN
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1 mb-6">
+                  Pedoman & Standar Kurikulum
+                </h2>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { icon: 'verified_user', label: 'Disahkan MGMP', sub: 'Informatika Kab. Sidoarjo' },
+                    { icon: 'menu_book', label: 'Struktur 6 JP', sub: '30% Teori, 70% Praktik Lab' },
+                    { icon: 'fact_check', label: 'Rubrik Penilaian', sub: 'Kreativitas & Kemandirian' },
+                    { icon: 'emoji_events', label: 'Kurikulum Merdeka', sub: 'Capaian Fase D SMP' },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-start gap-3 hover:border-slate-300 transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
+                        <span className="material-symbols-outlined text-[20px] text-[#e20113]">{item.icon}</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">{item.label}</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{item.sub}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Column: Downloadable Files */}
+              <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-5 flex flex-col gap-3 shadow-2xs">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                  <span className="text-xs font-bold text-slate-900 uppercase">Paket Dokumen Resmi Guru & Tim</span>
+                  <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200 uppercase">
+                    Terverifikasi
+                  </span>
+                </div>
+
+                {[
+                  { icon: 'picture_as_pdf', color: 'text-rose-500', name: 'Buku Panduan Mentor Skomda v4.2', size: 'PDF • 4.8 MB' },
+                  { icon: 'description', color: 'text-blue-500', name: 'Format RPP & Berita Acara Tatap Muka', size: 'DOCX • 1.2 MB' },
+                  { icon: 'table_chart', color: 'text-emerald-500', name: 'Rubrik Penilaian Akhir Siswa SMP', size: 'XLSX • 850 KB' },
+                ].map((doc) => (
+                  <div
+                    key={doc.name}
+                    className="flex items-center justify-between p-3.5 bg-white border border-slate-200/80 rounded-xl hover:border-slate-300 transition-colors shadow-2xs"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`material-symbols-outlined text-[22px] ${doc.color}`}>{doc.icon}</span>
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">{doc.name}</p>
+                        <p className="text-[11px] text-slate-400 font-medium">{doc.size}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => showToast(`Mengunduh berkas ${doc.name}...`, 'info')}
+                      className="text-xs font-bold text-[#e20113] hover:underline px-3 py-1 bg-red-50 hover:bg-red-100 rounded-lg cursor-pointer"
+                    >
+                      Unduh
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════════════════════
+            7. CALL-TO-ACTION (Floating Red Banner with Parallax Feel)
+        ══════════════════════════════════════════════════════════════════════════ */}
+        <section className="py-16 px-5 sm:px-8 md:px-10 bg-white">
+          <div className="max-w-7xl mx-auto rounded-3xl bg-gradient-to-r from-[#E11D2E] via-[#D7141F] to-[#B80F1A] text-white p-8 sm:p-12 shadow-xl relative overflow-hidden">
+            <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+              <div className="max-w-2xl">
+                <span className="inline-block text-[11px] font-extrabold uppercase tracking-widest text-red-200 bg-black/15 px-3 py-1 rounded-full mb-3">
+                  Saluran Pendampingan Resmi
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
+                  Ketua Regu? Butuh bantuan perizinan atau kurikulum?
+                </h3>
+                <p className="text-xs sm:text-sm text-red-100 mt-2 font-normal leading-relaxed">
+                  Tim kurikulum dan kemitraan SMK Telkom Sidoarjo siap mendampingi proses koordinasi dengan pihak sekolah mitra secara cepat dan responsif.
                 </p>
               </div>
 
-              {/* Search Bar */}
-              <div className="relative w-full md:w-72">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Cari nama SMP atau kelompok..."
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-slate-800 placeholder-slate-400 transition"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => { setSearchQuery(''); setCurrentPage(1); }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 scrollbar-none text-xs">
-              {[
-                { id: 'all', label: `Semua (${enrichedGroups.length})` },
-                { id: 'sidoarjo-candi', label: 'Sidoarjo & Candi' },
-                { id: 'buduran-sedati', label: 'Buduran & Sedati' },
-                { id: 'waru-taman', label: 'Waru & Taman' },
-                { id: 'porong-krian', label: 'Porong & Krian' },
-                {
-                  id: 'no-leader',
-                  label: `Belum Ada Ketua (${enrichedGroups.filter((g) => g.isLeaderPending).length})`,
-                  special: true,
-                },
-              ].map((tab) => {
-                const isActive = activeCategory === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => handleCategoryChange(tab.id)}
-                    className={`px-3.5 py-1.5 rounded-full font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer ${isActive
-                      ? 'bg-red-600 text-white shadow-xs'
-                      : tab.special
-                        ? 'bg-amber-50 text-amber-800 border border-amber-200/80 hover:bg-amber-100'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                      }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Group Cards Grid: 6 cards per view */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {paginatedGroups.map((group) => {
-              const isMyGroup = group.isMyGroup;
-              const isPending = group.isLeaderPending;
-
-              if (isMyGroup) {
-                // PINNED LEADER'S OWN GROUP CARD
-                return (
-                  <div
-                    key={group.id}
-                    onClick={() => navigate('/dashboard/ketua')}
-                    className="bg-white rounded-2xl border-2 border-red-600 p-5 shadow-md shadow-red-600/10 hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden"
-                  >
-                    {/* Corner Ribbon */}
-                    <div className="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-black uppercase px-3 py-1 rounded-bl-xl tracking-wider">
-                      Kelompok Anda
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-extrabold text-[11px] tracking-wide">
-                          KELOMPOK {group.number}
-                        </span>
-                        <span className="text-[11px] font-medium text-slate-500 bg-red-50 px-2 py-0.5 rounded-md">
-                          {group.district}
-                        </span>
-                      </div>
-
-                      <h3 className="text-lg font-black text-slate-900">
-                        {group.schoolName}
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Pembimbing: <strong className="text-slate-700">{group.mentorName.split(',')[0]}</strong>
-                      </p>
-                    </div>
-
-                    {/* Live Progress Bar for Own Group */}
-                    <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-red-600">Tahap 4/6 • Siapkan Desain</span>
-                        <span className="font-bold text-slate-700">67% Selesai</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                        <div className="bg-red-600 h-full rounded-full w-2/3" />
-                      </div>
-                    </div>
-
-                    {/* Prominent Action Button */}
-                    <div className="pt-2 border-t border-slate-100">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate('/dashboard/ketua');
-                        }}
-                        className="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold text-xs py-2.5 rounded-full transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <span>Buka Dashboard Kelompok</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              }
-
-              // Standard card for other groups (Read-only member preview modal)
-              return (
-                <div
-                  key={group.id}
-                  onClick={() => setSelectedGroupModal(group)}
-                  className="group bg-white rounded-2xl border border-slate-200/80 p-5 hover:border-red-300 hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4"
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 font-extrabold text-[11px] tracking-wide border border-red-100">
-                        KELOMPOK {group.number}
-                      </span>
-                      <span className="text-[11px] font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">
-                        {group.district}
-                      </span>
-                    </div>
-
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-red-600 transition-colors">
-                      {group.schoolName}
-                    </h3>
-                  </div>
-
-                  <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs">
-                    <div className="flex items-center justify-between text-slate-500">
-                      <span>Pembimbing:</span>
-                      <span className="font-semibold text-slate-700 truncate max-w-[170px]">
-                        {group.mentorName.split(',')[0]}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Status Ketua:</span>
-                      {isPending ? (
-                        <span className="inline-flex items-center gap-1 text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded-full text-[11px]">
-                          <UserX className="w-3 h-3 text-amber-600" />
-                          Belum Ditentukan
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full text-[11px]">
-                          <UserCheck className="w-3 h-3 text-emerald-600" />
-                          Sudah Terpilih
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span className="text-slate-400 text-[11px]">
-                      {group.memberCount} Siswa terdaftar
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-red-600 font-semibold group-hover:translate-x-0.5 transition-transform">
-                      <span>Lihat {group.memberCount} Anggota</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Pagination Bar */}
-          {totalPages > 1 && (
-            <div className="bg-white rounded-2xl border border-slate-200/80 px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-xs">
-              <span className="text-slate-500 font-medium">
-                Menampilkan{' '}
-                <strong className="text-slate-800">
-                  {(currentPage - 1) * itemsPerPage + 1}–
-                  {Math.min(currentPage * itemsPerPage, totalItems)}
-                </strong>{' '}
-                dari <strong className="text-slate-800">{totalItems}</strong> kelompok
-              </span>
-
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
                 <button
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 cursor-pointer transition"
+                  onClick={() => navigate('/dashboard/ketua')}
+                  className="inline-flex items-center gap-2 px-6 h-12 bg-white hover:bg-slate-50 text-[#0B1B3A] font-bold text-xs uppercase tracking-wider rounded-full transition-all shadow-md cursor-pointer"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <span className="material-symbols-outlined text-[18px] text-[#D7141F]">dashboard</span>
+                  <span>Buka Dashboard Kelompok</span>
                 </button>
-
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 rounded-full font-bold transition cursor-pointer text-xs ${currentPage === page
-                      ? 'bg-red-600 text-white shadow-xs'
-                      : 'border border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-
                 <button
-                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 cursor-pointer transition"
+                  onClick={() => showToast('Menghubungkan ke helpdesk kurikulum...', 'info')}
+                  className="inline-flex items-center gap-2 px-6 h-12 bg-black/20 hover:bg-black/30 text-white font-bold text-xs uppercase tracking-wider rounded-full border border-white/25 transition-all cursor-pointer"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <span className="material-symbols-outlined text-[18px]">support_agent</span>
+                  <span>Hubungi Koordinator</span>
                 </button>
               </div>
             </div>
-          )}
+          </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="mt-auto border-t border-slate-200/90 bg-white py-6 text-center text-xs text-slate-500">
-        © 2026 Skomda Mengajar • SMK Telkom Sidoarjo. Dashboard Ketua Kelompok.
+      {/* ══════════════════════════════════════════════════════════════════════════
+          8. FOOTER (EDITORIAL LIGHT THEME)
+      ══════════════════════════════════════════════════════════════════════════ */}
+      <footer className="bg-white text-slate-600 border-t border-[#E8ECF2] pt-14 pb-10">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-12 border-b border-[#E8ECF2]">
+            {/* Col 1: Identity */}
+            <div className="md:col-span-5 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#D7141F] text-white flex items-center justify-center font-black text-xs shadow-xs">
+                  SM
+                </div>
+                <div>
+                  <span className="text-sm font-black text-[#0B1B3A] tracking-tight block">SKOMDA MENGAJAR 2026</span>
+                  <span className="text-[11px] text-slate-400 font-medium">SMK Telkom Sidoarjo</span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
+                Inisiatif vokasi dan pengabdian masyarakat untuk mendampingi literasi digital, komputasi kreatif, dan teknologi tepat guna di 12 SMP Kabupaten Sidoarjo.
+              </p>
+            </div>
+
+            {/* Col 2: Navigasi */}
+            <div className="md:col-span-2 space-y-2.5 text-xs">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#0B1B3A] block">Akses Cepat</span>
+              <ul className="space-y-2 text-slate-500">
+                <li><a href="#alur" className="hover:text-[#D7141F] transition-colors">Alur Pelaksanaan</a></li>
+                <li><a href="#jejak" className="hover:text-[#D7141F] transition-colors">Rekam Jejak 2025</a></li>
+                <li><a href="#kurikulum" className="hover:text-[#D7141F] transition-colors">Standar Kurikulum</a></li>
+                <li><button onClick={() => navigate('/dashboard/ketua')} className="hover:text-[#D7141F] transition-colors cursor-pointer">Dashboard Kelompok</button></li>
+              </ul>
+            </div>
+
+            {/* Col 3: Berkas */}
+            <div className="md:col-span-2 space-y-2.5 text-xs">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#0B1B3A] block">Dokumen</span>
+              <ul className="space-y-2 text-slate-500">
+                <li><a href="#kurikulum" className="hover:text-[#D7141F] transition-colors">Buku Panduan 2026</a></li>
+                <li><a href="#kurikulum" className="hover:text-[#D7141F] transition-colors">Format RPP Fase D</a></li>
+                <li><a href="#kurikulum" className="hover:text-[#D7141F] transition-colors">Rubrik Penilaian</a></li>
+              </ul>
+            </div>
+
+            {/* Col 4: Kontak & Lokasi */}
+            <div className="md:col-span-3 space-y-2.5 text-xs">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#0B1B3A] block">Sekretariat</span>
+              <p className="text-slate-500 text-xs leading-relaxed">
+                Jl. Raya Pecantingan, Sekardangan, Sidoarjo, Jawa Timur 61215
+              </p>
+              <p className="text-slate-500 text-xs">
+                Email: <a href="mailto:skomda@telkomsda.sch.id" className="text-[#D7141F] font-semibold hover:underline">skomda@telkomsda.sch.id</a>
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+            <p>© 2026 SMK Telkom Sidoarjo. Hak Cipta Dilindungi Undang-Undang.</p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="inline-flex items-center gap-1.5 text-slate-600 hover:text-[#D7141F] font-semibold transition-colors cursor-pointer"
+              >
+                <span>Kembali ke Atas</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_upward</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </footer>
 
-      {/* Member preview modal for other groups */}
-      {selectedGroupModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
-            <div className="p-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
-              <div>
-                <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-extrabold text-[10px] uppercase">
-                  KELOMPOK {selectedGroupModal.number}
+      {/* ══════════════════════════════════════════════════════════════════════════
+          9. MODALS (Project Showcase, Story Detail & Roster Modal)
+      ══════════════════════════════════════════════════════════════════════════ */}
+      {selectedProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <span className="text-xs font-bold text-slate-900">{selectedProject.title}</span>
+              <button
+                onClick={() => setSelectedProject(null)}
+                className="p-1 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-800 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div className="aspect-[16/10] rounded-xl overflow-hidden bg-slate-100">
+                <img
+                  src={selectedProject.image}
+                  alt={selectedProject.title}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = FALLBACK_IMAGE;
+                  }}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="bg-[#e20113] text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                  {selectedProject.tag}
                 </span>
-                <h3 className="text-xl font-bold text-slate-900 mt-1">
-                  {selectedGroupModal.schoolName}
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Pembimbing: {selectedGroupModal.mentorName}
-                </p>
+                <span className="text-xs text-slate-500 font-semibold">{selectedProject.school}</span>
               </div>
-              <button
-                onClick={() => setSelectedGroupModal(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-5 max-h-[60vh] overflow-y-auto space-y-2">
-              <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden text-xs">
-                {generateMockMembers(
-                  selectedGroupModal.number,
-                  selectedGroupModal.leaderName,
-                  !selectedGroupModal.leaderName.includes('Belum')
-                ).map((m, idx) => (
-                  <div key={m.id} className="p-3 flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-slate-800">{idx + 1}. {m.name}</span>
-                      <div className="text-[11px] text-slate-400">NIS: {m.nis}</div>
-                    </div>
-                    <span className="text-[11px] text-slate-500 font-medium">{m.role}</span>
-                  </div>
-                ))}
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {selectedProject.fullDesc ?? selectedProject.desc}
+              </p>
+              {selectedProject.tools && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {selectedProject.tools.map((t) => (
+                    <span key={t} className="bg-slate-100 text-slate-700 text-[11px] font-semibold px-2.5 py-1 rounded-md">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100 text-xs">
+                <div>
+                  <span className="text-slate-400 text-[11px] block">Durasi:</span>
+                  <span className="font-bold text-slate-800">{selectedProject.duration ?? '2 Pertemuan (6 JP)'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-[11px] block">Siswa Terdampak:</span>
+                  <span className="font-bold text-slate-800">{selectedProject.studentsTrained ?? 40} Siswa SMP</span>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
 
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+      {selectedStory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <span className="text-xs font-bold text-slate-900">{selectedStory.category}</span>
               <button
-                onClick={() => setSelectedGroupModal(null)}
-                className="px-4 py-2 bg-slate-800 text-white rounded-full text-xs font-semibold cursor-pointer"
+                onClick={() => setSelectedStory(null)}
+                className="p-1 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-800 cursor-pointer"
               >
-                Tutup
+                <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
+            </div>
+            <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div className="aspect-[16/10] rounded-xl overflow-hidden bg-slate-100">
+                <img
+                  src={selectedStory.image}
+                  alt={selectedStory.title}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = FALLBACK_IMAGE;
+                  }}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex gap-2 text-xs text-slate-500 font-semibold">
+                <span>{selectedStory.school}</span>
+                <span>•</span>
+                <span>{selectedStory.date}</span>
+              </div>
+              <h3 className="text-base font-extrabold text-slate-900">{selectedStory.title}</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">{selectedStory.caption}</p>
+              {selectedStory.quote && (
+                <div className="p-3.5 bg-slate-50 border-l-2 border-[#e20113] rounded-r-xl">
+                  <p className="text-xs text-slate-700 italic">"{selectedStory.quote.text}"</p>
+                  <p className="text-xs font-bold text-slate-900 mt-2">— {selectedStory.quote.author}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

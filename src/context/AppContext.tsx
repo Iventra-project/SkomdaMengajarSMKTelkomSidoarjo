@@ -1,20 +1,33 @@
 "use client"; 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { Group, groupsData, initialMembersKelompok03, initialSprintTasks, Member, SprintTask } from '../data/mockData';
+import {
+  Group,
+  groupsData,
+  initialMembersKelompok03,
+  initialSprintTasks,
+  Member,
+  SprintTask,
+  TeamRosterMember,
+  generateMockMembers,
+} from '../data/mockData';
 
 export type RoutePath =
   | '/'
+  | '/home'
   | '/login'
   | '/admin'
   | '/admin/kelompok/03'
   | '/workspace'
+  | '/dashboard/ketua'
   | '/dashboard/admin'
   | '/dashboard/admin/review';
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'user' | 'leader';
 
 export function formatGroupNumber(groupNumber?: string): string {
-  const cleaned = (groupNumber || '01').trim().replace(/^0+/, '');
+  const raw = (groupNumber || '01').trim().toUpperCase().replace('KEL-', '').replace('KELOMPOK ', '');
+  if (raw === '00' || raw === '0') return '00';
+  const cleaned = raw.replace(/^0+/, '');
   const num = Number.parseInt(cleaned || '1', 10);
   if (Number.isNaN(num) || num < 1) return '01';
   return String(num).padStart(2, '0');
@@ -38,6 +51,21 @@ export interface RegisterPayload {
   schoolName?: string;
 }
 
+export interface GroupReviewItem {
+  id: string;
+  groupId: string;
+  groupNumber: string;
+  schoolName: string;
+  itemName: string;
+  stageName: string;
+  status: 'review' | 'overdue' | 'revisi' | 'approved';
+  statusLabel: string;
+  statusHint: string;
+  fileUrl?: string;
+  feedback?: string;
+  updatedAt: string;
+}
+
 interface AppContextType {
   currentPath: RoutePath;
   navigate: (path: RoutePath) => void;
@@ -45,9 +73,12 @@ interface AppContextType {
   setCurrentUser: (user: User | null) => void;
   authToken: string | null;
   isAuthReady: boolean;
-  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string; user?: User }>;
+  login: (identity: string, password: string, groupNumber?: string) => Promise<{ ok: boolean; error?: string; user?: User }>;
   register: (payload: RegisterPayload) => Promise<{ ok: boolean; error?: string; user?: User }>;
   logout: () => Promise<void>;
+  groups: Group[];
+  updateGroupLeader: (groupNumber: string, leaderName: string) => void;
+  updateGroupStatus: (groupNumber: string, status: Group['status'], statusLabel?: string) => void;
   activeGroup: Group;
   openGroupWorkspace: (targetGroupNumber: string) => void;
   members: Member[];
@@ -57,7 +88,9 @@ interface AppContextType {
   addTask: (title: string, priority?: 'high' | 'medium' | 'low', assignee?: string) => void;
   bannerStatus: 'pending' | 'approved' | 'revision';
   bannerFeedback: string;
-  submitBannerDecision: (decision: 'approved' | 'revision', notes: string) => void;
+  submitGroupFile: (groupNumber: string, fileUrl: string, notes?: string) => void;
+  submitBannerDecision: (decision: 'approved' | 'revision', notes: string, groupNumber?: string) => void;
+  adminReviewQueue: GroupReviewItem[];
   supervisorMemo: string;
   showMemoToLeader: boolean;
   saveSupervisorMemo: (memo: string, shareWithLeader: boolean) => void;
@@ -65,31 +98,73 @@ interface AppContextType {
   showToast: (message: string, type?: 'success' | 'info' | 'warning') => void;
   isBannerModalOpen: boolean;
   setIsBannerModalOpen: (open: boolean) => void;
+  claimGroupLeader: (groupNumber: string, nis: string, newPassword?: string) => Promise<{ ok: boolean; error?: string; user?: User }>;
+  resetGroupLeader: (groupNumber: string) => void;
+  getGroupRoster: (groupNumber: string) => TeamRosterMember[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const AUTH_TOKEN_KEY = 'syc_auth_token';
+  const USER_SESSION_KEY = 'skomda_user_session';
+
   // Read hash or initial path if present
   const getInitialPath = (): RoutePath => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
+      if (hash === '/home') return '/home';
       if (hash === '/login') return '/login';
-      if (hash === '/admin') return '/admin';
-      if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03') return '/admin/kelompok/03';
-      if (hash === '/workspace' || hash === '/kelompok-03') return '/workspace';
+      if (hash === '/admin' || hash === '/dashboard/admin') return '/admin';
+      if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03' || hash === '/dashboard/admin/review') return '/admin/kelompok/03';
+      if (hash === '/workspace' || hash === '/kelompok-03' || hash === '/dashboard/ketua') return '/workspace';
     }
     return '/';
   };
 
-  const AUTH_TOKEN_KEY = 'syc_auth_token';
-
   const [currentPath, setCurrentPath] = useState<RoutePath>(getInitialPath);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = window.localStorage.getItem(USER_SESSION_KEY);
+      if (saved) {
+        try {
+          return JSON.parse(saved) as User;
+        } catch {
+          // ignore corrupted JSON
+        }
+      }
+    }
+    return null;
+  });
   const [authToken, setAuthToken] = useState<string | null>(() =>
     typeof window !== 'undefined' ? window.localStorage.getItem(AUTH_TOKEN_KEY) : null
   );
   const [isAuthReady, setIsAuthReady] = useState<boolean>(false);
+
+  // Sync currentUser with localStorage for persistent session
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (currentUser) {
+        window.localStorage.setItem(USER_SESSION_KEY, JSON.stringify(currentUser));
+      } else {
+        window.localStorage.removeItem(USER_SESSION_KEY);
+      }
+    }
+  }, [currentUser]);
+
+  // Check saved session on mount and auto-redirect if visiting / or /login
+  useEffect(() => {
+    if (currentUser) {
+      const hash = typeof window !== 'undefined' ? window.location.hash.replace('#', '') : '';
+      if (hash === '/login' || hash === '/' || hash === '') {
+        if (currentUser.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/home');
+        }
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -109,7 +184,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         } else {
           window.localStorage.removeItem(AUTH_TOKEN_KEY);
           setAuthToken(null);
-          setCurrentUser(null);
         }
       } catch {
         // Keep offline fallback if API server is not running
@@ -120,16 +194,96 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     void restoreSession();
   }, []);
 
+  const [groups, setGroups] = useState<Group[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedClaims = window.localStorage.getItem('skomda_claimed_leaders');
+        if (savedClaims) {
+          const claims = JSON.parse(savedClaims) as Record<
+            string,
+            { leaderName: string; leaderNis: string; leaderEmail: string }
+          >;
+          return groupsData.map((g) => {
+            if (claims[g.number]) {
+              return {
+                ...g,
+                hasLeader: true,
+                isLeaderLocked: true,
+                leaderName: claims[g.number].leaderName,
+                leaderNis: claims[g.number].leaderNis,
+                leaderEmail: claims[g.number].leaderEmail,
+              };
+            }
+            return g;
+          });
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return groupsData;
+  });
   const userGroupNumber = formatGroupNumber(currentUser?.groupNumber);
   const activeGroup: Group =
-    groupsData.find((g) => g.number === userGroupNumber) ||
-    groupsData.find((g) => g.number === '01') ||
-    groupsData[0];
+    groups.find((g) => g.number === userGroupNumber) ||
+    groups.find((g) => g.number === '03') ||
+    groups[0];
 
   const [members, setMembers] = useState<Member[]>(initialMembersKelompok03);
   const [sprintTasks, setSprintTasks] = useState<SprintTask[]>(initialSprintTasks);
   const [bannerStatus, setBannerStatus] = useState<'pending' | 'approved' | 'revision'>('pending');
   const [bannerFeedback, setBannerFeedback] = useState<string>('');
+  const [adminReviewQueue, setAdminReviewQueue] = useState<GroupReviewItem[]>([
+    {
+      id: 'rev-03',
+      groupId: '03',
+      groupNumber: 'Kelompok 03',
+      schoolName: 'SMPN 1 Buduran',
+      itemName: 'X-Banner 60×160 cm v2',
+      stageName: 'Tahap 4: Siapkan Desain',
+      status: 'review',
+      statusLabel: 'Menunggu Review',
+      statusHint: 'Berkas baru diunggah dan menunggu persetujuan Kurikulum',
+      updatedAt: '12 menit lalu',
+      fileUrl: 'https://drive.google.com/file/d/skomda-banner-03',
+    },
+    {
+      id: 'rev-02',
+      groupId: '02',
+      groupNumber: 'Kelompok 02',
+      schoolName: 'SMPN 1 Waru',
+      itemName: 'Silabus & Modul Scratch',
+      stageName: 'Tahap 3: Susun Materi',
+      status: 'review',
+      statusLabel: 'Menunggu Review',
+      statusHint: 'Berkas baru diunggah dan menunggu persetujuan Kurikulum',
+      updatedAt: '35 menit lalu',
+    },
+    {
+      id: 'rev-06',
+      groupId: '06',
+      groupNumber: 'Kelompok 06',
+      schoolName: 'SMPN 1 Tulangan',
+      itemName: 'Slide Canva & Modul AI',
+      stageName: 'Tahap 3: Susun Materi',
+      status: 'review',
+      statusLabel: 'Menunggu Review',
+      statusHint: 'Berkas baru diunggah dan menunggu persetujuan Kurikulum',
+      updatedAt: '1 jam lalu',
+    },
+    {
+      id: 'rev-07',
+      groupId: '07',
+      groupNumber: 'Kelompok 07',
+      schoolName: 'SMPN 1 Gedangan',
+      itemName: 'X-Banner Cetak v1',
+      stageName: 'Tahap 4: Siapkan Desain',
+      status: 'review',
+      statusLabel: 'Menunggu Review',
+      statusHint: 'Berkas baru diunggah dan menunggu persetujuan Kurikulum',
+      updatedAt: '2 jam lalu',
+    },
+  ]);
   const [supervisorMemo, setSupervisorMemo] = useState<string>(
     'Harap perhatikan penataan sound system aula SMPN 1 Buduran dan pastikan roll banner diletakkan di samping pintu masuk lab komputer.'
   );
@@ -180,7 +334,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Load group-scoped members & tasks whenever the logged-in user's group changes
   useEffect(() => {
-    if (!currentUser || currentUser.role !== 'user') return;
+    if (!currentUser || (currentUser.role !== 'user' && currentUser.role !== 'leader')) return;
     const grpNum = formatGroupNumber(currentUser.groupNumber);
     const grp = groupsData.find((g) => g.number === grpNum);
 
@@ -278,7 +432,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           navigate('/login');
           return;
         }
-        if (currentUser.role === 'user' && requestedGroup !== userGroupNumber) {
+        if ((currentUser.role === 'user' || currentUser.role === 'leader') && requestedGroup !== userGroupNumber) {
           showToast(
             `Akses ditolak! Anda terdaftar di Kelompok ${userGroupNumber}, tidak dapat mengakses Workspace Kelompok ${requestedGroup}.`,
             'warning'
@@ -290,10 +444,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return;
       }
 
-      if (hash === '/login') setCurrentPath('/login');
-      else if (hash === '/admin') setCurrentPath('/admin');
-      else if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03') setCurrentPath('/admin/kelompok/03');
-      else if (hash === '/workspace') setCurrentPath('/workspace');
+      if (hash === '/home') setCurrentPath('/home');
+      else if (hash === '/login') setCurrentPath('/login');
+      else if (hash === '/admin' || hash === '/dashboard/admin') setCurrentPath('/admin');
+      else if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03' || hash === '/dashboard/admin/review') setCurrentPath('/admin/kelompok/03');
+      else if (hash === '/workspace' || hash === '/dashboard/ketua') setCurrentPath('/workspace');
       else if (hash === '/' || hash === '') setCurrentPath('/');
     };
 
@@ -365,13 +520,266 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     showToast('Tugas baru berhasil ditambahkan ke papan kerja!', 'success');
   };
 
-  const submitBannerDecision = (decision: 'approved' | 'revision', notes: string) => {
+  const updateGroupLeader = (groupNumber: string, leaderName: string, leaderNis?: string) => {
+    const formatted = formatGroupNumber(groupNumber);
+    const nis = leaderNis || (54124100 + (parseInt(formatted, 10) || 1) * 10).toString();
+    const leaderEmail = `${leaderName.toLowerCase().replace(/[^a-z]/g, '.')}@smktelkom-sda.sch.id`;
+
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.number === formatted
+          ? {
+              ...g,
+              hasLeader: true,
+              leaderName,
+              leaderNis: nis,
+              leaderEmail,
+              status: 'ontrack',
+              statusLabel: 'Sesuai Jadwal',
+            }
+          : g
+      )
+    );
+
+    if (typeof window !== 'undefined') {
+      try {
+        const existing = JSON.parse(window.localStorage.getItem('skomda_claimed_leaders') || '{}');
+        existing[formatted] = {
+          leaderName,
+          leaderNis: nis,
+          leaderEmail,
+          password: 'Skomda2026!',
+        };
+        window.localStorage.setItem('skomda_claimed_leaders', JSON.stringify(existing));
+      } catch {
+        // ignore
+      }
+    }
+
+    showToast(`Ketua Kelompok ${formatted} berhasil ditetapkan: ${leaderName}`, 'success');
+  };
+
+  const resetGroupLeader = (groupNumber: string) => {
+    const formatted = formatGroupNumber(groupNumber);
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.number === formatted
+          ? {
+              ...g,
+              hasLeader: false,
+              leaderName: 'Belum Ditentukan',
+              leaderNis: undefined,
+              leaderEmail: undefined,
+            }
+          : g
+      )
+    );
+
+    if (typeof window !== 'undefined') {
+      try {
+        const existing = JSON.parse(window.localStorage.getItem('skomda_claimed_leaders') || '{}');
+        delete existing[formatted];
+        window.localStorage.setItem('skomda_claimed_leaders', JSON.stringify(existing));
+      } catch {
+        // ignore
+      }
+    }
+
+    // If currently logged in as this leader, clear session
+    if (currentUser && currentUser.groupNumber === formatted && currentUser.role === 'leader') {
+      setCurrentUser(null);
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(USER_SESSION_KEY);
+      }
+      navigate('/login');
+    }
+
+    showToast(`Akses Ketua Kelompok ${formatted} berhasil direset. Kelompok kini dapat diaktivasi kembali.`, 'info');
+  };
+
+  const getGroupRoster = (groupNumber: string): TeamRosterMember[] => {
+    const formatted = formatGroupNumber(groupNumber);
+    const grp = groups.find((g) => g.number === formatted);
+    return generateMockMembers(
+      formatted,
+      grp?.leaderName || 'Belum Ditentukan',
+      grp?.hasLeader ?? false
+    );
+  };
+
+  const claimGroupLeader = async (groupNumber: string, nis: string, newPassword?: string) => {
+    const formatted = formatGroupNumber(groupNumber);
+    const targetGroup = groups.find((g) => g.number === formatted);
+    if (!targetGroup) {
+      return { ok: false, error: `Kelompok ${formatted} tidak ditemukan.` };
+    }
+    if (targetGroup.hasLeader || targetGroup.isLeaderLocked) {
+      return {
+        ok: false,
+        error: `Akses ditolak: Kelompok ini sudah memiliki Ketua terdaftar (${targetGroup.leaderName}). Hanya akun ketua pertama yang dapat masuk.`,
+      };
+    }
+
+    // Look up official roster for this group
+    const roster = generateMockMembers(formatted, targetGroup.leaderName, false);
+    const student = roster.find((m) => m.nis.trim() === nis.trim());
+    if (!student) {
+      return {
+        ok: false,
+        error: `Akses ditolak. NIS ${nis} tidak terdaftar sebagai anggota resmi Kelompok ${formatted}.`,
+      };
+    }
+
+    const leaderEmail = `${student.name.toLowerCase().replace(/[^a-z]/g, '.')}@smktelkom-sda.sch.id`;
+
+    // Update group in state
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.number === formatted
+          ? {
+              ...g,
+              hasLeader: true,
+              isLeaderLocked: true,
+              leaderName: student.name,
+              leaderNis: student.nis,
+              leaderEmail,
+              status: 'ontrack',
+              statusLabel: 'Sesuai Jadwal',
+            }
+          : g
+      )
+    );
+
+    // Persist to localStorage claimed leaders
+    if (typeof window !== 'undefined') {
+      try {
+        const existing = JSON.parse(window.localStorage.getItem('skomda_claimed_leaders') || '{}');
+        existing[formatted] = {
+          leaderName: student.name,
+          leaderNis: student.nis,
+          leaderEmail,
+          password: newPassword || 'Skomda2026!',
+          isLeaderLocked: true,
+        };
+        window.localStorage.setItem('skomda_claimed_leaders', JSON.stringify(existing));
+      } catch {
+        // ignore
+      }
+    }
+
+    const leaderUser: User = {
+      name: student.name,
+      role: 'leader',
+      email: leaderEmail,
+      groupNumber: formatted,
+      schoolName: targetGroup.schoolName,
+    };
+
+    setCurrentUser(leaderUser);
+    showToast(`Aktivasi berhasil! Selamat datang, ${student.name} (Ketua Kel. ${formatted})!`, 'success');
+    navigate('/home');
+    return { ok: true, user: leaderUser };
+  };
+
+  const updateGroupStatus = (groupNumber: string, status: Group['status'], statusLabel?: string) => {
+    const formatted = formatGroupNumber(groupNumber);
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.number === formatted
+          ? {
+              ...g,
+              status,
+              statusLabel:
+                statusLabel ||
+                (status === 'ontrack'
+                  ? 'Sesuai Jadwal'
+                  : status === 'review'
+                  ? 'Menunggu Review'
+                  : 'Perlu Revisi'),
+            }
+          : g
+      )
+    );
+  };
+
+  const submitGroupFile = (groupNumber: string, fileUrl: string, notes?: string) => {
+    const formatted = formatGroupNumber(groupNumber);
+    // Security check: only leader of this group or admin can upload
+    if (currentUser?.role !== 'admin' && userGroupNumber !== formatted) {
+      showToast(
+        `Akses ditolak: Anda terdaftar di Kelompok ${userGroupNumber}, tidak boleh mengunggah untuk Kelompok ${formatted}.`,
+        'warning'
+      );
+      return;
+    }
+
+    setBannerStatus('pending');
+    setBannerFeedback(notes || 'Berkas telah diserahkan, menunggu peninjauan Admin Kurikulum.');
+
+    // Update group status in groups list
+    updateGroupStatus(formatted, 'review', 'Menunggu Review');
+
+    // Add / update in Admin review queue
+    setAdminReviewQueue((prev) => {
+      const existing = prev.filter((item) => item.groupId !== formatted);
+      const grp = groups.find((g) => g.number === formatted);
+      return [
+        {
+          id: `rev-${formatted}-${Date.now()}`,
+          groupId: formatted,
+          groupNumber: `Kelompok ${formatted}`,
+          schoolName: grp?.schoolName || 'SMP Mitra',
+          itemName: 'X-Banner 60×160 cm & Modul Desain',
+          stageName: 'Tahap 4: Siapkan Desain',
+          status: 'review',
+          statusLabel: 'Menunggu Review',
+          statusHint: 'Berkas baru diunggah dan menunggu persetujuan Kurikulum',
+          fileUrl,
+          feedback: notes,
+          updatedAt: 'Baru saja',
+        },
+        ...existing,
+      ];
+    });
+
+    showToast(`Berkas Kelompok ${formatted} berhasil diunggah! Status: Menunggu Review Kurikulum.`, 'success');
+  };
+
+  const submitBannerDecision = (
+    decision: 'approved' | 'revision',
+    notes: string,
+    groupNumber?: string
+  ) => {
+    const targetGroup = formatGroupNumber(groupNumber || userGroupNumber || '03');
     setBannerStatus(decision);
     setBannerFeedback(notes);
+
+    // Update group status in groups
+    updateGroupStatus(
+      targetGroup,
+      decision === 'approved' ? 'ontrack' : 'revisi',
+      decision === 'approved' ? 'Sesuai Jadwal (Disetujui)' : 'Perlu Revisi'
+    );
+
+    // Update review queue
+    setAdminReviewQueue((prev) =>
+      prev.map((item) =>
+        item.groupId === targetGroup
+          ? {
+              ...item,
+              status: decision === 'approved' ? 'approved' : 'revisi',
+              statusLabel: decision === 'approved' ? 'Disetujui' : 'Perlu Revisi',
+              statusHint: decision === 'approved' ? 'Disetujui oleh Admin Kurikulum' : notes,
+              feedback: notes,
+            }
+          : item
+      )
+    );
+
     if (decision === 'approved') {
-      showToast('Desain X-Banner resmi DISETUJUI oleh Admin Kurikulum!', 'success');
+      showToast(`Berkas Kelompok ${targetGroup} resmi DISETUJUI oleh Admin Kurikulum!`, 'success');
     } else {
-      showToast('Permintaan revisi desain telah dikirimkan ke Ketua Kelompok 03.', 'warning');
+      showToast(`Catatan revisi berkas telah dikirimkan ke Ketua Kelompok ${targetGroup}.`, 'warning');
     }
   };
 
@@ -381,31 +789,192 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     showToast('Catatan supervisi internal berhasil disimpan!', 'success');
   };
 
-  const login = async (email: string, password: string) => {
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = (await res.json()) as { token?: string; user?: User; error?: string };
-      if (!res.ok || !data.token || !data.user) {
-        return { ok: false, error: data.error || 'Login gagal.' };
+  const login = async (identityInput: string, passwordInput: string, groupNumberInput?: string) => {
+    const identity = identityInput.trim();
+    const password = passwordInput.trim();
+    const lower = identity.toLowerCase();
+
+    // 1. Admin Login (bypasses group selection)
+    if (
+      lower === 'admin' ||
+      lower === 'admin@smktelkom-sda.sch.id' ||
+      lower.includes('admin.kurikulum')
+    ) {
+      const adminUser: User = {
+        name: 'Admin Kurikulum',
+        role: 'admin',
+        email: identity.includes('@') ? identity : 'admin@smktelkom-sda.sch.id',
+      };
+      setCurrentUser(adminUser);
+      showToast('Selamat datang, Admin Kurikulum!', 'success');
+      navigate('/admin');
+      return { ok: true, user: adminUser };
+    }
+
+    // 2. Sandbox Trial Account (KEL-00, bypasses group selection)
+    if (lower === 'uji.ketua@smktelkom-sda.sch.id' || lower === '000000') {
+      if (password !== 'Skomda2026!') {
+        return {
+          ok: false,
+          error: 'Kata sandi akun uji coba tidak sesuai. Gunakan Skomda2026!',
+        };
       }
-      window.localStorage.setItem(AUTH_TOKEN_KEY, data.token);
-      setAuthToken(data.token);
-      setCurrentUser(data.user);
+      const trialUser: User = {
+        name: 'Ketua Uji Coba',
+        role: 'leader',
+        email: 'uji.ketua@smktelkom-sda.sch.id',
+        groupNumber: '00',
+        schoolName: 'SMP Mitra Simulasi',
+      };
+      setCurrentUser(trialUser);
+      showToast('Login berhasil ke Akun Simulasi Sandbox (KEL-00)!', 'success');
+      navigate('/home');
+      return { ok: true, user: trialUser };
+    }
+
+    // 3. Leader Login Requires Group Selection
+    if (!groupNumberInput) {
+      return {
+        ok: false,
+        error: 'Silakan pilih Kelompok terlebih dahulu.',
+      };
+    }
+
+    const formattedGrpNum = formatGroupNumber(groupNumberInput);
+    const targetGroup = groups.find((g) => g.number === formattedGrpNum);
+    if (!targetGroup) {
+      return {
+        ok: false,
+        error: `Kelompok ${formattedGrpNum} tidak ditemukan.`,
+      };
+    }
+
+    // Retrieve any custom claimed password from localStorage
+    let claimedPass: string | undefined;
+    if (typeof window !== 'undefined') {
+      try {
+        const claimedMap = JSON.parse(window.localStorage.getItem('skomda_claimed_leaders') || '{}');
+        if (claimedMap[formattedGrpNum]) {
+          claimedPass = claimedMap[formattedGrpNum].password;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // 4. Check if group is locked or already has a registered leader
+    if (targetGroup.isLeaderLocked || targetGroup.hasLeader) {
+      const lockedLeaderName = targetGroup.leaderName;
+      const nisHit = targetGroup.leaderNis && targetGroup.leaderNis.trim() === identity;
+      const emailHit = targetGroup.leaderEmail && targetGroup.leaderEmail.toLowerCase() === lower;
+      const nameHit = targetGroup.leaderName && targetGroup.leaderName.toLowerCase() === lower;
+
+      if (!nisHit && !emailHit && !nameHit) {
+        return {
+          ok: false,
+          error: `Akses ditolak: Kelompok ini sudah memiliki Ketua terdaftar (${lockedLeaderName}). Hanya akun ketua pertama yang dapat masuk.`,
+        };
+      }
+
+      // Leader matched! Verify password
+      const validPassword = claimedPass || 'Skomda2026!';
+      if (password !== validPassword && password !== 'Skomda2026!') {
+        return {
+          ok: false,
+          error: 'NIS/Email atau kata sandi tidak sesuai.',
+        };
+      }
+
+      const leaderUser: User = {
+        name: targetGroup.leaderName,
+        role: 'leader',
+        email:
+          targetGroup.leaderEmail ||
+          `${targetGroup.leaderName.toLowerCase().replace(/[^a-z]/g, '.')}@smktelkom-sda.sch.id`,
+        groupNumber: targetGroup.number,
+        schoolName: targetGroup.schoolName,
+      };
+
+      setCurrentUser(leaderUser);
       showToast(
-        data.user.role === 'admin'
-          ? `Selamat datang, ${data.user.name} (Admin)!`
-          : `Login berhasil sebagai ${data.user.name}!`,
+        `Login berhasil sebagai ${targetGroup.leaderName} (Ketua Kel. ${targetGroup.number})!`,
         'success'
       );
-      navigate(data.user.role === 'admin' ? '/admin' : '/workspace');
-      return { ok: true, user: data.user };
-    } catch {
-      return { ok: false, error: 'Tidak dapat terhubung ke server autentikasi. Pastikan npm run server berjalan.' };
+      navigate('/home');
+      return { ok: true, user: leaderUser };
     }
+
+    // 5. First-time Leader Claim via Login (if group had no leader yet)
+    const roster = generateMockMembers(formattedGrpNum, targetGroup.leaderName, false);
+    const memberHit = roster.find(
+      (m) => m.nis.trim() === identity || m.name.toLowerCase() === lower
+    );
+
+    if (!memberHit) {
+      return {
+        ok: false,
+        error: `Akses ditolak. NIS ${identity} tidak terdaftar sebagai anggota resmi Kelompok ${formattedGrpNum}.`,
+      };
+    }
+
+    // Password validation for first-time claim
+    if (password.length < 6) {
+      return {
+        ok: false,
+        error: 'Kata sandi minimal 6 karakter untuk aktivasi pertama kali.',
+      };
+    }
+
+    // Claim and lock group
+    const leaderEmail = `${memberHit.name.toLowerCase().replace(/[^a-z]/g, '.')}@smktelkom-sda.sch.id`;
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.number === formattedGrpNum
+          ? {
+              ...g,
+              hasLeader: true,
+              isLeaderLocked: true,
+              leaderName: memberHit.name,
+              leaderNis: memberHit.nis,
+              leaderEmail,
+              status: 'ontrack',
+              statusLabel: 'Sesuai Jadwal',
+            }
+          : g
+      )
+    );
+
+    if (typeof window !== 'undefined') {
+      try {
+        const existing = JSON.parse(window.localStorage.getItem('skomda_claimed_leaders') || '{}');
+        existing[formattedGrpNum] = {
+          leaderName: memberHit.name,
+          leaderNis: memberHit.nis,
+          leaderEmail,
+          password,
+          isLeaderLocked: true,
+        };
+        window.localStorage.setItem('skomda_claimed_leaders', JSON.stringify(existing));
+      } catch {
+        // ignore
+      }
+    }
+
+    const leaderUser: User = {
+      name: memberHit.name,
+      role: 'leader',
+      email: leaderEmail,
+      groupNumber: formattedGrpNum,
+      schoolName: targetGroup.schoolName,
+    };
+
+    setCurrentUser(leaderUser);
+    showToast(
+      `Aktivasi & login berhasil! Selamat datang, ${memberHit.name} (Ketua Kel. ${formattedGrpNum})!`,
+      'success'
+    );
+    navigate('/home');
+    return { ok: true, user: leaderUser };
   };
 
   const register = async (payload: RegisterPayload) => {
@@ -443,6 +1012,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem(AUTH_TOKEN_KEY);
+      window.localStorage.removeItem(USER_SESSION_KEY);
     }
     setAuthToken(null);
     setCurrentUser(null);
@@ -462,6 +1032,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         login,
         register,
         logout,
+        groups,
+        updateGroupLeader,
+        updateGroupStatus,
         activeGroup,
         openGroupWorkspace,
         members,
@@ -471,14 +1044,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addTask,
         bannerStatus,
         bannerFeedback,
+        submitGroupFile,
         submitBannerDecision,
+        adminReviewQueue,
         supervisorMemo,
         showMemoToLeader,
         saveSupervisorMemo,
         toast,
         showToast,
         isBannerModalOpen,
-        setIsBannerModalOpen
+        setIsBannerModalOpen,
+        claimGroupLeader,
+        resetGroupLeader,
+        getGroupRoster,
       }}
     >
       {children}

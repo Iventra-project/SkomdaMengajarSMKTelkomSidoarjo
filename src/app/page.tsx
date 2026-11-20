@@ -1,14 +1,19 @@
 "use client";
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { SkomdaJourneyTrack } from '../components/SkomdaJourneyTrack';
+import { Navbar } from '../components/Navbar';
 import {
   groupsData,
+  Group,
+  generateMockMembers,
   showcaseProjects,
   documentaryStories,
-  heroSchoolSpotlights,
   ShowcaseProject,
   DocumentaryMoment,
 } from '../data/mockData';
+
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80';
 
 // ─── Status Configurations ──────────────────────────────────────────────────
 const STATUS_CFG: Record<string, { dot: string; text: string; badge: string }> = {
@@ -86,23 +91,40 @@ const STEPS = [
 ];
 
 export const HomePage: React.FC = () => {
-  const { navigate, showToast, currentUser, setCurrentUser } = useApp();
+  const { navigate, showToast, currentUser, logout, groups } = useApp();
   const isLoggedIn = !!currentUser;
 
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/home');
+      }
+    }
+  }, [currentUser, navigate]);
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'ontrack' | 'review' | 'overdue'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'sidoarjo-candi' | 'buduran-sedati' | 'waru-taman' | 'has-leader' | 'pending-leader'>('all');
   const [isGroupsExpanded, setIsGroupsExpanded] = useState(false);
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
   const [isDocExpanded, setIsDocExpanded] = useState(false);
-  const [activeSpotlight, setActiveSpotlight] = useState(0);
   const [selectedStep, setSelectedStep] = useState(4);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<ShowcaseProject | null>(null);
   const [selectedStory, setSelectedStory] = useState<DocumentaryMoment | null>(null);
+  const [selectedRosterGroup, setSelectedRosterGroup] = useState<Group | null>(null);
+
+  const activeGroupList = (groups && groups.length > 0 ? groups : groupsData).filter((g) => g.number !== '00');
 
   const filteredGroups = useMemo(() => {
-    return groupsData.filter((g) => {
+    return activeGroupList.filter((g) => {
       const q = searchQuery.toLowerCase().trim();
+      const num = parseInt(g.number, 10);
+      const isPending = !g.hasLeader || num === 23 || num === 24 || g.leaderName.includes('Belum');
+      const districtLower = g.district.toLowerCase();
+
       const hit =
         !q ||
         g.schoolName.toLowerCase().includes(q) ||
@@ -111,9 +133,12 @@ export const HomePage: React.FC = () => {
         g.district.toLowerCase().includes(q) ||
         g.number.includes(q);
       if (!hit) return false;
-      if (selectedFilter === 'ontrack') return g.status === 'ontrack';
-      if (selectedFilter === 'review') return g.status === 'review';
-      if (selectedFilter === 'overdue') return g.status === 'overdue' || g.status === 'revisi';
+
+      if (selectedFilter === 'sidoarjo-candi') return districtLower.includes('sidoarjo') || districtLower.includes('candi');
+      if (selectedFilter === 'buduran-sedati') return districtLower.includes('buduran') || districtLower.includes('sedati');
+      if (selectedFilter === 'waru-taman') return districtLower.includes('waru') || districtLower.includes('taman');
+      if (selectedFilter === 'has-leader') return !isPending;
+      if (selectedFilter === 'pending-leader') return isPending;
       return true;
     });
   }, [searchQuery, selectedFilter]);
@@ -122,229 +147,24 @@ export const HomePage: React.FC = () => {
   const shownProjects = isProjectsExpanded ? showcaseProjects : showcaseProjects.slice(0, 4);
   const shownStories = isDocExpanded ? documentaryStories : documentaryStories.slice(0, 4);
 
-  const spot = heroSchoolSpotlights[activeSpotlight] ?? heroSchoolSpotlights[0];
   const activeStepData = STEPS.find((s) => s.num === selectedStep) || STEPS[3];
 
-  const handleQuickDemoLogin = () => {
-    setCurrentUser({
-      name: 'Nabila Putri Ramadhani',
-      role: 'leader',
-      email: 'nabila.putri@smktelkom-sda.sch.id',
-      groupNumber: '03',
-      schoolName: 'SMPN 1 Buduran',
-    });
-    showToast('Masuk sebagai Ketua Kelompok 03 (SMPN 1 Buduran)', 'success');
-  };
-
   const handleLogout = () => {
-    setCurrentUser(null);
-    showToast('Anda telah keluar. Halaman kembali ke mode sebelum login.', 'info');
+    void logout();
   };
 
   return (
     <div className="w-full min-h-screen bg-white text-slate-900 antialiased selection:bg-[#e20113] selection:text-white">
       {/* ══════════════════════════════════════════════════════════════════════════
-          1. TOP NAVIGATION BAR
+          1. FLOATING DARK PILL NAVBAR (UNIFIED SKOMDA CAPSULE)
       ══════════════════════════════════════════════════════════════════════════ */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/70 transition-all">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10 h-16 flex items-center justify-between gap-4">
-          {/* Brand Identity */}
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-3 cursor-pointer group shrink-0 text-left"
-          >
-            <div className="w-9 h-9 rounded-xl bg-[#e20113] text-white flex items-center justify-center font-extrabold text-xs shadow-xs group-hover:bg-[#b4000c] transition-colors">
-              SM
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-sm tracking-tight text-slate-900 group-hover:text-[#e20113] transition-colors">
-                  SKOMDA MENGAJAR
-                </span>
-                <span className="bg-red-50 text-[#e20113] text-[11px] font-bold px-2 py-0.5 rounded-full border border-red-200/80">
-                  2026
-                </span>
-              </div>
-              <span className="text-[11px] text-slate-400 font-medium">SMK Telkom Sidoarjo</span>
-            </div>
-          </button>
-
-          {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-slate-600">
-            <a href="#alur" className="hover:text-[#e20113] transition-colors">
-              {isLoggedIn ? 'Alur Pelaksanaan' : 'Alur Awal'}
-            </a>
-            {!isLoggedIn ? (
-              <a href="#kelompok" className="hover:text-[#e20113] transition-colors">
-                Pembagian Kelompok
-              </a>
-            ) : (
-              <>
-                <a href="#jejak" className="hover:text-[#e20113] transition-colors">
-                  Jejak 2025
-                </a>
-                <a href="#kurikulum" className="hover:text-[#e20113] transition-colors">
-                  Kurikulum
-                </a>
-              </>
-            )}
-          </nav>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2.5">
-            {!isLoggedIn ? (
-              <>
-                {/* Demo quick toggle button for easy instant testing */}
-                <button
-                  onClick={handleQuickDemoLogin}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3 h-9 text-xs font-bold text-[#e20113] bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-all cursor-pointer"
-                  title="Klik untuk langsung mencoba mode setelah login sebagai ketua kelompok"
-                >
-                  <span className="material-symbols-outlined text-[16px]">bolt</span>
-                  <span>Demo: Masuk sbg Ketua</span>
-                </button>
-                <button
-                  onClick={() => navigate('/login')}
-                  className="inline-flex items-center justify-center px-4 h-9 text-xs font-bold uppercase tracking-wider bg-[#e20113] hover:bg-[#b4000c] text-white rounded-xl transition-all shadow-xs hover:shadow-sm cursor-pointer"
-                >
-                  Masuk
-                </button>
-              </>
-            ) : (
-              <>
-                {/* User info chip */}
-                <div className="hidden sm:flex items-center gap-2 pl-3 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-                  <div className="w-6 h-6 rounded-lg bg-[#e20113] text-white flex items-center justify-center font-extrabold text-[10px]">
-                    {currentUser?.groupNumber ? `K${currentUser.groupNumber}` : 'AD'}
-                  </div>
-                  <div className="flex flex-col text-left">
-                    <span className="font-bold text-slate-900 leading-tight truncate max-w-[120px]">
-                      {currentUser?.name}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {currentUser?.role === 'admin' ? 'Admin Kurikulum' : `Kel. ${currentUser?.groupNumber || '03'}`}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => navigate('/workspace')}
-                  className="inline-flex items-center gap-1.5 px-3.5 h-9 text-xs font-bold text-white bg-[#e20113] hover:bg-[#b4000c] rounded-xl transition-all shadow-xs cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[17px]">terminal</span>
-                  <span>Workspace</span>
-                </button>
-
-                <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center justify-center p-2 h-9 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all border border-slate-200 cursor-pointer"
-                  title="Keluar dari Akun (Kembali ke mode sebelum login)"
-                >
-                  <span className="material-symbols-outlined text-[18px]">logout</span>
-                </button>
-              </>
-            )}
-
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 cursor-pointer"
-              aria-label="Toggle Navigation"
-            >
-              <span className="material-symbols-outlined text-[22px]">{mobileOpen ? 'close' : 'menu'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Navigation Drawer */}
-        {mobileOpen && (
-          <div className="md:hidden border-t border-slate-200 bg-white px-6 py-4 flex flex-col gap-3 shadow-md animate-in slide-in-from-top-2 duration-200">
-            <a
-              href="#alur"
-              onClick={() => setMobileOpen(false)}
-              className="text-sm font-semibold text-slate-700 hover:text-[#e20113] py-1"
-            >
-              {isLoggedIn ? 'Alur Pelaksanaan' : 'Alur Awal'}
-            </a>
-            {!isLoggedIn ? (
-              <a
-                href="#kelompok"
-                onClick={() => setMobileOpen(false)}
-                className="text-sm font-semibold text-slate-700 hover:text-[#e20113] py-1"
-              >
-                Pembagian Kelompok
-              </a>
-            ) : (
-              <>
-                <a
-                  href="#jejak"
-                  onClick={() => setMobileOpen(false)}
-                  className="text-sm font-semibold text-slate-700 hover:text-[#e20113] py-1"
-                >
-                  Rekam Jejak 2025
-                </a>
-                <a
-                  href="#kurikulum"
-                  onClick={() => setMobileOpen(false)}
-                  className="text-sm font-semibold text-slate-700 hover:text-[#e20113] py-1"
-                >
-                  Standar Kurikulum
-                </a>
-              </>
-            )}
-            <div className="pt-2 border-t border-slate-100 flex gap-2">
-              {!isLoggedIn ? (
-                <>
-                  <button
-                    onClick={() => {
-                      setMobileOpen(false);
-                      handleQuickDemoLogin();
-                    }}
-                    className="flex-1 py-2 text-xs font-semibold text-[#e20113] bg-red-50 rounded-lg text-center border border-red-200 cursor-pointer"
-                  >
-                    Demo Ketua
-                  </button>
-                  <button
-                    onClick={() => {
-                      setMobileOpen(false);
-                      navigate('/login');
-                    }}
-                    className="flex-1 py-2 text-xs font-semibold text-white bg-[#e20113] rounded-lg text-center cursor-pointer"
-                  >
-                    Masuk
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      setMobileOpen(false);
-                      navigate('/workspace');
-                    }}
-                    className="flex-1 py-2 text-xs font-semibold text-white bg-[#e20113] rounded-lg text-center cursor-pointer"
-                  >
-                    Buka Workspace
-                  </button>
-                  <button
-                    onClick={() => {
-                      setMobileOpen(false);
-                      handleLogout();
-                    }}
-                    className="flex-1 py-2 text-xs font-semibold text-slate-700 bg-slate-100 rounded-lg text-center cursor-pointer"
-                  >
-                    Keluar
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </header>
+      <Navbar variant="public" />
 
       <main className="w-full">
         {/* ══════════════════════════════════════════════════════════════════════════
             2. HERO SECTION (ADAPTIVE: SEBELUM LOGIN VS SETELAH LOGIN)
         ══════════════════════════════════════════════════════════════════════════ */}
-        <section className="relative w-full bg-white border-b border-slate-100 overflow-hidden">
+        <section id="hero" className="relative w-full bg-white border-b border-slate-100 overflow-hidden">
           <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10 py-12 sm:py-16 md:py-20">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
               {/* Left Column: Typography, Actions, Minimal Stats */}
@@ -416,16 +236,16 @@ export const HomePage: React.FC = () => {
                         className="inline-flex items-center gap-2 px-5 h-12 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-950 border border-slate-200 font-bold text-xs uppercase tracking-wider rounded-full transition-all cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-[18px] text-[#e20113]">login</span>
-                        <span>Masuk ke Workspace</span>
+                        <span>Login Ketua / Admin</span>
                       </button>
                     </>
                   ) : (
                     <>
                       <button
-                        onClick={() => navigate('/workspace')}
+                        onClick={() => navigate('/home')}
                         className="inline-flex items-center gap-2.5 px-6 h-12 bg-[#e20113] hover:bg-[#b4000c] text-white font-bold text-xs uppercase tracking-wider rounded-full transition-all shadow-md hover:shadow-lg cursor-pointer group"
                       >
-                        <span>Buka Workspace Kelompok {currentUser?.groupNumber || '03'}</span>
+                        <span>Buka Dashboard Ketua</span>
                         <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center group-hover:translate-x-0.5 transition-transform">
                           <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                         </span>
@@ -464,8 +284,8 @@ export const HomePage: React.FC = () => {
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-6 border-t border-slate-100 w-full max-w-xl">
                     <div>
-                      <span className="text-2xl sm:text-3xl font-extrabold text-[#e20113] tracking-tight block">65%</span>
-                      <span className="text-xs font-semibold text-slate-500 mt-0.5 block">Progres Sprint</span>
+                      <span className="text-2xl sm:text-3xl font-extrabold text-[#e20113] tracking-tight block">67%</span>
+                      <span className="text-xs font-semibold text-slate-500 mt-0.5 block">Progres Tim</span>
                     </div>
                     <div>
                       <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight block">Tahap 04</span>
@@ -483,65 +303,32 @@ export const HomePage: React.FC = () => {
                 )}
               </div>
 
-              {/* Right Column: Visual Photo Card */}
+              {/* Right Column: Inspiring Showcase Photo (SMK Telkom Sidoarjo Teaching Activities) */}
               <div className="lg:col-span-5 relative">
-                {/* School Switcher Tabs (Only if public/not logged in, or focused) */}
-                <div className="flex items-center gap-1.5 mb-3 bg-slate-100/80 p-1 rounded-xl w-fit">
-                  {heroSchoolSpotlights.map((item, idx) => (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveSpotlight(idx)}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                        activeSpotlight === idx
-                          ? 'bg-white text-[#e20113] shadow-xs'
-                          : 'text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      Kel. {item.groupNumber}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Clean Photo Container */}
                 <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-xl shadow-slate-200/60 border border-slate-100 group">
                   <img
-                    src={spot.image}
-                    alt={spot.schoolName}
+                    src="https://images.unsplash.com/photo-1577896851231-70ef18881754?w=1000&auto=format&fit=crop&q=80"
+                    alt="Aksi Nyata Siswa SMK Telkom Sidoarjo Mengajar di SMP Mitra"
+                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-103"
                   />
 
                   {/* Soft Gradient Scrim at Bottom Only */}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent p-5 text-white flex flex-col justify-end">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="bg-[#e20113] text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded">
-                        Kel. {spot.groupNumber}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent p-6 text-white flex flex-col justify-end">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-[#e20113] text-white text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full tracking-wider">
+                        Aksi Nyata Relawan
                       </span>
-                      <span className="text-xs text-slate-200 font-semibold">{spot.schoolName}</span>
+                      <span className="text-xs text-slate-200 font-semibold">180 Siswa • 12 SMP Sidoarjo</span>
                     </div>
 
-                    <h3 className="text-base sm:text-lg font-bold text-white leading-snug line-clamp-1">
-                      {spot.moduleTitle}
+                    <h3 className="text-lg sm:text-xl font-bold text-white leading-snug">
+                      Siswa SMK Telkom Sidoarjo Berbagi Ilmu & Literasi Digital di Sekolah Mitra
                     </h3>
 
-                    <div className="mt-3 pt-2.5 border-t border-white/20 flex items-center justify-between text-xs">
-                      <span className="text-slate-300 font-medium">Ketua: {spot.leaderName}</span>
-                      <button
-                        onClick={() => {
-                          if (isLoggedIn) {
-                            navigate('/workspace');
-                          } else if (spot.groupNumber === '03') {
-                            navigate('/admin/kelompok/03');
-                          } else {
-                            navigate('/login');
-                            showToast(`Silakan masuk untuk mengakses modul Kelompok ${spot.groupNumber}`, 'info');
-                          }
-                        }}
-                        className="inline-flex items-center gap-1 text-white font-bold hover:underline cursor-pointer"
-                      >
-                        <span>{isLoggedIn ? 'Buka Workspace' : 'Lihat Regu'}</span>
-                        <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
-                      </button>
-                    </div>
+                    <p className="text-xs text-slate-300 mt-1.5 leading-relaxed line-clamp-2">
+                      Program pengabdian masyarakat terstruktur: mengajarkan dasar pemrograman, etika digital, dan media kreatif interaktif.
+                    </p>
                   </div>
                 </div>
 
@@ -549,9 +336,9 @@ export const HomePage: React.FC = () => {
                 <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400 font-medium px-1">
                   <span className="flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-emerald-500 text-[15px]">verified</span>
-                    Fase D Kurikulum Merdeka
+                    Fase D Kurikulum Merdeka Informatika
                   </span>
-                  <span>Disahkan MGMP Informatika</span>
+                  <span>Disahkan MGMP Sidoarjo</span>
                 </div>
               </div>
             </div>
@@ -566,149 +353,10 @@ export const HomePage: React.FC = () => {
             {!isLoggedIn ? (
               /* ─── A. ALUR PRA-LOGIN: WAVY SERPENTINE TRACK PERSIS SEPERTI GAMBAR ─── */
               <div className="space-y-6">
-                <div className="bg-white border border-[#E8ECF2] rounded-3xl p-6 sm:p-10 shadow-sm relative overflow-hidden">
-                  {/* Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-8 sm:pb-10 border-b border-slate-100/80">
-                    <div>
-                      <h2 className="text-xl sm:text-2xl font-black text-[#0B1B3A] tracking-tight">
-                        Alur & Progres Skomda Mengajar
-                      </h2>
-                      <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-                        Tahapan terstruktur dari pembentukan tim hingga evaluasi luaran nyata di sekolah mitra.
-                      </p>
-                    </div>
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-red-200 bg-red-50/70 text-[#D7141F] text-xs font-bold shrink-0 self-start sm:self-auto shadow-2xs">
-                      <span className="w-2 h-2 rounded-full bg-[#D7141F] animate-pulse" />
-                      <span>Fase Aktif: Pembentukan Ketua Tim</span>
-                    </div>
-                  </div>
-
-                  {/* Wavy Sinusoidal Track Container */}
-                  <div className="pt-8 pb-4 overflow-x-auto select-none">
-                    <div className="min-w-[860px] relative h-[255px]">
-                      {/* Background SVG Dashed Track */}
-                      <svg
-                        className="absolute top-0 left-0 w-full h-[190px] pointer-events-none"
-                        viewBox="0 0 1000 190"
-                        preserveAspectRatio="none"
-                        fill="none"
-                      >
-                        {/* Segment 0 (Step 1 to 2): Red Dashed Line */}
-                        <path
-                          d="M 83.3 50 C 166.6 50, 166.6 124, 250 124"
-                          stroke="#D7141F"
-                          strokeWidth="2.5"
-                          strokeDasharray="6 6"
-                        />
-                        {/* Segment 1 (Step 2 to 3): Gray Dashed Line */}
-                        <path
-                          d="M 250 124 C 333.3 124, 333.3 50, 416.7 50"
-                          stroke="#CBD5E1"
-                          strokeWidth="2.5"
-                          strokeDasharray="6 6"
-                        />
-                        {/* Segment 2 (Step 3 to 4): Gray Dashed Line */}
-                        <path
-                          d="M 416.7 50 C 500 50, 500 124, 583.3 124"
-                          stroke="#CBD5E1"
-                          strokeWidth="2.5"
-                          strokeDasharray="6 6"
-                        />
-                        {/* Segment 3 (Step 4 to 5): Gray Dashed Line */}
-                        <path
-                          d="M 583.3 124 C 666.6 124, 666.6 50, 750 50"
-                          stroke="#CBD5E1"
-                          strokeWidth="2.5"
-                          strokeDasharray="6 6"
-                        />
-                        {/* Segment 4 (Step 5 to 6): Gray Dashed Line */}
-                        <path
-                          d="M 750 50 C 833.3 50, 833.3 124, 916.7 124"
-                          stroke="#CBD5E1"
-                          strokeWidth="2.5"
-                          strokeDasharray="6 6"
-                        />
-                      </svg>
-
-                      {/* 6 Grid Nodes */}
-                      <div className="absolute inset-0 grid grid-cols-6 w-full">
-                        {STEPS.map((step, idx) => {
-                          const isCompleted = step.num === 1;
-                          const isActive = step.num === 2;
-                          const isEven = idx % 2 === 1; // 1, 3, 5 are lower offset
-                          const isFinish = step.num === 6;
-
-                          return (
-                            <div
-                              key={step.num}
-                              className={`flex flex-col items-center text-center cursor-pointer group transition-all ${
-                                isEven ? 'pt-[74px]' : 'pt-[16px]'
-                              }`}
-                            >
-                              {/* Card Box */}
-                              <div
-                                className={`w-[68px] h-[68px] rounded-2xl flex flex-col items-center justify-center relative transition-all duration-300 group-hover:-translate-y-1 ${
-                                  isCompleted
-                                    ? 'bg-[#D7141F] text-white shadow-lg shadow-red-500/25'
-                                    : isActive
-                                    ? 'bg-white border-2 border-[#D7141F] text-[#D7141F] shadow-lg shadow-red-500/15 ring-4 ring-red-50'
-                                    : 'bg-white border border-slate-200/90 text-slate-400 shadow-2xs hover:border-slate-300'
-                                }`}
-                              >
-                                {/* Tilted Finish Badge for Step 6 */}
-                                {isFinish && (
-                                  <span className="absolute -top-3 -right-2 bg-[#D7141F] text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-xs rotate-[-8deg] pointer-events-none">
-                                    FINISH
-                                  </span>
-                                )}
-
-                                {/* Step Number */}
-                                <span
-                                  className={`text-[11px] font-black tracking-wider leading-none mb-1 ${
-                                    isCompleted
-                                      ? 'text-white/90'
-                                      : isActive
-                                      ? 'text-[#D7141F]'
-                                      : 'text-slate-400'
-                                  }`}
-                                >
-                                  0{step.num}
-                                </span>
-
-                                {/* Icon */}
-                                <span
-                                  className={`material-symbols-outlined text-[24px] ${
-                                    isCompleted
-                                      ? 'text-white'
-                                      : isActive
-                                      ? 'text-[#D7141F]'
-                                      : 'text-slate-400 group-hover:text-slate-600 transition-colors'
-                                  }`}
-                                >
-                                  {step.icon}
-                                </span>
-                              </div>
-
-                              {/* Labels below card */}
-                              <div className="mt-3 px-2">
-                                <h4
-                                  className={`text-xs sm:text-sm font-extrabold leading-tight transition-colors ${
-                                    isActive ? 'text-[#D7141F]' : 'text-[#0B1B3A] group-hover:text-[#D7141F]'
-                                  }`}
-                                >
-                                  {step.label}
-                                </h4>
-                                <p className="text-[11px] text-slate-400 mt-1 font-medium leading-snug">
-                                  {step.subtitle}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <SkomdaJourneyTrack
+                  currentActiveStep={2}
+                  activePhaseTitle="Fase Aktif: Pembentukan Ketua Tim"
+                />
 
                 {/* Callout Notice for Leaders */}
                 <div className="mt-6 p-4 sm:p-5 bg-white border border-red-200/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
@@ -737,153 +385,12 @@ export const HomePage: React.FC = () => {
             ) : (
               /* ─── B. ALUR SETELAH LOGIN: FULL 6 TAHAPAN + INTEGRASI BUKA PROGRES KELOMPOK ─── */
               <div className="space-y-6">
-                {/* ─── ALUR & PROGRES SKOMDA MENGAJAR (WAVY SERPENTINE TRACK) ─── */}
-                <div className="bg-white border border-[#E8ECF2] rounded-3xl p-6 sm:p-10 shadow-sm relative overflow-hidden">
-                  {/* Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-8 sm:pb-10 border-b border-slate-100/80">
-                    <div>
-                      <h2 className="text-xl sm:text-2xl font-black text-[#0B1B3A] tracking-tight">
-                        Alur & Progres Skomda Mengajar
-                      </h2>
-                      <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-                        Tahapan terstruktur dari pembentukan tim hingga evaluasi luaran nyata di sekolah mitra.
-                      </p>
-                    </div>
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-red-200 bg-red-50/70 text-[#D7141F] text-xs font-bold shrink-0 self-start sm:self-auto shadow-2xs">
-                      <span className="w-2 h-2 rounded-full bg-[#D7141F] animate-pulse" />
-                      <span>
-                        Fase Aktif: {selectedStep === 2 ? 'Pembentukan Ketua Tim' : activeStepData.label}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Wavy Sinusoidal Track Container */}
-                  <div className="pt-8 pb-4 overflow-x-auto select-none">
-                    <div className="min-w-[860px] relative h-[255px]">
-                      {/* Background SVG Dashed Track */}
-                      <svg
-                        className="absolute top-0 left-0 w-full h-[190px] pointer-events-none"
-                        viewBox="0 0 1000 190"
-                        preserveAspectRatio="none"
-                        fill="none"
-                      >
-                        {/* Segment 0 (Step 1 to 2) */}
-                        <path
-                          d="M 83.3 50 C 166.6 50, 166.6 124, 250 124"
-                          stroke={selectedStep >= 2 ? '#D7141F' : '#CBD5E1'}
-                          strokeWidth="2.5"
-                          strokeDasharray="6 6"
-                        />
-                        {/* Segment 1 (Step 2 to 3) */}
-                        <path
-                          d="M 250 124 C 333.3 124, 333.3 50, 416.7 50"
-                          stroke={selectedStep >= 3 ? '#D7141F' : '#CBD5E1'}
-                          strokeWidth="2.5"
-                          strokeDasharray="6 6"
-                        />
-                        {/* Segment 2 (Step 3 to 4) */}
-                        <path
-                          d="M 416.7 50 C 500 50, 500 124, 583.3 124"
-                          stroke={selectedStep >= 4 ? '#D7141F' : '#CBD5E1'}
-                          strokeWidth="2.5"
-                          strokeDasharray="6 6"
-                        />
-                        {/* Segment 3 (Step 4 to 5) */}
-                        <path
-                          d="M 583.3 124 C 666.6 124, 666.6 50, 750 50"
-                          stroke={selectedStep >= 5 ? '#D7141F' : '#CBD5E1'}
-                          strokeWidth="2.5"
-                          strokeDasharray="6 6"
-                        />
-                        {/* Segment 4 (Step 5 to 6) */}
-                        <path
-                          d="M 750 50 C 833.3 50, 833.3 124, 916.7 124"
-                          stroke={selectedStep >= 6 ? '#D7141F' : '#CBD5E1'}
-                          strokeWidth="2.5"
-                          strokeDasharray="6 6"
-                        />
-                      </svg>
-
-                      {/* 6 Grid Nodes */}
-                      <div className="absolute inset-0 grid grid-cols-6 w-full">
-                        {STEPS.map((step, idx) => {
-                          const isSelected = selectedStep === step.num;
-                          const isCompleted = step.num < selectedStep;
-                          const isEven = idx % 2 === 1; // 1, 3, 5 are lower offset
-                          const isFinish = step.num === 6;
-
-                          return (
-                            <div
-                              key={step.num}
-                              onClick={() => setSelectedStep(step.num)}
-                              className={`flex flex-col items-center text-center cursor-pointer group transition-all ${
-                                isEven ? 'pt-[74px]' : 'pt-[16px]'
-                              }`}
-                            >
-                              {/* Card Box */}
-                              <div
-                                className={`w-[68px] h-[68px] rounded-2xl flex flex-col items-center justify-center relative transition-all duration-300 group-hover:-translate-y-1 ${
-                                  isCompleted
-                                    ? 'bg-[#D7141F] text-white shadow-lg shadow-red-500/25'
-                                    : isSelected
-                                    ? 'bg-white border-2 border-[#D7141F] text-[#D7141F] shadow-lg shadow-red-500/15 ring-4 ring-red-50'
-                                    : 'bg-white border border-slate-200/90 text-slate-400 shadow-2xs hover:border-slate-300'
-                                }`}
-                              >
-                                {/* Tilted Finish Badge for Step 6 */}
-                                {isFinish && (
-                                  <span className="absolute -top-3 -right-2 bg-[#D7141F] text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-xs rotate-[-8deg] pointer-events-none">
-                                    FINISH
-                                  </span>
-                                )}
-
-                                {/* Step Number */}
-                                <span
-                                  className={`text-[11px] font-black tracking-wider leading-none mb-1 ${
-                                    isCompleted
-                                      ? 'text-white/90'
-                                      : isSelected
-                                      ? 'text-[#D7141F]'
-                                      : 'text-slate-400'
-                                  }`}
-                                >
-                                  0{step.num}
-                                </span>
-
-                                {/* Icon */}
-                                <span
-                                  className={`material-symbols-outlined text-[24px] ${
-                                    isCompleted
-                                      ? 'text-white'
-                                      : isSelected
-                                      ? 'text-[#D7141F]'
-                                      : 'text-slate-400 group-hover:text-slate-600 transition-colors'
-                                  }`}
-                                >
-                                  {step.icon}
-                                </span>
-                              </div>
-
-                              {/* Labels below card */}
-                              <div className="mt-3 px-2">
-                                <h4
-                                  className={`text-xs sm:text-sm font-extrabold leading-tight transition-colors ${
-                                    isSelected ? 'text-[#D7141F]' : 'text-[#0B1B3A] group-hover:text-[#D7141F]'
-                                  }`}
-                                >
-                                  {step.label}
-                                </h4>
-                                <p className="text-[11px] text-slate-400 mt-1 font-medium leading-snug">
-                                  {step.subtitle}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <SkomdaJourneyTrack
+                  currentActiveStep={4}
+                  selectedStep={selectedStep}
+                  onSelectStep={(step) => setSelectedStep(step)}
+                  activePhaseTitle={selectedStep === 2 ? 'Fase Aktif: Pembentukan Ketua Tim' : `Fase Terpilih: Tahap 0${selectedStep}`}
+                />
 
                 {/* ─── KARTU TUNGGAL TERPADU: POSISI KELOMPOKMU DI TAHAP 04 ─── */}
                 <div className="mt-8 p-6 sm:p-8 bg-white border border-[#E8ECF2] rounded-3xl shadow-sm hover:shadow-md transition-shadow">
@@ -995,17 +502,19 @@ export const HomePage: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="flex bg-slate-100 rounded-xl p-0.5 gap-0.5 border border-slate-200/80">
+                  <div className="flex bg-slate-100 rounded-xl p-0.5 gap-0.5 border border-slate-200/80 overflow-x-auto">
                     {([
                       ['all', 'Semua'],
-                      ['ontrack', 'Sesuai Jadwal'],
-                      ['review', 'Review'],
-                      ['overdue', 'Perhatian'],
+                      ['sidoarjo-candi', 'Sidoarjo & Candi'],
+                      ['buduran-sedati', 'Buduran & Sedati'],
+                      ['waru-taman', 'Waru & Taman'],
+                      ['has-leader', 'Ketua Terpilih'],
+                      ['pending-leader', 'Belum Ada Ketua'],
                     ] as const).map(([key, label]) => (
                       <button
                         key={key}
                         onClick={() => setSelectedFilter(key as any)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                           selectedFilter === key
                             ? 'bg-white text-[#e20113] shadow-xs'
                             : 'text-slate-600 hover:text-slate-900'
@@ -1023,44 +532,47 @@ export const HomePage: React.FC = () => {
                 <span className="font-semibold text-slate-800">
                   Menampilkan {shownGroups.length} dari {filteredGroups.length} kelompok
                 </span>
-                <span className="text-[11px] text-slate-400">Sinkronisasi kurikulum otomatis</span>
+                <span className="text-[11px] text-slate-400">Sinkronisasi data sekolah & kelompok resmi</span>
               </div>
 
-              {/* 4 Cards Grid */}
+              {/* 4 Cards Grid - Public Safe: Zero Workspace Leaks */}
               {shownGroups.length === 0 ? (
                 <div className="py-16 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-200">
                   <span className="material-symbols-outlined text-4xl block mb-2 text-slate-300">search_off</span>
                   <p className="text-sm font-bold text-slate-700">Tidak ada kelompok yang cocok</p>
-                  <p className="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci atau filter status.</p>
+                  <p className="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci atau filter wilayah.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                   {shownGroups.map((group) => {
-                    const cfg = STATUS_CFG[group.status] ?? STATUS_CFG.ontrack;
-                    const isMain = group.number === '03';
+                    const num = parseInt(group.number, 10);
+                    const isPending = num === 23 || num === 24 || group.leaderName.includes('Belum');
 
                     return (
                       <div
                         key={group.id}
-                        className={`bg-white rounded-2xl border overflow-hidden flex flex-col justify-between transition-all hover:shadow-md ${
-                          isMain ? 'border-2 border-[#e20113] shadow-2xs' : 'border-slate-200/90 hover:border-slate-300'
-                        }`}
+                        className="bg-white rounded-2xl border border-slate-200/90 hover:border-slate-300 overflow-hidden flex flex-col justify-between transition-all hover:shadow-md"
                       >
                         {/* Top Accent Strip */}
-                        <div className={`h-1.5 w-full ${isMain ? 'bg-[#e20113]' : cfg.dot}`} />
+                        <div className={`h-1.5 w-full ${isPending ? 'bg-amber-400' : 'bg-emerald-500'}`} />
 
                         <div className="p-4 flex flex-col gap-3 flex-1">
-                          {/* Header: Number & Status */}
+                          {/* Header: Number & Status Ketua */}
                           <div className="flex items-center justify-between">
-                            <span className="bg-[#e20113] text-white text-[11px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">
+                            <span className="bg-[#e20113] text-white text-[11px] font-extrabold px-2.5 py-0.5 rounded-md uppercase tracking-wider">
                               Kel. {group.number}
                             </span>
-                            <span
-                              className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${cfg.badge}`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                              {group.statusLabel}
-                            </span>
+                            {isPending ? (
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200/70">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                Belum Ditentukan
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200/70">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                Ketua Terpilih
+                              </span>
+                            )}
                           </div>
 
                           {/* School Info */}
@@ -1071,56 +583,35 @@ export const HomePage: React.FC = () => {
                             </span>
                           </div>
 
-                          {/* Progress Bar */}
-                          <div>
-                            <div className="flex justify-between text-[11px] font-bold text-slate-500 mb-1">
-                              <span>Langkah {group.currentStep}/6</span>
-                              <span className="text-slate-800">{group.progressPercent}%</span>
-                            </div>
-                            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${
-                                  isMain ? 'bg-[#e20113]' : 'bg-slate-800'
-                                }`}
-                                style={{ width: `${group.progressPercent}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Details */}
-                          <div className="flex flex-col gap-1.5 text-xs text-slate-600 mt-auto pt-2 border-t border-slate-100">
+                          {/* Public Safe Details - Zero Internal Workspace Leaks */}
+                          <div className="flex flex-col gap-1.5 text-xs text-slate-600 mt-auto pt-3 border-t border-slate-100">
                             <div className="flex items-center justify-between">
                               <span className="text-slate-400 text-[11px]">Ketua:</span>
-                              <span className="font-bold text-slate-800 truncate max-w-[130px]">{group.leaderName}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400 text-[11px]">Modul:</span>
-                              <span className="font-semibold text-slate-700 truncate max-w-[130px]">
-                                {group.featuredModule}
+                              <span className="font-bold text-slate-800 truncate max-w-[130px]">
+                                {isPending ? 'Belum Ditentukan' : group.leaderName}
                               </span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-400 text-[11px]">Target:</span>
+                              <span className="text-slate-400 text-[11px]">Pembimbing:</span>
+                              <span className="font-semibold text-slate-700 truncate max-w-[130px]">
+                                {group.mentorName.split(',')[0]}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 text-[11px]">Jadwal:</span>
                               <span className="text-slate-700 font-medium">{group.targetDate}</span>
                             </div>
                           </div>
                         </div>
 
-                        {/* Footer Action */}
-                        <div className="border-t border-slate-100 px-4 py-2.5 flex justify-end bg-slate-50/60">
+                        {/* Footer Action: View Team Roster Modal */}
+                        <div className="border-t border-slate-100 px-4 py-2.5 bg-slate-50/60">
                           <button
-                            onClick={() => {
-                              if (group.number === '03') {
-                                handleQuickDemoLogin();
-                              } else {
-                                navigate('/login');
-                                showToast(`Silakan masuk untuk mengakses modul Kelompok ${group.number}`, 'info');
-                              }
-                            }}
-                            className="text-xs font-bold text-[#e20113] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                            onClick={() => setSelectedRosterGroup(group)}
+                            className="w-full py-2 px-3 bg-white hover:bg-red-50 text-slate-700 hover:text-[#e20113] border border-slate-200 hover:border-red-200 rounded-xl text-xs font-bold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                           >
-                            <span>Akses Kelompok</span>
-                            <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+                            <span className="material-symbols-outlined text-[16px]">group</span>
+                            <span>Lihat Anggota Tim</span>
                           </button>
                         </div>
                       </div>
@@ -1157,13 +648,9 @@ export const HomePage: React.FC = () => {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════════════
-            5. KONTEN KHUSUS SETELAH LOGIN (JEJAK 2025, KARYA, KURIKULUM, CTA)
-            * Pada halaman sebelum login, pembagian kelompok langsung bertemu footer
+            5. REKAM JEJAK PELAKSANAAN 2025 (UNIFORM GRID)
         ══════════════════════════════════════════════════════════════════════════ */}
-        {isLoggedIn && (
-          <>
-            {/* 5. REKAM JEJAK PELAKSANAAN 2025 (4 Displayed Initially + Show More) */}
-            <section className="w-full bg-[#f8f9fa] py-16 md:py-20 border-b border-slate-200/80" id="jejak">
+        <section className="w-full bg-[#f8f9fa] py-16 md:py-20 border-b border-slate-200/80" id="jejak">
           <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10">
             {/* Section Header */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-slate-200">
@@ -1180,129 +667,60 @@ export const HomePage: React.FC = () => {
               </span>
             </div>
 
-            {/* Photo Editorial Grid — 4 items initial */}
-            <div className="pt-8 flex flex-col gap-3">
-              {/* Row 1: Spotlight (7 col) + Medium (5 col) */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                {shownStories[0] && (
+            {/* Uniform Symmetric Photo Grid (grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6) */}
+            <div className="pt-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {shownStories.map((story) => (
                   <div
-                    onClick={() => setSelectedStory(shownStories[0])}
-                    className="md:col-span-7 h-72 md:h-80 relative overflow-hidden rounded-2xl cursor-pointer group border border-slate-200 shadow-2xs"
+                    key={story.id}
+                    onClick={() => setSelectedStory(story)}
+                    className="bg-white rounded-2xl overflow-hidden cursor-pointer group border border-slate-200/90 hover:border-slate-300 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between"
                   >
-                    <img
-                      src={shownStories[0].image}
-                      alt={shownStories[0].title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent p-5 text-white">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="bg-[#e20113] text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md">
-                          {shownStories[0].category}
-                        </span>
-                        <span className="text-xs text-slate-300 font-semibold">{shownStories[0].date}</span>
-                      </div>
-                      <h3 className="text-base sm:text-lg font-extrabold text-white leading-snug line-clamp-2">
-                        {shownStories[0].title}
-                      </h3>
-                      <p className="text-xs text-slate-300 mt-1 line-clamp-1">{shownStories[0].school}</p>
-                    </div>
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="bg-white/95 text-slate-800 text-xs font-extrabold px-3 py-1 rounded-lg flex items-center gap-1 shadow-xs">
-                        <span className="material-symbols-outlined text-[15px]">open_in_new</span>
-                        Baca
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {shownStories[1] && (
-                  <div
-                    onClick={() => setSelectedStory(shownStories[1])}
-                    className="md:col-span-5 h-72 md:h-80 relative overflow-hidden rounded-2xl cursor-pointer group border border-slate-200 shadow-2xs"
-                  >
-                    <img
-                      src={shownStories[1].image}
-                      alt={shownStories[1].title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent p-5 text-white">
-                      <span className="bg-[#e20113] text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md self-start mb-1.5 inline-block">
-                        {shownStories[1].category}
-                      </span>
-                      <h3 className="text-sm sm:text-base font-extrabold text-white leading-snug line-clamp-2">
-                        {shownStories[1].title}
-                      </h3>
-                      <p className="text-xs text-slate-300 mt-1 line-clamp-1">{shownStories[1].school}</p>
-                    </div>
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="bg-white/95 text-slate-800 text-xs font-extrabold px-3 py-1 rounded-lg flex items-center gap-1 shadow-xs">
-                        <span className="material-symbols-outlined text-[15px]">open_in_new</span>
-                        Baca
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Row 2: 2 balanced cards (6 col each) */}
-              {shownStories.length >= 3 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {shownStories.slice(2, 4).map((story) => (
-                    <div
-                      key={story.id}
-                      onClick={() => setSelectedStory(story)}
-                      className="h-56 relative overflow-hidden rounded-2xl cursor-pointer group border border-slate-200 shadow-2xs"
-                    >
+                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
                       <img
                         src={story.image}
                         alt={story.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = FALLBACK_IMAGE;
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent p-4 text-white">
-                        <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md self-start mb-1.5 border border-white/30 inline-block">
+                      <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                        <span className="bg-[#e20113] text-white text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-md shadow-xs">
                           {story.category}
                         </span>
-                        <h4 className="text-sm font-extrabold text-white leading-snug line-clamp-1">{story.title}</h4>
-                        <p className="text-xs text-slate-300 mt-0.5">
-                          {story.school} · {story.date}
-                        </p>
                       </div>
                       <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="bg-white/95 text-slate-800 text-xs font-extrabold px-3 py-1 rounded-lg flex items-center gap-1 shadow-xs">
-                          <span className="material-symbols-outlined text-[15px]">open_in_new</span>
+                        <span className="bg-white/95 text-slate-800 text-[11px] font-extrabold px-2.5 py-0.5 rounded-md flex items-center gap-1 shadow-xs">
+                          <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                           Baca
                         </span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
 
-              {/* Row 3: Expanded Stories (3 col grid) */}
-              {isDocExpanded && documentaryStories.length > 4 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 animate-in fade-in duration-300">
-                  {documentaryStories.slice(4).map((story) => (
-                    <div
-                      key={story.id}
-                      onClick={() => setSelectedStory(story)}
-                      className="h-56 relative overflow-hidden rounded-2xl cursor-pointer group border border-slate-200 shadow-2xs"
-                    >
-                      <img
-                        src={story.image}
-                        alt={story.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      />
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent p-4 text-white">
-                        <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md self-start mb-1.5 border border-white/30 inline-block">
-                          {story.category}
-                        </span>
-                        <h4 className="text-sm font-extrabold text-white leading-snug line-clamp-1">{story.title}</h4>
-                        <p className="text-xs text-slate-300 mt-0.5">{story.school}</p>
+                    <div className="p-4 flex flex-col justify-between flex-1">
+                      <div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium mb-1.5">
+                          <span>{story.school}</span>
+                          <span>{story.date}</span>
+                        </div>
+                        <h3 className="text-sm font-extrabold text-slate-900 group-hover:text-[#e20113] transition-colors leading-snug line-clamp-2">
+                          {story.title}
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
+                          {story.caption}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <span className="text-[11px] font-semibold text-slate-400">Dokumentasi 2025</span>
+                        <span className="font-bold text-[#e20113] group-hover:underline">Baca Selengkapnya →</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Expand / Collapse Button for Stories */}
@@ -1346,6 +764,7 @@ export const HomePage: React.FC = () => {
                       <img
                         src={proj.image}
                         alt={proj.title}
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <span className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-xs text-slate-900 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shadow-2xs">
@@ -1485,7 +904,7 @@ export const HomePage: React.FC = () => {
 
               <div className="flex flex-wrap items-center gap-3 shrink-0">
                 <button
-                  onClick={() => navigate('/workspace')}
+                  onClick={() => navigate(isLoggedIn ? '/workspace' : '/login')}
                   className="inline-flex items-center gap-2 px-6 h-12 bg-white hover:bg-slate-50 text-[#0B1B3A] font-bold text-xs uppercase tracking-wider rounded-full transition-all shadow-md cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[18px] text-[#D7141F]">terminal</span>
@@ -1502,9 +921,7 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
         </section>
-      </>
-    )}
-  </main>
+      </main>
 
       {/* ══════════════════════════════════════════════════════════════════════════
           8. FOOTER (EDITORIAL LIGHT THEME)
@@ -1594,7 +1011,12 @@ export const HomePage: React.FC = () => {
             </div>
             <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
               <div className="aspect-[16/10] rounded-xl overflow-hidden bg-slate-100">
-                <img src={selectedProject.image} alt={selectedProject.title} className="w-full h-full object-cover" />
+                <img
+                  src={selectedProject.image}
+                  alt={selectedProject.title}
+                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="flex items-center gap-2">
                 <span className="bg-[#e20113] text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
@@ -1643,7 +1065,12 @@ export const HomePage: React.FC = () => {
             </div>
             <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
               <div className="aspect-[16/10] rounded-xl overflow-hidden bg-slate-100">
-                <img src={selectedStory.image} alt={selectedStory.title} className="w-full h-full object-cover" />
+                <img
+                  src={selectedStory.image}
+                  alt={selectedStory.title}
+                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="flex gap-2 text-xs text-slate-500 font-semibold">
                 <span>{selectedStory.school}</span>
@@ -1658,6 +1085,107 @@ export const HomePage: React.FC = () => {
                   <p className="text-xs font-bold text-slate-900 mt-2">— {selectedStory.quote.author}</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          MODAL: DAFTAR ANGGOTA TIM SISWA (READ-ONLY PUBLIC ROSTER)
+      ══════════════════════════════════════════════════════════════════════════ */}
+      {selectedRosterGroup && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/60">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="bg-[#e20113] text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    Kelompok {selectedRosterGroup.number}
+                  </span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    Kec. {selectedRosterGroup.district}
+                  </span>
+                </div>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  {selectedRosterGroup.schoolName}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Guru Pembimbing: <strong className="text-slate-700">{selectedRosterGroup.mentorName}</strong>
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedRosterGroup(null)}
+                className="w-8 h-8 rounded-full bg-white hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors border border-slate-200 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body: Student Roster List */}
+            <div className="p-6 overflow-y-auto space-y-2.5 flex-1">
+              <div className="flex items-center justify-between text-xs text-slate-400 font-semibold uppercase tracking-wider pb-1 border-b border-slate-100">
+                <span>Daftar Siswa Relawan SMK</span>
+                <span>Peran Tim</span>
+              </div>
+
+              {generateMockMembers(
+                selectedRosterGroup.number,
+                selectedRosterGroup.leaderName,
+                !selectedRosterGroup.leaderName.includes('Belum') && parseInt(selectedRosterGroup.number, 10) < 23
+              ).map((member, idx) => (
+                <div
+                  key={member.id}
+                  className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-colors ${
+                    member.isLeader
+                      ? 'bg-red-50/50 border-red-200/80'
+                      : 'bg-white border-slate-200/70'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                        member.isLeader
+                          ? 'bg-[#e20113] text-white'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {idx + 1}
+                    </div>
+                    <div className="truncate min-w-0">
+                      <div className="text-xs font-bold text-slate-900 truncate">
+                        {member.name}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono">
+                        NIS: {member.nis}
+                      </div>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 ${
+                      member.isLeader
+                        ? 'bg-[#e20113] text-white'
+                        : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {member.role}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-[11px] text-slate-400">
+                Data resmi MGMP & Skomda Mengajar 2026
+              </span>
+              <button
+                onClick={() => setSelectedRosterGroup(null)}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
             </div>
           </div>
         </div>

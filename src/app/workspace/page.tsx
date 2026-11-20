@@ -1,6 +1,7 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { DarkStagePillSwitcher } from '../../components/Navbar';
 import {
   Home,
   LayoutDashboard,
@@ -33,73 +34,40 @@ import {
   FileCheck,
   Award,
   Copy,
-  CheckCheck
+  CheckCheck,
+  LogOut
 } from 'lucide-react';
 
-// ─── PRESET DEFINITIONS FOR GROUPS & STAGES ───
-interface GroupPreset {
-  id: string;
-  groupNumber: string;
-  schoolName: string;
-  leaderName: string;
-  activeStage: number; // 1 to 6
-  membersReadyCount: number;
-  totalMembers: number;
-}
-
-const PRESETS: Record<string, GroupPreset> = {
-  'kel-03': {
-    id: 'kel-03',
-    groupNumber: '03',
-    schoolName: 'SMPN 1 Buduran',
-    leaderName: 'Nabila Putri Ramadhani',
-    activeStage: 4,
-    membersReadyCount: 5,
-    totalMembers: 8,
-  },
-  'kel-09': {
-    id: 'kel-09',
-    groupNumber: '09',
-    schoolName: 'SMPN 1 Taman',
-    leaderName: 'Dimas Surya Pratama',
-    activeStage: 2,
-    membersReadyCount: 8,
-    totalMembers: 8,
-  },
-  'kel-01': {
-    id: 'kel-01',
-    groupNumber: '01',
-    schoolName: 'SMPN 1 Sidoarjo',
-    leaderName: 'Ahmad Zaki Fauzan',
-    activeStage: 5,
-    membersReadyCount: 8,
-    totalMembers: 8,
-  },
-};
+const IMAGE_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Crect width='600' height='400' fill='%23f1f5f9'/%3E%3Ccircle cx='300' cy='180' r='40' fill='%23e2e8f0'/%3E%3Ctext x='50%25' y='65%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='15' font-weight='600' fill='%2394a3b8'%3EDokumentasi Skomda Mengajar%3C/text%3E%3C/svg%3E";
 
 export const WorkspacePage: React.FC = () => {
   const {
     navigate,
+    currentUser,
+    activeGroup,
     members,
     toggleMemberStatus,
     sprintTasks,
     moveTaskColumn,
     addTask,
-    showToast
+    bannerStatus,
+    bannerFeedback,
+    submitGroupFile,
+    supervisorMemo,
+    setIsBannerModalOpen,
+    showToast,
+    logout
   } = useApp();
 
-  // Active Group Preset & Stage State
-  const [selectedPresetId, setSelectedPresetId] = useState<string>('kel-03');
-  const currentGroup = PRESETS[selectedPresetId];
-  const [viewStage, setViewStage] = useState<number>(4);
+  // Scoped to the authenticated user's actual group
+  const currentGroup = activeGroup;
+  const activeStage = currentGroup.currentStep || 4;
+  const [viewStage, setViewStage] = useState<number>(activeStage);
 
-  // When group changes, auto-switch viewStage to that group's active stage
-  const handleSelectPreset = (presetId: string) => {
-    setSelectedPresetId(presetId);
-    const newGroup = PRESETS[presetId];
-    setViewStage(newGroup.activeStage);
-    showToast(`Beralih ke ${newGroup.groupNumber} (${newGroup.schoolName}) • Tahap 0${newGroup.activeStage} Aktif`, 'info');
-  };
+  // Sync active stage if group data updates
+  useEffect(() => {
+    setViewStage(activeStage);
+  }, [activeStage]);
 
   // Modals & Drawers state
   const [showKanbanModal, setShowKanbanModal] = useState(false);
@@ -122,19 +90,19 @@ export const WorkspacePage: React.FC = () => {
     },
     {
       id: 'p2',
-      title: 'Gerbang Utama SMPN 1',
+      title: `Gerbang Utama ${currentGroup.schoolName}`,
       tag: 'Gerbang Depan',
       subtext: 'Titik Roll Banner',
       img: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&auto=format&fit=crop&q=80'
     }
   ]);
 
-  // Calculations
-  const isArchiveMode = viewStage < currentGroup.activeStage;
-  const isActiveStage = viewStage === currentGroup.activeStage;
+  // Calculations for Stage Gating
+  const isArchiveMode = viewStage < activeStage;
+  const isActiveStage = viewStage === activeStage;
 
-  const validCount = currentGroup.membersReadyCount;
-  const totalMembers = currentGroup.totalMembers;
+  const validCount = members.filter((m) => m.status === 'valid').length;
+  const totalMembers = members.length || 8;
   const igProgressPercent = Math.round((validCount / totalMembers) * 100);
 
   const todoTasks = sprintTasks.filter((t) => t.column === 'todo');
@@ -144,7 +112,7 @@ export const WorkspacePage: React.FC = () => {
   // Copy survey link simulation
   const handleCopySurvey = () => {
     setCopiedSurvey(true);
-    showToast('Link kuesioner feedback SMPN 1 berhasil disalin ke clipboard!', 'success');
+    showToast(`Link kuesioner feedback ${currentGroup.schoolName} berhasil disalin!`, 'success');
     setTimeout(() => setCopiedSurvey(false), 2500);
   };
 
@@ -168,33 +136,33 @@ export const WorkspacePage: React.FC = () => {
 
   const handleUploadSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!uploadFileUrl.trim()) return;
+    submitGroupFile(
+      currentGroup.number,
+      uploadFileUrl.trim(),
+      `Berkas Tahap 0${viewStage} diunggah oleh ${currentUser?.name || currentGroup.leaderName}`
+    );
     setShowUploadModal(false);
-    showToast(`Berkas Tahap 0${viewStage} berhasil diunggah! Menunggu verifikasi pembimbing.`, 'success');
+    setUploadFileUrl('');
   };
 
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
-    addTask({
-      title: newTaskTitle.trim(),
-      assignee: currentGroup.leaderName.split(' ')[0],
-      deadline: '15 Feb',
-      column: 'todo'
-    });
+    addTask(newTaskTitle.trim(), 'medium', currentUser?.name || currentGroup.leaderName);
     setNewTaskTitle('');
-    showToast('Tugas baru ditambahkan ke papan kerja!', 'success');
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] text-slate-900 font-sans p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 justify-center items-start">
+    <div className="min-h-screen bg-[#F0F2F5] text-slate-900 font-sans p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 justify-center items-start overflow-x-hidden">
       {/* ══════════════════════════════════════════════════════════════════════════
           1. FLOATING LEFT ICON SIDEBAR (SLIM PILL, NO TEXT)
       ══════════════════════════════════════════════════════════════════════════ */}
       <aside className="hidden lg:flex w-16 shrink-0 bg-white rounded-full shadow-sm flex-col items-center py-6 gap-6 sticky top-8 z-30">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/home')}
           className="w-10 h-10 rounded-full bg-[#E50914] text-white flex items-center justify-center font-black text-xs shadow-md shadow-red-500/20 hover:scale-105 transition-transform cursor-pointer"
-          title="Beranda Utama Skomda Mengajar"
+          title="Beranda Komunitas Skomda Mengajar"
         >
           SM
         </button>
@@ -203,9 +171,9 @@ export const WorkspacePage: React.FC = () => {
 
         <div className="flex flex-col items-center gap-3">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/home')}
             className="w-11 h-11 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all cursor-pointer"
-            title="Beranda Utama"
+            title="Kembali ke Beranda"
           >
             <Home className="w-5 h-5" />
           </button>
@@ -235,11 +203,11 @@ export const WorkspacePage: React.FC = () => {
           </button>
 
           <button
-            onClick={() => showToast('Pengaturan Workspace', 'info')}
-            className="w-11 h-11 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all cursor-pointer"
-            title="Pengaturan"
+            onClick={() => logout()}
+            className="w-11 h-11 rounded-full flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
+            title="Keluar Akun"
           >
-            <Settings className="w-5 h-5" />
+            <LogOut className="w-5 h-5" />
           </button>
         </div>
       </aside>
@@ -247,142 +215,60 @@ export const WorkspacePage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════════════════════
           MAIN WORKSPACE AREA
       ══════════════════════════════════════════════════════════════════════════ */}
-      <div className="flex-1 max-w-[1400px] w-full flex flex-col gap-5">
+      <div className="flex-1 max-w-[1400px] w-full flex flex-col gap-5 overflow-x-hidden">
         {/* ─── FLOATING TOP HEADER ─── */}
         <header className="w-full bg-white rounded-full px-5 sm:px-6 py-3.5 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4">
           {/* Left Brand & Group Badge */}
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/home')}
               className="font-black text-sm tracking-tight text-slate-900 hover:text-[#E50914] transition-colors"
             >
               SKOMDA<span className="text-[#E50914]">.</span>
             </button>
             <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-              Kelompok {currentGroup.groupNumber}
+              Kelompok {currentGroup.number}
             </span>
           </div>
 
-          {/* Center: Stage Navigator Pill (Tahap 01 to Tahap 06 with Strict State Rules) */}
-          <div className="flex items-center bg-[#F0F2F5] p-1 rounded-full text-xs font-bold gap-1 overflow-x-auto max-w-full">
-            {[1, 2, 3, 4, 5, 6].map((stageNum) => {
-              const isPast = stageNum < currentGroup.activeStage;
-              const isCurrent = stageNum === currentGroup.activeStage;
-              const isFuture = stageNum > currentGroup.activeStage;
-              const isSelectedView = viewStage === stageNum;
-
-              if (isPast) {
-                // Completed Stage: Clickable with checkmark
-                return (
-                  <button
-                    key={stageNum}
-                    onClick={() => {
-                      setViewStage(stageNum);
-                      showToast(`Membuka arsip Tahap 0${stageNum} (Mode Lihat & Unduh)`, 'info');
-                    }}
-                    className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
-                      isSelectedView
-                        ? 'bg-emerald-600 text-white shadow-xs font-extrabold'
-                        : 'text-emerald-700 hover:bg-emerald-50 hover:text-emerald-900'
-                    }`}
-                    title={`Tahap 0${stageNum} Selesai • Klik untuk melihat arsip`}
-                  >
-                    <Check className={`w-3.5 h-3.5 ${isSelectedView ? 'text-white' : 'text-emerald-600'}`} />
-                    <span>Tahap 0{stageNum}</span>
-                  </button>
-                );
+          {/* Center: Stage Navigator Pill (Tahap 01 to Tahap 06 Dark Pill Capsule) */}
+          <DarkStagePillSwitcher
+            activeStage={activeStage}
+            viewStage={viewStage}
+            onSelectStage={(stageNum) => {
+              setViewStage(stageNum);
+              if (stageNum < activeStage) {
+                showToast(`Membuka arsip Tahap 0${stageNum} (Mode Lihat & Unduh)`, 'info');
               }
+            }}
+          />
 
-              if (isCurrent) {
-                // Active Stage: Brand Red with pulse dot
-                return (
-                  <button
-                    key={stageNum}
-                    onClick={() => setViewStage(stageNum)}
-                    className={`px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-extrabold transition-all cursor-pointer ${
-                      isSelectedView
-                        ? 'bg-[#E50914] text-white shadow-sm ring-2 ring-red-200'
-                        : 'bg-red-50 text-[#E50914] border border-red-200/80 hover:bg-red-100'
-                    }`}
-                    title={`Tahap 0${stageNum} Sedang Berjalan (Fase Aktif)`}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isSelectedView ? 'bg-white' : 'bg-[#E50914]'}`} />
-                    <span>Tahap 0{stageNum} (Active)</span>
-                  </button>
-                );
-              }
-
-              // Locked Future Stage: strictly disabled
-              return (
-                <button
-                  key={stageNum}
-                  disabled
-                  className="px-3 py-1.5 rounded-full text-slate-400 opacity-45 cursor-not-allowed flex items-center gap-1.5 select-none"
-                  title={`Tahap 0${stageNum} Terkunci (Selesaikan tahap sebelumnya terlebih dahulu)`}
-                >
-                  <Lock className="w-3 h-3" />
-                  <span>Tahap 0{stageNum}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Right Controls: Group Preset Simulator, Location Pill, Bell, Avatar */}
+          {/* Right Controls: School Badge, Notification Bell, User Avatar */}
           <div className="flex items-center gap-2.5">
-            {/* Multi-Group Simulation Switcher */}
-            <div className="flex items-center gap-1 bg-[#F0F2F5] p-1 rounded-full text-[11px] font-bold">
-              <span className="text-slate-400 px-1.5 font-mono text-[9px] uppercase">Grup:</span>
-              <button
-                onClick={() => handleSelectPreset('kel-03')}
-                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
-                  selectedPresetId === 'kel-03' ? 'bg-white text-[#E50914] shadow-2xs font-black' : 'text-slate-500 hover:text-slate-800'
-                }`}
-                title="Preset A: Kelompok 03 (SMPN 1 Buduran) - Tahap 04 Aktif"
-              >
-                03 (T4)
-              </button>
-              <button
-                onClick={() => handleSelectPreset('kel-09')}
-                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
-                  selectedPresetId === 'kel-09' ? 'bg-white text-[#E50914] shadow-2xs font-black' : 'text-slate-500 hover:text-slate-800'
-                }`}
-                title="Preset B: Kelompok 09 (SMPN 1 Taman) - Tahap 02 Aktif"
-              >
-                09 (T2)
-              </button>
-              <button
-                onClick={() => handleSelectPreset('kel-01')}
-                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
-                  selectedPresetId === 'kel-01' ? 'bg-white text-[#E50914] shadow-2xs font-black' : 'text-slate-500 hover:text-slate-800'
-                }`}
-                title="Preset C: Kelompok 01 (SMPN 1 Sidoarjo) - Tahap 05 Aktif"
-              >
-                01 (T5)
-              </button>
-            </div>
-
-            <div className="hidden 2xl:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
               <MapPin className="w-3.5 h-3.5 text-[#E50914]" />
-              <span>{currentGroup.schoolName}</span>
+              <span className="truncate max-w-[150px]">{currentGroup.schoolName}</span>
             </div>
 
             <button
-              onClick={() => showToast('Tidak ada notifikasi baru', 'info')}
+              onClick={() => showToast(`Status Kelompok: ${currentGroup.statusLabel || 'Sesuai Jadwal'}`, 'info')}
               className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer relative"
               title="Notifikasi"
             >
               <Bell className="w-4 h-4" />
-              <span className="w-2 h-2 rounded-full bg-[#E50914] absolute top-2 right-2 border-2 border-white" />
+              {bannerStatus === 'revision' && (
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 absolute top-2 right-2 border-2 border-white animate-ping" />
+              )}
             </button>
 
             <div
               className="flex items-center gap-2 pl-1 cursor-pointer"
-              onClick={() => showToast(`Ketua Regu: ${currentGroup.leaderName}`, 'info')}
+              onClick={() => showToast(`Ketua Regu: ${currentGroup.leaderName} (Kel. ${currentGroup.number})`, 'info')}
             >
               <div className="w-9 h-9 rounded-full bg-[#E50914] text-white flex items-center justify-center font-bold text-xs ring-2 ring-red-100 shadow-sm">
                 {currentGroup.leaderName.charAt(0)}
               </div>
-              <span className="hidden sm:inline-block text-xs font-bold text-slate-800">
+              <span className="hidden sm:inline-block text-xs font-bold text-slate-800 truncate max-w-[120px]">
                 {currentGroup.leaderName.split(' ')[0]}
               </span>
             </div>
@@ -400,10 +286,10 @@ export const WorkspacePage: React.FC = () => {
               </span>
             </div>
             <button
-              onClick={() => setViewStage(currentGroup.activeStage)}
+              onClick={() => setViewStage(activeStage)}
               className="px-4 py-1.5 bg-white hover:bg-emerald-100/60 text-emerald-800 font-extrabold rounded-full border border-emerald-300 transition-colors cursor-pointer shrink-0"
             >
-              Kembali ke Tahap Aktif (0{currentGroup.activeStage}) →
+              Kembali ke Tahap Aktif (0{activeStage}) →
             </button>
           </div>
         )}
@@ -424,11 +310,26 @@ export const WorkspacePage: React.FC = () => {
             {/* Content (Left ~60%) */}
             <div className="relative z-10 w-full md:w-[58%] flex flex-col justify-between h-full space-y-6">
               <div>
-                {/* Status Pill */}
+                {/* Status Pill with Synchronized Live Status */}
                 {isArchiveMode ? (
                   <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-extrabold border border-emerald-200 mb-4 shadow-2xs">
                     <Check className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Telah Disahkan & Disetujui</span>
+                  </div>
+                ) : bannerStatus === 'approved' ? (
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-extrabold border border-emerald-200 mb-4 shadow-2xs">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Disetujui Admin Kurikulum</span>
+                  </div>
+                ) : bannerStatus === 'revision' ? (
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-800 text-xs font-extrabold border border-amber-200 mb-4 shadow-2xs">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Perlu Revisi Pembimbing</span>
+                  </div>
+                ) : bannerStatus === 'pending' ? (
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-50 text-[#E50914] text-xs font-extrabold border border-red-100/80 mb-4 shadow-2xs">
+                    <span className="w-2 h-2 rounded-full bg-[#E50914] animate-pulse" />
+                    <span>Menunggu Review Kurikulum</span>
                   </div>
                 ) : (
                   <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-50 text-[#E50914] text-xs font-extrabold border border-red-100/80 mb-4 shadow-2xs">
@@ -456,15 +357,19 @@ export const WorkspacePage: React.FC = () => {
 
                 {/* Dynamic Description per Stage */}
                 <p className="text-xs sm:text-sm text-slate-500 mt-3 leading-relaxed">
-                  {viewStage === 1 || viewStage === 2
-                    ? 'Pemetaan pembagian tugas 8 siswa relawan kelas XII (RPL & TKJ) meliputi koordinator modul ajar, desainer media, notulen, dan tim dokumentasi lapangan.'
-                    : viewStage === 3
-                    ? 'Penyusunan RPP 2 pertemuan komputasi kreatif berbasis Kurikulum Merdeka Fase D, lengkap dengan lembar aktivitas praktikum siswa SMP.'
-                    : viewStage === 4
-                    ? 'Media promosi visual utama yang dipajang di gerbang aula SMPN 1 Buduran saat kedatangan regu relawan SMK Telkom Sidoarjo.'
-                    : viewStage === 5
-                    ? 'Pendampingan langsung di laboratorium komputer sekolah mitra. Siswa dan guru SMP memindai QR code evaluasi kepuasan mengajar.'
-                    : 'Kompilasi dokumentasi, rekap skor kepuasan 40+ siswa SMP, bukti karya digital, dan lembar pertanggungjawaban program.'}
+                  {isArchiveMode
+                    ? 'Seluruh artefak berkas pada tahap ini telah rampung, diverifikasi, dan diarsipkan untuk kebutuhan pertanggungjawaban.'
+                    : bannerStatus === 'revision'
+                    ? bannerFeedback || 'Catatan dari Guru Pembimbing: Mohon periksa catatan revisi dan unggah perbaikan.'
+                    : bannerStatus === 'approved'
+                    ? 'Berkas telah disetujui resmi oleh Admin Kurikulum. Desain siap untuk dicetak fisik dan dipasang di sekolah mitra.'
+                    : bannerStatus === 'pending'
+                    ? 'Berkas telah berhasil dikirimkan ke Admin Kurikulum. Sedang dalam antrean verifikasi teknis.'
+                    : (viewStage === 4
+                      ? 'Media promosi visual utama yang dipajang di gerbang aula SMP mitra saat kedatangan regu relawan SMK Telkom Sidoarjo.'
+                      : viewStage === 5
+                      ? 'Pendampingan langsung di laboratorium komputer sekolah mitra. Siswa dan guru SMP memindai QR code evaluasi kepuasan.'
+                      : 'Kompilasi dokumentasi, rekap skor kepuasan siswa SMP, bukti karya digital, dan lembar pertanggungjawaban program.')}
                 </p>
 
                 {/* Meta details */}
@@ -482,14 +387,63 @@ export const WorkspacePage: React.FC = () => {
 
               {/* Action Buttons: Adapts to Active vs Archive Mode */}
               <div className="pt-2 flex flex-wrap items-center gap-4">
-                {isArchiveMode ? (
-                  <button
-                    onClick={() => showToast(`Mengunduh berkas resmi Tahap 0${viewStage} yang telah disahkan...`, 'success')}
-                    className="px-7 py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Unduh Berkas Disetujui</span>
-                  </button>
+                {isArchiveMode || bannerStatus === 'approved' ? (
+                  <>
+                    <button
+                      onClick={() => showToast(`Mengunduh berkas resmi Tahap 0${viewStage} yang telah disahkan...`, 'success')}
+                      className="px-7 py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Unduh Berkas Disetujui</span>
+                    </button>
+                    {viewStage === 4 && (
+                      <button
+                        onClick={() => setIsBannerModalOpen(true)}
+                        className="text-xs font-bold text-slate-600 hover:text-[#E50914] transition-colors flex items-center gap-1.5 cursor-pointer py-2"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        <span>Pratinjau Desain Cetak</span>
+                      </button>
+                    )}
+                  </>
+                ) : bannerStatus === 'revision' ? (
+                  <>
+                    <button
+                      onClick={() => setShowUploadModal(true)}
+                      className="px-7 py-3.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Unggah Revisi</span>
+                    </button>
+                    {viewStage === 4 && (
+                      <button
+                        onClick={() => setIsBannerModalOpen(true)}
+                        className="text-xs font-bold text-slate-600 hover:text-[#E50914] transition-colors flex items-center gap-1.5 cursor-pointer py-2"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        <span>Lihat Berkas Sebelumnya</span>
+                      </button>
+                    )}
+                  </>
+                ) : bannerStatus === 'pending' ? (
+                  <>
+                    <button
+                      onClick={() => setShowUploadModal(true)}
+                      className="px-7 py-3.5 rounded-full bg-[#E50914] hover:bg-red-700 text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Unggah Versi Baru</span>
+                    </button>
+                    {viewStage === 4 && (
+                      <button
+                        onClick={() => setIsBannerModalOpen(true)}
+                        className="text-xs font-bold text-slate-600 hover:text-[#E50914] transition-colors flex items-center gap-1.5 cursor-pointer py-2"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        <span>Pratinjau Berkas</span>
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <>
                     <button
@@ -498,7 +452,7 @@ export const WorkspacePage: React.FC = () => {
                     >
                       <Upload className="w-4 h-4 group-hover/btn:-translate-y-0.5 transition-transform" />
                       <span>
-                        {viewStage === 4 ? 'Unggah Desain' : viewStage === 5 ? 'Unggah Berita Acara' : viewStage === 6 ? 'Ekspor LPJ (PDF)' : 'Unggah Dokumen'}
+                        {viewStage === 4 ? 'Unggah Desain' : viewStage === 5 ? 'Unggah Berita Acara' : 'Unggah Dokumen'}
                       </span>
                     </button>
 
@@ -525,9 +479,9 @@ export const WorkspacePage: React.FC = () => {
             </div>
 
             {/* 3. Visual Element (Right ~40%) - Dynamic Isometric Perspective & Edge Bleed */}
-            <div className="relative w-full md:w-[42%] h-72 md:h-full flex items-center justify-end pointer-events-none select-none mt-6 md:mt-0">
+            <div className="relative w-full md:w-[42%] h-72 md:h-full flex items-center justify-center md:justify-end pointer-events-none select-none mt-6 md:mt-0 overflow-hidden">
               <div
-                className="relative w-56 sm:w-64 md:w-72 h-[390px] transition-transform duration-700 ease-out group-hover:scale-105"
+                className="relative w-48 sm:w-60 md:w-72 h-[320px] sm:h-[370px] md:h-[390px] transition-transform duration-700 ease-out group-hover:scale-105"
                 style={{
                   perspective: '1200px',
                   transformStyle: 'preserve-3d',
@@ -543,7 +497,7 @@ export const WorkspacePage: React.FC = () => {
                 <div
                   className="relative w-full h-full rounded-[26px] bg-gradient-to-b from-[#E50914] via-[#B80F1A] to-[#18181B] text-white p-5 flex flex-col justify-between shadow-2xl border border-white/20 overflow-hidden"
                   style={{
-                    transform: 'perspective(1000px) rotateY(-18deg) rotateX(10deg) rotateZ(3deg) skewY(-3deg) translate(32px, 48px)',
+                    transform: 'perspective(1000px) rotateY(-18deg) rotateX(10deg) rotateZ(3deg) skewY(-3deg) translate(16px, 32px)',
                     boxShadow: '0 25px 50px -12px rgba(184, 15, 26, 0.4), 0 12px 24px -8px rgba(0,0,0,0.3)',
                   }}
                 >
@@ -567,7 +521,7 @@ export const WorkspacePage: React.FC = () => {
                     </div>
 
                     <div className="pt-1">
-                      <span className="text-[9px] font-bold text-red-200 tracking-wider uppercase block">
+                      <span className="text-[9px] font-bold text-red-200 tracking-wider uppercase block truncate">
                         {currentGroup.schoolName}
                       </span>
                       <h3 className="text-base sm:text-lg font-black leading-tight tracking-tight text-white drop-shadow-sm">
@@ -594,7 +548,7 @@ export const WorkspacePage: React.FC = () => {
                         </div>
                         <div className="flex-1 pl-3 text-left space-y-1">
                           <span className="text-[9px] font-bold text-yellow-300 block">Pindai Evaluasi</span>
-                          <p className="text-[10px] text-white/90 leading-tight">Google Form Siswa Kelas VIII</p>
+                          <p className="text-[10px] text-white/90 leading-tight">Google Form Siswa</p>
                           <span className="text-[8px] text-emerald-300 font-mono block">Aktif di Lab</span>
                         </div>
                       </div>
@@ -609,7 +563,7 @@ export const WorkspacePage: React.FC = () => {
                         </div>
                         <p className="text-[10px] text-white/90 font-medium leading-snug">
                           {viewStage <= 2
-                            ? '8 Siswa Relawan Terdaftar'
+                            ? `${members.length} Siswa Relawan Terdaftar`
                             : viewStage === 3
                             ? 'Silabus Komputasi Kreatif'
                             : viewStage === 4
@@ -631,7 +585,7 @@ export const WorkspacePage: React.FC = () => {
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       <span>{isArchiveMode ? 'Arsip Terverifikasi' : 'Fase Berjalan'}</span>
                     </div>
-                    <span>{viewStage === 5 ? 'Lab Komputer' : 'Kelompok ' + currentGroup.groupNumber}</span>
+                    <span>Kelompok {currentGroup.number}</span>
                   </div>
 
                   {/* Bottom roll base */}
@@ -644,7 +598,7 @@ export const WorkspacePage: React.FC = () => {
                 <div
                   className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-48 h-6 flex justify-between pointer-events-none"
                   style={{
-                    transform: 'perspective(1000px) rotateY(-18deg) rotateX(10deg) rotateZ(3deg) translate(32px, 48px)',
+                    transform: 'perspective(1000px) rotateY(-18deg) rotateX(10deg) rotateZ(3deg) translate(16px, 32px)',
                   }}
                 >
                   <div className="w-1.5 h-6 bg-slate-500 rounded-full transform -rotate-25 shadow-md" />
@@ -677,25 +631,17 @@ export const WorkspacePage: React.FC = () => {
 
             <div className="my-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-100/80">
               <p className="text-xs text-slate-700 italic leading-relaxed">
-                {viewStage <= 2
-                  ? '"Selamat bertugas tim relawan! Pastikan pembagian divisi tugas merata antara perancang materi dan tim kreatif dokumentasi."'
-                  : viewStage === 3
-                  ? '"Struktur materi RPP sudah disesuaikan dengan Fase D. Jangan lupa sertakan sesi tanya jawab interaktif pada slide penutup."'
-                  : viewStage === 4
-                  ? '"Perhatikan perletakan sound system aula SMPN 1 Buduran. Pastikan roll banner terpasang rapi di pintu masuk utama."'
-                  : viewStage === 5
-                  ? '"Tiba di laboratorium komputer 30 menit sebelum sesi dimulai. Kenakan almamater lengkap dan pandu siswa mengisi QR feedback."'
-                  : '"Kerja luar biasa untuk seluruh anggota kelompok! Hasil karya siswa SMP dan laporan pertanggungjawaban telah disahkan sekolah."'}
+                {bannerFeedback ? `"${bannerFeedback}"` : supervisorMemo ? `"${supervisorMemo}"` : '"Harap perhatikan seluruh ketentuan teknis modul dan koordinasi aktif bersama guru pembimbing lapangan."'}
               </p>
             </div>
 
             <div className="flex items-center justify-between pt-1 text-xs">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-[#E50914] text-white flex items-center justify-center font-bold text-[11px] shadow-2xs">
-                  SW
+                  BH
                 </div>
                 <div>
-                  <p className="font-bold text-slate-900 leading-none">Dra. Sri Wahyuni, M.Pd</p>
+                  <p className="font-bold text-slate-900 leading-none">{currentGroup.mentorName}</p>
                   <span className="text-[10px] text-slate-400">Guru Pembimbing Lapangan</span>
                 </div>
               </div>
@@ -802,13 +748,13 @@ export const WorkspacePage: React.FC = () => {
               <div>
                 <h3 className="text-2xl font-black text-white tracking-tight">
                   {viewStage <= 2
-                    ? '8 / 8 NIS Valid'
+                    ? `${totalMembers} / ${totalMembers} Valid`
                     : viewStage === 3
                     ? '4 / 4 Bab Siap'
                     : viewStage === 4
                     ? `${validCount} / ${totalMembers} Siap`
                     : viewStage === 5
-                    ? '8 / 8 Relawan Hadir'
+                    ? `${totalMembers} / ${totalMembers} Hadir`
                     : '4.8 / 5.0 Sangat Puas'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
@@ -889,6 +835,10 @@ export const WorkspacePage: React.FC = () => {
                   <img
                     src={photo.img}
                     alt={photo.title}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = IMAGE_FALLBACK;
+                    }}
                     className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-2 text-white">
@@ -979,7 +929,7 @@ export const WorkspacePage: React.FC = () => {
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#E50914]">
-                  Tahap 0{viewStage} • Papan Kanban Kelompok {currentGroup.groupNumber}
+                  Tahap 0{viewStage} • Papan Kanban Kelompok {currentGroup.number}
                 </span>
                 <h3 className="text-xl font-black text-slate-900 tracking-tight">
                   Manajemen Tugas & Sprint Tim
@@ -993,22 +943,24 @@ export const WorkspacePage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCreateTask} className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Tambahkan tugas sprint baru..."
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-                className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs focus:outline-none focus:border-[#E50914]"
-              />
-              <button
-                type="submit"
-                className="px-5 py-2.5 bg-[#E50914] text-white font-bold text-xs rounded-2xl hover:bg-red-700 transition-colors flex items-center gap-1.5 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Tambah</span>
-              </button>
-            </form>
+            {!isArchiveMode && (
+              <form onSubmit={handleCreateTask} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Tambahkan tugas sprint baru..."
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs focus:outline-none focus:border-[#E50914]"
+                />
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-[#E50914] text-white font-bold text-xs rounded-2xl hover:bg-red-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tambah</span>
+                </button>
+              </form>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-3">
@@ -1024,15 +976,22 @@ export const WorkspacePage: React.FC = () => {
                       <p className="text-xs font-bold text-slate-800">{t.title}</p>
                       <div className="flex items-center justify-between text-[10px] text-slate-400">
                         <span>{t.assignee}</span>
-                        <button
-                          onClick={() => moveTaskColumn(t.id, 'in_progress')}
-                          className="text-[#E50914] font-bold hover:underline cursor-pointer"
-                        >
-                          Mulai →
-                        </button>
+                        {!isArchiveMode && (
+                          <button
+                            onClick={() => moveTaskColumn(t.id, 'in_progress')}
+                            className="text-[#E50914] font-bold hover:underline cursor-pointer"
+                          >
+                            Mulai →
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
+                  {todoTasks.length === 0 && (
+                    <div className="py-6 text-center text-xs text-slate-400 font-medium">
+                      Tidak ada tugas to do
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1049,15 +1008,22 @@ export const WorkspacePage: React.FC = () => {
                       <p className="text-xs font-bold text-slate-800">{t.title}</p>
                       <div className="flex items-center justify-between text-[10px] text-slate-400">
                         <span>{t.assignee}</span>
-                        <button
-                          onClick={() => moveTaskColumn(t.id, 'done')}
-                          className="text-emerald-600 font-bold hover:underline cursor-pointer"
-                        >
-                          Selesai ✓
-                        </button>
+                        {!isArchiveMode && (
+                          <button
+                            onClick={() => moveTaskColumn(t.id, 'done')}
+                            className="text-emerald-600 font-bold hover:underline cursor-pointer"
+                          >
+                            Selesai ✓
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
+                  {inProgressTasks.length === 0 && (
+                    <div className="py-6 text-center text-xs text-slate-400 font-medium">
+                      Tidak ada tugas dalam proses
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1094,7 +1060,7 @@ export const WorkspacePage: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#E50914]">
-                  Kelompok {currentGroup.groupNumber} • {currentGroup.schoolName}
+                  Kelompok {currentGroup.number} • {currentGroup.schoolName}
                 </span>
                 <h3 className="text-lg font-black text-slate-900">
                   Anggota Regu & Status Verifikasi
@@ -1114,8 +1080,14 @@ export const WorkspacePage: React.FC = () => {
                 return (
                   <div
                     key={m.id}
-                    onClick={() => toggleMemberStatus(m.id)}
-                    className="p-3 rounded-2xl border border-slate-200 hover:border-slate-300 bg-slate-50 flex items-center justify-between cursor-pointer transition-colors"
+                    onClick={() => {
+                      if (!isArchiveMode) {
+                        toggleMemberStatus(m.id);
+                      }
+                    }}
+                    className={`p-3 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between transition-colors ${
+                      !isArchiveMode ? 'hover:border-slate-300 cursor-pointer' : 'cursor-default'
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${isValid ? 'bg-emerald-600' : 'bg-slate-400'}`}>
@@ -1180,7 +1152,7 @@ export const WorkspacePage: React.FC = () => {
               </div>
 
               <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-slate-500 text-[11px] leading-relaxed">
-                💡 Berkas akan otomatis disinkronkan ke panel Guru Pembimbing untuk verifikasi dan persetujuan.
+                💡 Berkas akan otomatis masuk ke Antrean Review Admin Kurikulum & Guru Pembimbing untuk verifikasi teknis.
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
