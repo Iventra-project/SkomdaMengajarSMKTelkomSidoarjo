@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../../context/AppContext';
-import { Navbar } from '../../../components/Navbar';
 import { BrandLogo } from '../../../components/BrandLogo';
 import {
   ShieldCheck,
@@ -16,7 +15,16 @@ import {
   CheckCircle2,
   School,
   FileCheck2,
+  Sparkles,
+  Users,
+  Award,
+  Layers,
+  HelpCircle,
+  Building2,
+  Check,
 } from 'lucide-react';
+
+const FALLBACK_PHOTO = 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=800&auto=format&fit=crop&q=80';
 
 export const AdminLoginPage: React.FC = () => {
   const { navigate, currentUser, showToast, loginAdmin } = useApp();
@@ -79,12 +87,16 @@ export const AdminLoginPage: React.FC = () => {
   };
 
   return (
-    <div className="w-full bg-[#0d0e11] font-sans text-slate-100 antialiased min-h-screen flex flex-col justify-between selection:bg-[#E50914] selection:text-white">
+    <div className="w-full bg-[#F8F9FA] font-sans text-slate-800 antialiased min-h-screen flex flex-col justify-between selection:bg-[#E50914] selection:text-white relative overflow-x-hidden">
+      {/* Decorative Soft Ambient Radial Glows */}
+      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-red-100/50 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 left-1/6 w-[450px] h-[450px] bg-slate-200/60 rounded-full blur-3xl pointer-events-none" />
+
       {/* ══════════════════════════════════════════════════════════════════════════
-          FLOATING DARK PILL NAVBAR (ADMIN PORTAL)
+          1. FLOATING DARK PILL NAVBAR
       ══════════════════════════════════════════════════════════════════════════ */}
       <header className="sticky top-4 z-50 w-full max-w-5xl mx-auto px-4">
-        <div className="rounded-full bg-[#141416]/95 backdrop-blur-md border border-white/10 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.5)] px-5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between transition-all">
+        <div className="rounded-full bg-[#141416]/95 backdrop-blur-md border border-white/10 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.25)] px-5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between transition-all">
           <button
             onClick={() => navigate('/')}
             className="inline-flex items-center gap-2 text-xs font-semibold tracking-wider text-zinc-300 hover:text-white transition-colors cursor-pointer group"
@@ -96,106 +108,206 @@ export const AdminLoginPage: React.FC = () => {
           </button>
 
           <div className="flex items-center gap-2.5">
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold tracking-wider uppercase">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold tracking-wider uppercase">
               <ShieldCheck className="w-3.5 h-3.5" />
-              Portal Guru & Kurikulum
+              Portal Guru &amp; Kurikulum
             </span>
-            <div className="w-7 h-7 rounded-full bg-[#E50914] text-white flex items-center justify-center font-black text-xs shadow-[0_0_12px_rgba(229,9,20,0.6)]">
+            <div className="w-7 h-7 rounded-full bg-[#E50914] text-white flex items-center justify-center font-black text-xs shadow-[0_0_12px_rgba(229,9,20,0.5)]">
               GP
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Admin Login Workspace */}
-      <main className="flex-1 w-full flex items-center justify-center p-6 md:p-12">
-        <div className="w-full max-w-5xl mx-auto py-6">
+      {/* ══════════════════════════════════════════════════════════════════════════
+          2. MAIN WORKSPACE: TWO-COLUMN CRISP BENTO CARD LAYOUT
+      ══════════════════════════════════════════════════════════════════════════ */}
+      <main className="flex-1 w-full flex items-center justify-center p-4 sm:p-6 md:p-10 relative z-10">
+        <div className="w-full max-w-6xl mx-auto py-4 sm:py-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
-            {/* Left Column: Authoritative Editorial Panel */}
-            <div className="lg:col-span-5 relative flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[#18191f] to-[#121316] rounded-3xl p-8 lg:p-10 border border-white/10 shadow-2xl">
-              {/* Crimson Glow Accent */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#E50914]/15 rounded-full blur-3xl pointer-events-none" />
+            {/* ──────────────────────────────────────────────────────────────────
+                LEFT COLUMN (lg:col-span-6): RICH VISUAL SHOWCASE & AUTHORITY HUB
+            ────────────────────────────────────────────────────────────────── */}
+            <div className="lg:col-span-6 flex flex-col justify-between bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xl shadow-slate-200/60 relative overflow-hidden">
+              {/* Subtle top red glow bar */}
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#E50914] via-[#D7141F] to-[#b4000c]" />
 
-              <div className="relative z-10 space-y-5">
-                <div className="flex items-center gap-2.5">
-                  <span className="bg-[#E50914] text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full tracking-widest shadow-sm">
-                    OTORISASI RESMI
-                  </span>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                    DIREKTORAT KURIKULUM
+              <div className="space-y-5">
+                {/* Brand & Badges */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <BrandLogo size="md" />
+                  <span className="bg-red-50 text-[#E50914] border border-red-200/80 text-[10px] font-extrabold uppercase px-3 py-1 rounded-full tracking-wider flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-[#E50914]" />
+                    OTORISASI RESMI KURIKULUM
                   </span>
                 </div>
 
+                {/* Editorial Title & Subtitle */}
                 <div>
-                  <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tight leading-tight">
-                    PORTAL OTORISASI GURU PEMBIMBING & ADMIN KURIKULUM
+                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+                    Portal Otorisasi Guru Pembimbing &amp; Admin Kurikulum
                   </h1>
-                  <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
-                    Sistem kendali verifikasi modul, monitoring 24 kelompok relawan, review banner, dan penilaian lapangan Skomda Mengajar 2026.
+                  <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                    Pusat kendali dan supervisi terpusat untuk memverifikasi modul ajar, meninjau rancangan X-Banner, memantau 24 kelompok relawan, serta mengesahkan luaran di 12 SMP mitra.
                   </p>
                 </div>
 
-                {/* Verification Factors Checklist */}
-                <div className="pt-2 space-y-3">
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-                    <div className="w-8 h-8 rounded-lg bg-[#E50914]/20 text-[#E50914] flex items-center justify-center shrink-0">
-                      <School className="w-4 h-4" />
+                {/* ─── VISUAL SHOWCASE MODULE: EDITORIAL PHOTO FRAME WITH FLOATING PILLS ─── */}
+                <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm group">
+                  <img
+                    src="https://images.unsplash.com/photo-1577896851231-70ef18881754?w=1000&auto=format&fit=crop&q=80"
+                    alt="Sesi Bimbingan & Supervisi Guru Skomda Mengajar"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = FALLBACK_PHOTO;
+                    }}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-103"
+                  />
+
+                  {/* Gradient Scrim */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent p-4 flex flex-col justify-between">
+                    {/* Top Floating Pill */}
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold border border-white/20">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        Sesi Supervisi Lapangan Aktif
+                      </span>
+                      <span className="text-[10px] font-extrabold text-white/90 bg-red-600 px-2 py-0.5 rounded-full">
+                        2026
+                      </span>
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-white">NIP / Email Institusi</div>
-                      <div className="text-[11px] text-zinc-400">Verifikasi identitas resmi tenaga pendidik</div>
+
+                    {/* Bottom Floating Card */}
+                    <div className="p-3 rounded-xl bg-white/95 backdrop-blur-md border border-white/40 shadow-lg text-slate-900 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-red-50 text-[#E50914] flex items-center justify-center font-black text-xs shrink-0">
+                          SM
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-black text-slate-900 truncate">
+                            SMK Telkom Sidoarjo Mengajar
+                          </div>
+                          <div className="text-[10px] text-slate-500 truncate">
+                            12 SMP Mitra • 24 Kelompok Terbimbing
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full shrink-0">
+                        Terkonfirmasi
+                      </span>
                     </div>
                   </div>
+                </div>
 
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                      <Lock className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-white">Kredensial Sandi</div>
-                      <div className="text-[11px] text-zinc-400">Enkripsi sesi berlapis sesuai standar sekolah</div>
-                    </div>
-                  </div>
+                {/* ─── 3-FACTOR VISUAL INFOGRAPHIC PROGRESSION ─── */}
+                <div className="space-y-2 pt-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                    PROTOKOL VERIFIKASI 3-FAKTOR (3FA)
+                  </span>
 
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-                      <KeyRound className="w-4 h-4" />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {/* Step 1 */}
+                    <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="w-6 h-6 rounded-lg bg-red-100 text-[#E50914] flex items-center justify-center">
+                          <School className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[10px] font-mono font-extrabold text-slate-400">
+                          01
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900">
+                          NIP / Email
+                        </div>
+                        <div className="text-[10px] text-slate-500 leading-tight">
+                          Identitas resmi pendidik
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-white">PIN Kurikulum 6 Digit</div>
-                      <div className="text-[11px] text-zinc-400">Kode otorisasi delegasi surat tugas aktif</div>
+
+                    {/* Step 2 */}
+                    <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                          <Lock className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[10px] font-mono font-extrabold text-slate-400">
+                          02
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900">
+                          Kata Sandi
+                        </div>
+                        <div className="text-[10px] text-slate-500 leading-tight">
+                          Enkripsi sesi berlapis
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Step 3 */}
+                    <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                          <KeyRound className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[10px] font-mono font-extrabold text-slate-400">
+                          03
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900">
+                          PIN Kurikulum
+                        </div>
+                        <div className="text-[10px] text-slate-500 leading-tight">
+                          Otorisasi 6 digit aktif
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Security Footnote */}
-              <div className="relative z-10 pt-8 mt-6 border-t border-white/10 text-[11px] text-zinc-500 flex items-center justify-between">
-                <span>SMK Telkom Sidoarjo</span>
-                <span className="font-mono text-zinc-400">v2.6-SECURED</span>
+              {/* Bottom Authority Micro-Metrics */}
+              <div className="pt-4 mt-4 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
+                <div className="p-2 rounded-xl bg-slate-50/70 border border-slate-100">
+                  <div className="text-sm font-black text-slate-900">12 SMP</div>
+                  <div className="text-[10px] text-slate-500">Sekolah Mitra</div>
+                </div>
+                <div className="p-2 rounded-xl bg-slate-50/70 border border-slate-100">
+                  <div className="text-sm font-black text-slate-900">24 Tim</div>
+                  <div className="text-[10px] text-slate-500">Relawan Terpantau</div>
+                </div>
+                <div className="p-2 rounded-xl bg-slate-50/70 border border-slate-100">
+                  <div className="text-sm font-black text-emerald-700">100%</div>
+                  <div className="text-[10px] text-slate-500">Terenkripsi SSL</div>
+                </div>
               </div>
             </div>
 
-            {/* Right Column: 3-Factor Verification Card */}
-            <div className="lg:col-span-7 flex flex-col justify-center bg-[#14151a] rounded-3xl p-8 lg:p-10 border border-white/10 shadow-2xl relative">
+            {/* ──────────────────────────────────────────────────────────────────
+                RIGHT COLUMN (lg:col-span-6): CRISP 3-FACTOR VERIFICATION FORM
+            ────────────────────────────────────────────────────────────────── */}
+            <div className="lg:col-span-6 flex flex-col justify-center bg-white rounded-3xl p-6 sm:p-8 lg:p-10 border border-slate-200/80 shadow-xl shadow-slate-200/60 relative">
               {/* Prominent Student Rejection Warning Banner */}
               {isStudentBlocked && (
-                <div className="mb-6 p-4 rounded-2xl bg-rose-950/80 border-2 border-rose-500/60 shadow-[0_0_24px_rgba(225,29,72,0.3)] animate-in fade-in zoom-in-95 duration-200">
+                <div className="mb-6 p-4 rounded-2xl bg-rose-50 border-2 border-rose-300 shadow-sm animate-in fade-in zoom-in-95 duration-200">
                   <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-md">
+                    <div className="w-9 h-9 rounded-xl bg-[#E50914] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                       <AlertTriangle className="w-5 h-5" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="text-xs font-black text-rose-200 uppercase tracking-wider">
-                        Akses Dilarang: Portal Khusus Guru & Kurikulum
+                      <h4 className="text-xs font-black text-rose-900 uppercase tracking-wider">
+                        Akses Dilarang: Portal Khusus Guru &amp; Kurikulum
                       </h4>
-                      <p className="text-xs text-rose-300 mt-1 leading-relaxed">
-                        Halaman ini khusus Guru Pembimbing & Koordinator Kurikulum. Siswa wajib masuk melalui halaman Login Ketua.
+                      <p className="text-xs text-rose-800 mt-1 leading-relaxed">
+                        Halaman ini khusus Guru Pembimbing &amp; Koordinator Kurikulum. Siswa wajib masuk melalui halaman Login Ketua.
                       </p>
                       <button
                         type="button"
                         onClick={() => navigate('/login')}
-                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold uppercase tracking-wider transition-all shadow-md cursor-pointer"
+                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#E50914] hover:bg-[#b4000c] text-white text-xs font-bold uppercase tracking-wider transition-all shadow-xs cursor-pointer"
                       >
                         <span>Kembali ke Login Ketua</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -205,24 +317,24 @@ export const AdminLoginPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Header Title */}
+              {/* Form Title & Badge */}
               <div className="mb-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-[#E50914] text-[10px] font-extrabold uppercase tracking-wider mb-2">
-                  <ShieldCheck className="w-3 h-3" />
-                  3-Factor Authentication
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-[#E50914] text-[10px] font-extrabold uppercase tracking-wider border border-red-200 mb-2">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  3-Factor Authentication Gateway
                 </div>
-                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
                   Masuk Sesi Guru Pembimbing
                 </h2>
-                <p className="text-xs text-zinc-400 mt-1">
-                  Masukkan NIP/Email institusi, kata sandi, dan PIN Otorisasi Kurikulum 6 digit.
+                <p className="text-xs text-slate-500 mt-1">
+                  Masukkan NIP / Email institusi, kata sandi, dan PIN Otorisasi Kurikulum 6 digit.
                 </p>
               </div>
 
               {/* Generic Error message */}
               {errorMessage && !isStudentBlocked && (
-                <div className="mb-5 p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs flex items-center gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <div className="mb-5 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
               )}
@@ -230,9 +342,14 @@ export const AdminLoginPage: React.FC = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Factor 1: Email / NIP */}
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5" htmlFor="admin-identity">
-                    Email Institusi / NIP Pembimbing
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-800 uppercase tracking-wider" htmlFor="admin-identity">
+                      Email Institusi / NIP Pembimbing
+                    </label>
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      Faktor 1
+                    </span>
+                  </div>
                   <div className="relative flex items-center">
                     <input
                       id="admin-identity"
@@ -245,17 +362,22 @@ export const AdminLoginPage: React.FC = () => {
                       }}
                       placeholder="admin@smktelkom-sda.sch.id atau NIP"
                       required
-                      className="w-full py-2.5 sm:py-3 px-3.5 pl-10 bg-white/5 border border-white/15 focus:border-[#E50914] rounded-xl text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#E50914] transition-colors"
+                      className="w-full py-3 px-3.5 pl-10 bg-slate-50/70 border border-slate-300 focus:border-[#E50914] focus:bg-white rounded-xl text-slate-900 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-red-100 transition-all"
                     />
-                    <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5 pointer-events-none" />
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
                   </div>
                 </div>
 
                 {/* Factor 2: Kata Sandi */}
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5" htmlFor="admin-password">
-                    Kata Sandi
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-800 uppercase tracking-wider" htmlFor="admin-password">
+                      Kata Sandi
+                    </label>
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      Faktor 2
+                    </span>
+                  </div>
                   <div className="relative flex items-center">
                     <input
                       id="admin-password"
@@ -265,15 +387,15 @@ export const AdminLoginPage: React.FC = () => {
                         setPassword(e.target.value);
                         if (errorMessage) setErrorMessage('');
                       }}
-                      placeholder="Masukkan kata sandi akun"
+                      placeholder="Masukkan kata sandi akun pembimbing"
                       required
-                      className="w-full py-2.5 sm:py-3 px-3.5 pl-10 pr-10 bg-white/5 border border-white/15 focus:border-[#E50914] rounded-xl text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#E50914] transition-colors"
+                      className="w-full py-3 px-3.5 pl-10 pr-10 bg-slate-50/70 border border-slate-300 focus:border-[#E50914] focus:bg-white rounded-xl text-slate-900 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-red-100 transition-all"
                     />
-                    <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 pointer-events-none" />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 text-zinc-400 hover:text-zinc-200 cursor-pointer"
+                      className="absolute right-3.5 text-slate-400 hover:text-slate-700 cursor-pointer"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -283,10 +405,10 @@ export const AdminLoginPage: React.FC = () => {
                 {/* Factor 3: PIN Otorisasi Kurikulum 6 Digit */}
                 <div className="flex flex-col">
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider" htmlFor="admin-pin">
+                    <label className="text-xs font-bold text-slate-800 uppercase tracking-wider" htmlFor="admin-pin">
                       Kode Otorisasi Kurikulum (PIN 6 Digit)
                     </label>
-                    <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1">
+                    <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
                       <KeyRound className="w-3 h-3" />
                       Wajib 6 Angka
                     </span>
@@ -304,18 +426,18 @@ export const AdminLoginPage: React.FC = () => {
                       placeholder="••••••"
                       maxLength={6}
                       required
-                      className="w-full py-2.5 sm:py-3 px-3.5 pl-10 pr-10 bg-white/5 border border-amber-500/30 focus:border-amber-400 rounded-xl text-white text-xs tracking-widest font-mono placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-amber-400 transition-colors"
+                      className="w-full py-3 px-3.5 pl-10 pr-10 bg-amber-50/40 border border-amber-300 focus:border-amber-500 focus:bg-white rounded-xl text-slate-900 text-xs tracking-widest font-mono font-bold placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-amber-100 transition-all"
                     />
-                    <KeyRound className="w-4 h-4 text-amber-400/80 absolute left-3.5 pointer-events-none" />
+                    <KeyRound className="w-4 h-4 text-amber-600 absolute left-3.5 pointer-events-none" />
                     <button
                       type="button"
                       onClick={() => setShowPin(!showPin)}
-                      className="absolute right-3.5 text-zinc-400 hover:text-zinc-200 cursor-pointer"
+                      className="absolute right-3.5 text-slate-400 hover:text-slate-700 cursor-pointer"
                     >
                       {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  <span className="text-[11px] text-zinc-500 mt-1 leading-normal">
+                  <span className="text-[11px] text-slate-400 mt-1 leading-normal">
                     PIN 6 Digit diterbitkan resmi oleh Koordinator Kurikulum Skomda Mengajar.
                   </span>
                 </div>
@@ -324,17 +446,17 @@ export const AdminLoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full mt-3 h-12 bg-[#E50914] hover:bg-[#b4000c] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-[0_4px_20px_rgba(229,9,20,0.35)] hover:shadow-[0_4px_24px_rgba(229,9,20,0.55)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                  className="w-full mt-3 h-12 bg-[#E50914] hover:bg-[#b4000c] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-red-500/25 hover:shadow-lg hover:shadow-red-500/35 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                 >
                   {isLoading ? (
                     <>
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Memverifikasi Otorisasi...</span>
+                      <span>Memverifikasi Otorisasi 3FA...</span>
                     </>
                   ) : (
                     <>
                       <ShieldCheck className="w-4 h-4" />
-                      <span>Verifikasi & Buka Panel Admin</span>
+                      <span>Verifikasi &amp; Buka Panel Admin</span>
                       <ArrowRight className="w-4 h-4 ml-1" />
                     </>
                   )}
@@ -342,8 +464,8 @@ export const AdminLoginPage: React.FC = () => {
               </form>
 
               {/* Bottom Switcher to Student Leader Login */}
-              <div className="mt-8 pt-5 border-t border-white/10 text-center sm:text-left space-y-2">
-                <p className="text-xs text-zinc-400">
+              <div className="mt-8 pt-5 border-t border-slate-100 text-center sm:text-left space-y-2">
+                <p className="text-xs text-slate-500">
                   Siswa Ketua Kelompok yang ingin mengelola tim?{' '}
                   <button
                     type="button"
@@ -353,7 +475,7 @@ export const AdminLoginPage: React.FC = () => {
                     <span>Masuk melalui Login Ketua →</span>
                   </button>
                 </p>
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-[11px] text-slate-400">
                   Butuh bantuan PIN otorisasi kurikulum? Hubungi Divisi IT SMK Telkom Sidoarjo.
                 </p>
               </div>
@@ -362,10 +484,18 @@ export const AdminLoginPage: React.FC = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full border-t border-white/10 py-4 px-6 md:px-12 text-xs text-zinc-500 flex flex-col sm:flex-row items-center justify-between gap-2">
-        <span>Direktorat Kurikulum • SMK Telkom Sidoarjo 2026</span>
-        <span>helpdesk.kurikulum@smktelkom-sda.sch.id</span>
+      {/* ══════════════════════════════════════════════════════════════════════════
+          3. CLEAN INSTITUTIONAL FOOTER
+      ══════════════════════════════════════════════════════════════════════════ */}
+      <footer className="w-full border-t border-slate-200/80 bg-white/60 backdrop-blur-xs py-4 px-6 md:px-12 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-slate-700">SMK Telkom Sidoarjo</span>
+          <span>•</span>
+          <span>Direktorat Kurikulum &amp; Pengabdian Masyarakat 2026</span>
+        </div>
+        <div className="font-mono text-[11px] text-slate-400">
+          helpdesk.kurikulum@smktelkom-sda.sch.id
+        </div>
       </footer>
     </div>
   );
