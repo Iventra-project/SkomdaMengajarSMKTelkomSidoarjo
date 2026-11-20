@@ -12,6 +12,7 @@ import {
   FileText,
   LogOut,
   Upload,
+  UploadCloud,
   Users,
   X,
   AlertCircle,
@@ -75,7 +76,11 @@ export const WorkspacePage: React.FC = () => {
   const [showAdvisorDrawer, setShowAdvisorDrawer] = useState(false);
   const [showMembersDrawer, setShowMembersDrawer] = useState(false);
 
-  // Upload modal inputs
+  // Upload modal inputs & drag-and-drop state
+  const [uploadMode, setUploadMode] = useState<'device' | 'cloud'>('device');
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<{ file: File; name: string; sizeFormatted: string } | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [uploadDeliverableName, setUploadDeliverableName] = useState('Desain X-Banner 60×160 cm & Poster A3');
   const [uploadFileUrl, setUploadFileUrl] = useState('');
   const [uploadNotes, setUploadNotes] = useState('');
@@ -256,21 +261,74 @@ export const WorkspacePage: React.FC = () => {
     return timelineDeliverables.filter((t) => t.dayNumber === selectedCalendarDate);
   }, [selectedCalendarDate, timelineDeliverables]);
 
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleFileSelected = (file: File) => {
+    const maxBytes = 15 * 1024 * 1024; // 15 MB
+    if (file.size > maxBytes) {
+      showToast('Ukuran berkas melebihi batas maksimal 15 MB', 'warning');
+      return;
+    }
+    setSelectedFile({
+      file,
+      name: file.name,
+      sizeFormatted: formatFileSize(file.size),
+    });
+    // Auto pre-fill deliverable name if default or clean
+    const cleanBaseName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+    if (!uploadDeliverableName || uploadDeliverableName.includes('Desain X-Banner')) {
+      setUploadDeliverableName(cleanBaseName);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileSelected(e.dataTransfer.files[0]);
+    }
+  };
+
   // Handle submit file
   const handleSubmitFile = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadFileUrl.trim()) {
-      showToast('Masukkan URL tautan berkas (Google Drive/Canva/Figma)', 'warning');
+    if (uploadMode === 'device' && !selectedFile) {
+      showToast('Pilih atau seret berkas deliverable terlebih dahulu', 'warning');
       return;
     }
+    if (uploadMode === 'cloud' && !uploadFileUrl.trim()) {
+      showToast('Masukkan URL tautan berkas (Google Drive / Canva / Figma)', 'warning');
+      return;
+    }
+
     setIsSubmittingFile(true);
+    const fileReference = uploadMode === 'device' && selectedFile ? selectedFile.name : uploadFileUrl.trim();
     setTimeout(() => {
-      submitGroupFile(groupNumberStr, uploadFileUrl.trim(), uploadNotes.trim() || undefined);
+      submitGroupFile(groupNumberStr, fileReference, uploadNotes.trim() || undefined);
       setIsSubmittingFile(false);
       setShowUploadModal(false);
+      setSelectedFile(null);
       setUploadFileUrl('');
       setUploadNotes('');
-      showToast('Berkas berhasil diserahkan ke Pembimbing!', 'success');
+      showToast('Berkas deliverable berhasil diserahkan ke Pembimbing!', 'success');
     }, 600);
   };
 
@@ -843,78 +901,232 @@ export const WorkspacePage: React.FC = () => {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          4. MODAL: UNGGAH BERKAS STAGE
+          4. MODAL: UNGGAH BERKAS STAGE (DRAG & DROP + CLOUD LINK)
       ══════════════════════════════════════════════════════════════════════════ */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-lg rounded-[24px] overflow-hidden shadow-2xl border border-slate-200/80 p-6 sm:p-7 animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-slate-100">
               <div>
-                <span className="text-[10px] font-bold text-[#E50914] uppercase tracking-wider">
-                  Penyerahan Berkas • KEL-{groupNumberStr}
+                <span className="text-[11px] font-extrabold text-[#E50914] uppercase tracking-wider">
+                  PENYERAHAN BERKAS • KEL-{groupNumberStr}
                 </span>
-                <h3 className="text-base font-extrabold text-[#141416] mt-0.5">Unggah Berkas ke Pembimbing</h3>
+                <h3 className="text-xl font-extrabold text-[#141416] mt-0.5 tracking-tight">
+                  Unggah Berkas ke Pembimbing
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Seret dan lepas berkas dari perangkat atau tempel tautan dokumen.
+                </p>
               </div>
               <button
-                onClick={() => setShowUploadModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
+                type="button"
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setSelectedFile(null);
+                }}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitFile} className="p-6 space-y-4">
+            {/* Mode Switcher: 2-Pill Tabs */}
+            <div className="pt-4 pb-2">
+              <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl border border-slate-200/70 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('device')}
+                  className={`py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    uploadMode === 'device'
+                      ? 'bg-white text-[#141416] shadow-xs font-extrabold'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  <Upload className={`w-3.5 h-3.5 ${uploadMode === 'device' ? 'text-[#E50914]' : ''}`} />
+                  <span>Unggah File (Perangkat)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('cloud')}
+                  className={`py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    uploadMode === 'cloud'
+                      ? 'bg-white text-[#141416] shadow-xs font-extrabold'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  <ExternalLink className={`w-3.5 h-3.5 ${uploadMode === 'cloud' ? 'text-[#E50914]' : ''}`} />
+                  <span>Tautan Cloud (Drive / Canva)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmitFile} className="space-y-4 pt-2">
+              {/* Tab 1: Device File Upload */}
+              {uploadMode === 'device' && (
+                <div>
+                  {!selectedFile ? (
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`rounded-2xl border-2 border-dashed transition-all p-7 text-center cursor-pointer ${
+                        isDragOver
+                          ? 'border-[#E50914] bg-rose-50/80 scale-[0.99]'
+                          : 'border-rose-300 bg-rose-50/30 hover:bg-rose-50/60 hover:border-[#E50914]'
+                      }`}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.zip"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files.length > 0) {
+                            handleFileSelected(e.target.files[0]);
+                          }
+                        }}
+                      />
+                      <div className="w-12 h-12 rounded-full bg-white shadow-xs border border-rose-100 flex items-center justify-center mx-auto text-[#E50914] mb-3">
+                        <UploadCloud className="w-6 h-6" />
+                      </div>
+                      <p className="text-xs text-slate-700 font-medium">
+                        Seret &amp; lepas berkas di sini atau{' '}
+                        <span className="text-[#E50914] font-semibold underline underline-offset-2">
+                          Pilih File
+                        </span>
+                      </p>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 mt-4 pt-3 border-t border-rose-100/70">
+                        <span>Format didukung: PDF, DOCX, PPTX, PNG/JPG</span>
+                        <span>Maksimal ukuran: 15 MB</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center justify-between shadow-xs">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-white border border-rose-100 flex items-center justify-center text-[#E50914] shrink-0 shadow-xs">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[#141416] truncate max-w-[240px]">
+                            {selectedFile.name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[11px] text-slate-500 font-medium">
+                              {selectedFile.sizeFormatted}
+                            </span>
+                            <span className="text-slate-300">•</span>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/70">
+                              <Check className="w-3 h-3" />
+                              Siap dikirim
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedFile(null);
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                        className="w-7 h-7 rounded-full bg-white hover:bg-rose-50 text-slate-400 hover:text-[#E50914] border border-slate-200 hover:border-rose-200 flex items-center justify-center transition-colors cursor-pointer"
+                        title="Hapus / Ganti Berkas"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 2: Cloud Link */}
+              {uploadMode === 'cloud' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Tautan File (Google Drive / Canva / Figma)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="url"
+                      placeholder="https://canva.com/design/... atau https://drive.google.com/..."
+                      value={uploadFileUrl}
+                      onChange={(e) => setUploadFileUrl(e.target.value)}
+                      className="w-full pl-9 pr-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#E50914] focus:bg-white transition-all font-mono"
+                      required={uploadMode === 'cloud'}
+                    />
+                    <ExternalLink className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1.5">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                    Pastikan akses tautan diatur ke <strong className="text-slate-700">"Siapa saja dengan tautan dapat melihat"</strong>.
+                  </p>
+                </div>
+              )}
+
+              {/* Shared: Deliverable Name */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nama Berkas Deliverable</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nama Berkas Deliverable
+                </label>
                 <input
                   type="text"
                   value={uploadDeliverableName}
                   onChange={(e) => setUploadDeliverableName(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#E50914] focus:bg-white"
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#E50914] focus:bg-white transition-colors"
+                  placeholder="Contoh: Desain X-Banner 60x160cm KEL-03"
                   required
                 />
               </div>
 
+              {/* Shared: Notes to Advisor */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Tautan File (Google Drive / Canva / Figma)
+                  Catatan untuk Pembimbing (Opsional)
                 </label>
-                <input
-                  type="url"
-                  placeholder="https://canva.com/design/... atau https://drive.google.com/..."
-                  value={uploadFileUrl}
-                  onChange={(e) => setUploadFileUrl(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#E50914] focus:bg-white"
-                  required
-                />
-                <span className="text-[11px] text-slate-400 mt-1 block">Pastikan izin akses tautan diatur ke "Siapa saja dengan tautan dapat melihat".</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Catatan Tambahan untuk Pembimbing</label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   placeholder="Tuliskan catatan progres atau revisi yang telah diperbaiki..."
                   value={uploadNotes}
                   onChange={(e) => setUploadNotes(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#E50914] focus:bg-white"
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#E50914] focus:bg-white transition-colors resize-none"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2.5">
+              {/* Footer Actions */}
+              <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowUploadModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                  onClick={() => {
+                    setShowUploadModal(false);
+                    setSelectedFile(null);
+                  }}
+                  className="rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmittingFile}
-                  className="px-5 py-2 text-xs font-bold bg-[#E50914] hover:bg-[#b4000c] text-white rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                  disabled={
+                    isSubmittingFile ||
+                    (uploadMode === 'device' && !selectedFile) ||
+                    (uploadMode === 'cloud' && !uploadFileUrl.trim())
+                  }
+                  className="rounded-xl px-5 py-2.5 text-xs font-bold bg-[#E50914] text-white hover:bg-[#c80812] shadow-sm disabled:opacity-50 transition-all cursor-pointer inline-flex items-center gap-2"
                 >
-                  {isSubmittingFile ? 'Mengirim...' : 'Kirim Berkas'}
+                  {isSubmittingFile ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Mengirim Berkas...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Kirim Berkas</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
