@@ -15,13 +15,15 @@ export type RoutePath =
   | '/'
   | '/home'
   | '/login'
+  | '/login?role=admin'
   | '/admin/login'
   | '/admin'
   | '/admin/kelompok/03'
   | '/workspace'
   | '/dashboard/ketua'
   | '/dashboard/admin'
-  | '/dashboard/admin/review';
+  | '/dashboard/admin/review'
+  | (string & {});
 
 export type UserRole = 'admin' | 'user' | 'leader';
 
@@ -80,7 +82,7 @@ interface AppContextType {
   loginAdmin: (
     identity: string,
     password: string,
-    authorizationPin: string
+    authorizationPin?: string
   ) => Promise<{ ok: boolean; error?: string; user?: User; isStudentAttempt?: boolean }>;
   register: (payload: RegisterPayload) => Promise<{ ok: boolean; error?: string; user?: User }>;
   logout: (redirectTo?: RoutePath) => Promise<void>;
@@ -134,14 +136,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const getInitialPath = (): RoutePath => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
-      if (hash === '/home') return '/home';
-      if (hash === '/login') return '/login';
-      if (hash === '/admin/login') return '/admin/login';
-      if (hash === '/admin' || hash === '/dashboard/admin') return '/admin';
-      if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03' || hash === '/dashboard/admin/review') {
+      const [pathOnly] = hash.split('?');
+      if (pathOnly === '/home') return '/home';
+      if (pathOnly === '/login') return '/login';
+      if (pathOnly === '/admin/login') return '/login';
+      if (pathOnly === '/admin' || pathOnly === '/dashboard/admin') return '/admin';
+      if (pathOnly === '/admin/kelompok/03' || pathOnly === '/admin-kelompok-03' || pathOnly === '/dashboard/admin/review') {
         return '/admin/kelompok/03';
       }
-      if (hash === '/workspace' || hash === '/kelompok-03' || hash === '/dashboard/ketua') return '/workspace';
+      if (pathOnly === '/workspace' || pathOnly === '/kelompok-03' || pathOnly === '/dashboard/ketua') return '/workspace';
     }
     return '/';
   };
@@ -180,7 +183,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     if (currentUser) {
       const hash = typeof window !== 'undefined' ? window.location.hash.replace('#', '') : '';
-      if (hash === '/login' || hash === '/admin/login' || hash === '/' || hash === '') {
+      const [pathOnly] = hash.split('?');
+      if (pathOnly === '/login' || pathOnly === '/admin/login' || pathOnly === '/' || pathOnly === '') {
         if (currentUser.role === 'admin') {
           navigate('/admin');
         } else {
@@ -323,9 +327,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const navigate = (path: RoutePath) => {
-    setCurrentPath(path);
+    const normalizedPath = path === '/admin/login' ? '/login?role=admin' : path;
+    const cleanPath = (normalizedPath.split('?')[0] || '/') as RoutePath;
+    setCurrentPath(cleanPath);
     if (typeof window !== 'undefined') {
-      window.location.hash = path;
+      window.location.hash = normalizedPath;
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -447,8 +453,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Listen to browser hash changes & block cross-group URL tampering
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '');
-      const groupMatch = hash.match(/^\/(?:workspace|kelompok)[/-](\d+)$/i);
+      const rawHash = window.location.hash.replace('#', '');
+      const [pathOnly] = rawHash.split('?');
+      if (rawHash === '/admin/login' || pathOnly === '/admin/login') {
+        navigate('/login?role=admin');
+        return;
+      }
+
+      const groupMatch = pathOnly.match(/^\/(?:workspace|kelompok)[/-](\d+)$/i);
       if (groupMatch) {
         const requestedGroup = formatGroupNumber(groupMatch[1]);
         if (!currentUser) {
@@ -468,15 +480,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return;
       }
 
-      if (hash === '/home') setCurrentPath('/home');
-      else if (hash === '/login') setCurrentPath('/login');
-      else if (hash === '/admin' || hash === '/dashboard/admin') setCurrentPath('/admin');
-      else if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03' || hash === '/dashboard/admin/review') {
+      if (pathOnly === '/home') setCurrentPath('/home');
+      else if (pathOnly === '/login') setCurrentPath('/login');
+      else if (pathOnly === '/admin' || pathOnly === '/dashboard/admin') setCurrentPath('/admin');
+      else if (pathOnly === '/admin/kelompok/03' || pathOnly === '/admin-kelompok-03' || pathOnly === '/dashboard/admin/review') {
         setCurrentPath('/admin/kelompok/03');
-      } else if (hash === '/workspace' || hash === '/dashboard/ketua') {
+      } else if (pathOnly === '/workspace' || pathOnly === '/dashboard/ketua') {
         setCurrentPath('/workspace');
       }
-      else if (hash === '/' || hash === '') setCurrentPath('/');
+      else if (pathOnly === '/' || pathOnly === '') setCurrentPath('/');
     };
 
     window.addEventListener('hashchange', handleHashChange);
@@ -1044,11 +1056,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const loginAdmin = async (
     identityInput: string,
     passwordInput: string,
-    authorizationPinInput: string
+    _authorizationPinInput?: string
   ): Promise<{ ok: boolean; error?: string; user?: User; isStudentAttempt?: boolean }> => {
     const identity = identityInput.trim();
     const password = passwordInput.trim();
-    const pin = authorizationPinInput.trim();
     const lower = identity.toLowerCase();
 
     // 1. Detect if a student NIS or student email is entered
@@ -1066,20 +1077,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return {
         ok: false,
         isStudentAttempt: true,
-        error:
-          'Akses Dilarang: Halaman ini khusus Guru Pembimbing & Koordinator Kurikulum. Siswa wajib masuk melalui halaman Login Ketua.',
+        error: 'Akses ditolak: Akun siswa tidak terdaftar sebagai Guru Pembimbing/Admin.',
       };
     }
 
-    // 2. Validate PIN 6 Digit (strictly 202699 without showing on UI)
-    if (pin !== '202699') {
-      return {
-        ok: false,
-        error: 'Kode Otorisasi Kurikulum (PIN 6 Digit) tidak valid atau salah.',
-      };
-    }
-
-    // 3. Validate Identity and Password
+    // 2. Validate Identity and Password (NO PIN REQUIREMENT!)
     const validIdentities = [
       'admin',
       'admin@smktelkom-sda.sch.id',
@@ -1149,12 +1151,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAuthToken(null);
     setCurrentUser(null);
     showToast('Anda telah keluar dari sesi.', 'info');
-    const target = redirectTo || (wasAdmin ? '/admin/login' : '/login');
+    const target = redirectTo || (wasAdmin ? '/login?role=admin' : '/login');
     navigate(target);
   };
 
   const logoutAdmin = async () => {
-    await logout('/admin/login');
+    await logout('/login?role=admin');
   };
 
   return (

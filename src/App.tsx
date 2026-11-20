@@ -28,10 +28,14 @@ const AppRouter: React.FC = () => {
         currentPath === '/admin/kelompok/03' ||
         currentPath === '/dashboard/admin/review'
       ) {
-        navigate('/admin/login');
+        navigate('/login?role=admin');
         return;
       }
-      if (currentPath !== '/' && currentPath !== '/login' && currentPath !== '/admin/login') {
+      if (currentPath === '/admin/login') {
+        navigate('/login?role=admin');
+        return;
+      }
+      if (currentPath !== '/' && currentPath !== '/login') {
         navigate('/login');
         return;
       }
@@ -86,22 +90,8 @@ const AppRouter: React.FC = () => {
         currentUser &&
         currentUser.role === 'admin' && <AdminKelompokDetailPage />}
 
-      {/* Fallback for unauthenticated access to admin routes */}
-      {!currentUser &&
-        (currentPath === '/admin' ||
-          currentPath === '/dashboard/admin' ||
-          currentPath === '/admin/kelompok/03' ||
-          currentPath === '/dashboard/admin/review') && <AdminLoginPage />}
-
-      {/* Fallback for unauthenticated access to other protected routes */}
-      {!currentUser &&
-        currentPath !== '/' &&
-        currentPath !== '/login' &&
-        currentPath !== '/admin/login' &&
-        currentPath !== '/admin' &&
-        currentPath !== '/dashboard/admin' &&
-        currentPath !== '/admin/kelompok/03' &&
-        currentPath !== '/dashboard/admin/review' && <LoginPage />}
+      {/* Fallback for unauthenticated access to protected routes */}
+      {!currentUser && currentPath !== '/' && <LoginPage />}
 
       {/* Global Interactive Modals & Route Switcher */}
       <BannerPreviewModal />
