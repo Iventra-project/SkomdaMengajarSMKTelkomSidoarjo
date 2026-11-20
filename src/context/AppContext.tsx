@@ -15,6 +15,7 @@ export type RoutePath =
   | '/'
   | '/home'
   | '/login'
+  | '/admin/login'
   | '/admin'
   | '/admin/kelompok/03'
   | '/workspace'
@@ -76,8 +77,14 @@ interface AppContextType {
   authToken: string | null;
   isAuthReady: boolean;
   login: (identity: string, password: string, groupNumber?: string) => Promise<{ ok: boolean; error?: string; user?: User }>;
+  loginAdmin: (
+    identity: string,
+    password: string,
+    authorizationPin: string
+  ) => Promise<{ ok: boolean; error?: string; user?: User; isStudentAttempt?: boolean }>;
   register: (payload: RegisterPayload) => Promise<{ ok: boolean; error?: string; user?: User }>;
-  logout: () => Promise<void>;
+  logout: (redirectTo?: RoutePath) => Promise<void>;
+  logoutAdmin: () => Promise<void>;
   groups: Group[];
   updateGroupLeader: (groupNumber: string, leaderName: string) => void;
   updateGroupStatus: (groupNumber: string, status: Group['status'], statusLabel?: string) => void;
@@ -129,6 +136,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const hash = window.location.hash.replace('#', '');
       if (hash === '/home') return '/home';
       if (hash === '/login') return '/login';
+      if (hash === '/admin/login') return '/admin/login';
       if (hash === '/admin' || hash === '/dashboard/admin') return '/admin';
       if (hash === '/admin/kelompok/03' || hash === '/admin-kelompok-03' || hash === '/dashboard/admin/review') {
         return '/admin/kelompok/03';
@@ -168,11 +176,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentUser]);
 
-  // Check saved session on mount and auto-redirect if visiting / or /login
+  // Check saved session on mount and auto-redirect if visiting / or /login or /admin/login
   useEffect(() => {
     if (currentUser) {
       const hash = typeof window !== 'undefined' ? window.location.hash.replace('#', '') : '';
-      if (hash === '/login' || hash === '/' || hash === '') {
+      if (hash === '/login' || hash === '/admin/login' || hash === '/' || hash === '') {
         if (currentUser.role === 'admin') {
           navigate('/admin');
         } else {
@@ -831,21 +839,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const password = passwordInput.trim();
     const lower = identity.toLowerCase();
 
-    // 1. Admin Login (bypasses group selection)
+    // 1. Reject Admin Login on Student Login (/login)
     if (
       lower === 'admin' ||
       lower === 'admin@smktelkom-sda.sch.id' ||
-      lower.includes('admin.kurikulum')
+      lower.includes('admin.kurikulum') ||
+      lower.includes('sri.wahyuni') ||
+      lower.includes('pembimbing')
     ) {
-      const adminUser: User = {
-        name: 'Admin Kurikulum',
-        role: 'admin',
-        email: identity.includes('@') ? identity : 'admin@smktelkom-sda.sch.id',
+      return {
+        ok: false,
+        error: 'Akun Admin tidak dapat masuk di sini. Silakan gunakan Portal Khusus Guru Pembimbing.',
       };
-      setCurrentUser(adminUser);
-      showToast('Selamat datang, Admin Kurikulum!', 'success');
-      navigate('/admin');
-      return { ok: true, user: adminUser };
     }
 
     // 2. Sandbox Trial Account (KEL-00, bypasses group selection)
@@ -1036,7 +1041,97 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const logout = async () => {
+  const loginAdmin = async (
+    identityInput: string,
+    passwordInput: string,
+    authorizationPinInput: string
+  ): Promise<{ ok: boolean; error?: string; user?: User; isStudentAttempt?: boolean }> => {
+    const identity = identityInput.trim();
+    const password = passwordInput.trim();
+    const pin = authorizationPinInput.trim();
+    const lower = identity.toLowerCase();
+
+    // 1. Detect if a student NIS or student email is entered
+    const isNumericNis = /^\d{6,10}$/.test(identity) && !identity.startsWith('19');
+    const isStudentEmail =
+      (lower.endsWith('@smktelkom-sda.sch.id') || lower.endsWith('.sch.id')) &&
+      !lower.includes('admin') &&
+      !lower.includes('sri.wahyuni') &&
+      !lower.includes('pembimbing') &&
+      !lower.includes('guru') &&
+      !lower.includes('kurikulum');
+    const isStudentRosterHit = groups.some((g) => g.leaderNis === identity);
+
+    if (isNumericNis || isStudentEmail || isStudentRosterHit) {
+      return {
+        ok: false,
+        isStudentAttempt: true,
+        error:
+          'Akses Dilarang: Halaman ini khusus Guru Pembimbing & Koordinator Kurikulum. Siswa wajib masuk melalui halaman Login Ketua.',
+      };
+    }
+
+    // 2. Validate PIN 6 Digit (strictly 202699 without showing on UI)
+    if (pin !== '202699') {
+      return {
+        ok: false,
+        error: 'Kode Otorisasi Kurikulum (PIN 6 Digit) tidak valid atau salah.',
+      };
+    }
+
+    // 3. Validate Identity and Password
+    const validIdentities = [
+      'admin',
+      'admin@smktelkom-sda.sch.id',
+      'sri.wahyuni@smktelkom-sda.sch.id',
+      'sri.wahyuni',
+      'pembimbing@smktelkom-sda.sch.id',
+      'kurikulum@smktelkom-sda.sch.id',
+    ];
+    const isNip = /^\d{16,18}$/.test(identity);
+
+    const identityValid =
+      validIdentities.includes(lower) || isNip || lower.includes('admin') || lower.includes('wahyuni');
+    if (!identityValid) {
+      return {
+        ok: false,
+        error: 'Email Institusi atau NIP Pembimbing tidak terdaftar dalam sistem kurikulum.',
+      };
+    }
+
+    if (
+      password !== 'Skomda2026!' &&
+      password !== 'admin123' &&
+      password !== 'AdminKurikulum2026!'
+    ) {
+      return {
+        ok: false,
+        error: 'Kata sandi akun pembimbing tidak sesuai.',
+      };
+    }
+
+    const adminName = lower.includes('wahyuni')
+      ? 'Dra. Sri Wahyuni, M.Pd'
+      : 'Admin Kurikulum';
+    const adminEmail = identity.includes('@') ? identity : 'admin@smktelkom-sda.sch.id';
+
+    const adminUser: User = {
+      name: adminName,
+      role: 'admin',
+      email: adminEmail,
+    };
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(USER_SESSION_KEY, JSON.stringify(adminUser));
+    }
+    setCurrentUser(adminUser);
+    showToast(`Otorisasi Berhasil! Selamat datang, ${adminName}.`, 'success');
+    navigate('/admin');
+    return { ok: true, user: adminUser };
+  };
+
+  const logout = async (redirectTo?: RoutePath) => {
+    const wasAdmin = currentUser?.role === 'admin';
     if (authToken) {
       try {
         await fetch('/api/auth/logout', {
@@ -1054,7 +1149,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAuthToken(null);
     setCurrentUser(null);
     showToast('Anda telah keluar dari sesi.', 'info');
-    navigate('/login');
+    const target = redirectTo || (wasAdmin ? '/admin/login' : '/login');
+    navigate(target);
+  };
+
+  const logoutAdmin = async () => {
+    await logout('/admin/login');
   };
 
   return (
@@ -1067,8 +1167,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         authToken,
         isAuthReady,
         login,
+        loginAdmin,
         register,
         logout,
+        logoutAdmin,
         groups,
         updateGroupLeader,
         updateGroupStatus,

@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { HomePage } from './app/page';
 import { LoginPage } from './app/login/page';
+import { AdminLoginPage } from './app/admin/login/page';
 import { PostLoginHomePage } from './app/home/page';
 import { AdminMonitoringPage } from './app/admin/page';
 import { AdminKelompokDetailPage } from './app/admin/kelompok/[id]/page';
@@ -21,25 +22,44 @@ const AppRouter: React.FC = () => {
   useEffect(() => {
     // 1. Unauthenticated users cannot access protected routes
     if (!currentUser) {
-      if (currentPath !== '/' && currentPath !== '/login') {
-        navigate('/login');
-      }
-      return;
-    }
-
-    // 2. Role-based routing restrictions
-    if (currentUser.role === 'admin') {
-      if (currentPath === '/workspace' || currentPath === '/dashboard/ketua' || currentPath === '/home') {
-        navigate('/admin');
-      }
-    } else if (currentUser.role === 'leader' || currentUser.role === 'user') {
       if (
         currentPath === '/admin' ||
         currentPath === '/dashboard/admin' ||
         currentPath === '/admin/kelompok/03' ||
         currentPath === '/dashboard/admin/review'
       ) {
-        showToast('Akses ditolak: Area khusus Admin Kurikulum.', 'warning');
+        navigate('/admin/login');
+        return;
+      }
+      if (currentPath !== '/' && currentPath !== '/login' && currentPath !== '/admin/login') {
+        navigate('/login');
+        return;
+      }
+      return;
+    }
+
+    // 2. Role-based routing restrictions
+    if (currentUser.role === 'admin') {
+      if (
+        currentPath === '/workspace' ||
+        currentPath === '/dashboard/ketua' ||
+        currentPath === '/home' ||
+        currentPath === '/login' ||
+        currentPath === '/admin/login'
+      ) {
+        navigate('/admin');
+      }
+    } else if (currentUser.role === 'leader' || currentUser.role === 'user') {
+      if (
+        currentPath === '/admin' ||
+        currentPath === '/admin/login' ||
+        currentPath === '/dashboard/admin' ||
+        currentPath === '/admin/kelompok/03' ||
+        currentPath === '/dashboard/admin/review'
+      ) {
+        showToast('Akses ditolak: Area khusus Guru Pembimbing & Admin Kurikulum.', 'warning');
+        navigate('/home');
+      } else if (currentPath === '/login') {
         navigate('/home');
       }
     }
@@ -47,9 +67,11 @@ const AppRouter: React.FC = () => {
 
   return (
     <div className="relative min-h-screen bg-[#f9f9f9] text-[#1a1c1c] flex flex-col font-sans overflow-x-hidden">
-      {/* Public Pages */}
+      {/* Public / Auth Pages */}
       {currentPath === '/' && <HomePage />}
       {currentPath === '/login' && <LoginPage />}
+      {currentPath === '/admin/login' && <AdminLoginPage />}
+
       {/* Protected Ketua/User Routes (Blocked for Admin & Unauthenticated) */}
       {currentPath === '/home' && currentUser && currentUser.role !== 'admin' && <PostLoginHomePage />}
       {(currentPath === '/workspace' || currentPath === '/dashboard/ketua') &&
@@ -64,8 +86,22 @@ const AppRouter: React.FC = () => {
         currentUser &&
         currentUser.role === 'admin' && <AdminKelompokDetailPage />}
 
-      {/* Unauthenticated Access Fallback */}
-      {!currentUser && currentPath !== '/' && currentPath !== '/login' && <LoginPage />}
+      {/* Fallback for unauthenticated access to admin routes */}
+      {!currentUser &&
+        (currentPath === '/admin' ||
+          currentPath === '/dashboard/admin' ||
+          currentPath === '/admin/kelompok/03' ||
+          currentPath === '/dashboard/admin/review') && <AdminLoginPage />}
+
+      {/* Fallback for unauthenticated access to other protected routes */}
+      {!currentUser &&
+        currentPath !== '/' &&
+        currentPath !== '/login' &&
+        currentPath !== '/admin/login' &&
+        currentPath !== '/admin' &&
+        currentPath !== '/dashboard/admin' &&
+        currentPath !== '/admin/kelompok/03' &&
+        currentPath !== '/dashboard/admin/review' && <LoginPage />}
 
       {/* Global Interactive Modals & Route Switcher */}
       <BannerPreviewModal />

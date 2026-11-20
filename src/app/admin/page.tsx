@@ -34,10 +34,11 @@ export type { ActionRowItem, GroupProgressRow };
 export { SIX_STAGES };
 
 export const AdminMonitoringPage: React.FC = () => {
-  const { navigate, showToast, submitBannerDecision, updateGroupLeader, resetGroupLeader } = useApp();
+  const { navigate, showToast, submitBannerDecision, updateGroupLeader, resetGroupLeader, logoutAdmin, currentUser } = useApp();
 
   // Navigation: 'beranda' | 'kelompok' | 'feedback' | 'pengaturan'
   const [activeScreen, setActiveScreen] = useState<'beranda' | 'kelompok' | 'feedback' | 'pengaturan'>('beranda');
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   // Groups and Action Data State
   const [groupsList, setGroupsList] = useState<GroupProgressRow[]>(INITIAL_GROUPS);
@@ -528,9 +529,8 @@ export const AdminMonitoringPage: React.FC = () => {
           </button>
 
           <button
-            onClick={() => {
-              navigate('/');
-              showToast('Keluar dari sesi guru pembimbing.', 'info');
+            onClick={async () => {
+              await logoutAdmin();
             }}
             className="w-full flex items-center gap-2.5 px-3.5 py-2 rounded-2xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
           >
@@ -597,18 +597,57 @@ export const AdminMonitoringPage: React.FC = () => {
               )}
             </button>
 
-            <div className="flex items-center gap-2 pl-0.5">
-              <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs ring-2 ring-slate-200 shadow-xs shrink-0">
-                GP
-              </div>
-              <div className="hidden xl:block text-left">
-                <span className="text-xs font-extrabold text-slate-900 block leading-tight whitespace-nowrap">
-                  Guru Pembimbing
-                </span>
-                <span className="text-[10px] font-semibold text-slate-500 block whitespace-nowrap">
-                  Koordinator Kurikulum
-                </span>
-              </div>
+            <div className="relative">
+              <button
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className="flex items-center gap-2 pl-0.5 p-1 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                title="Menu Guru Pembimbing"
+              >
+                <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs ring-2 ring-slate-200 shadow-xs shrink-0">
+                  GP
+                </div>
+                <div className="hidden xl:block text-left">
+                  <span className="text-xs font-extrabold text-slate-900 block leading-tight whitespace-nowrap">
+                    {currentUser?.name || 'Guru Pembimbing'}
+                  </span>
+                  <span className="text-[10px] font-semibold text-slate-500 block whitespace-nowrap">
+                    Koordinator Kurikulum
+                  </span>
+                </div>
+              </button>
+
+              {/* Profile Dropdown Menu */}
+              {isProfileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                    <div className="text-xs font-extrabold text-slate-900">{currentUser?.name || 'Guru Pembimbing'}</div>
+                    <div className="text-[10px] text-slate-500">{currentUser?.email || 'admin@smktelkom-sda.sch.id'}</div>
+                    <span className="inline-block mt-1 text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                      Sesi Kurikulum Aktif
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsProfileDropdownOpen(false);
+                      navigate('/');
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    <Home className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Lihat Landing Page</span>
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setIsProfileDropdownOpen(false);
+                      await logoutAdmin();
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-rose-500" />
+                    <span>Keluar Sesi Admin</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

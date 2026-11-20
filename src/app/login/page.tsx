@@ -71,6 +71,21 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
+    // Check for Admin identity attempted on Student Login
+    const lower = trimmedIdentity.toLowerCase();
+    if (
+      lower === 'admin' ||
+      lower === 'admin@smktelkom-sda.sch.id' ||
+      lower.includes('admin.kurikulum') ||
+      lower.includes('sri.wahyuni') ||
+      lower.includes('pembimbing')
+    ) {
+      const adminReject = 'Akun Admin tidak dapat masuk di sini. Silakan gunakan Portal Khusus Guru Pembimbing.';
+      setErrorMessage(adminReject);
+      showToast(adminReject, 'warning');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const res = await login(trimmedIdentity, trimmedPassword, selectedLoginGroup);
@@ -513,6 +528,16 @@ export const LoginPage: React.FC = () => {
                     >
                       beranda publik
                     </span>.
+                  </p>
+                  <p className="text-xs text-slate-500 pt-1">
+                    Guru Pembimbing atau Koordinator?{' '}
+                    <button
+                      type="button"
+                      onClick={() => navigate('/admin/login')}
+                      className="text-[#e20113] hover:text-[#b4000c] font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Masuk melalui Portal Admin →</span>
+                    </button>
                   </p>
                 </div>
               </div>
