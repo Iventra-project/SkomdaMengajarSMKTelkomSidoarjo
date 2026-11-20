@@ -52,55 +52,56 @@ export const DaftarKelompokPage: React.FC = () => {
 
   return (
     <div className="relative w-full min-h-screen bg-[#FAF9F6] text-slate-900 antialiased flex flex-col justify-between overflow-x-hidden selection:bg-[#E50914]/10 selection:text-[#E50914]">
-      {/* Subtle Architectural Dot Pattern */}
+      {/* Keyframe Animation Styles */}
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(16px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in-up {
+          animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
+
+      {/* Subtle Architectural Dot Pattern Background */}
       <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] opacity-60 pointer-events-none" />
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#E50914]/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-slate-300/20 rounded-full blur-3xl pointer-events-none" />
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          TOP FLOATING NAVIGATION PILL
+          1. TOP ACTION BAR: FLOATING "KEMBALI KE BERANDA" BUTTON (NO NAVBAR)
       ══════════════════════════════════════════════════════════════════════════ */}
-      <header className="sticky top-5 z-40 w-full max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="rounded-full bg-[#141416]/95 backdrop-blur-md border border-white/10 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.28)] px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between transition-all">
-          <button
-            onClick={() => navigate('/')}
-            className="inline-flex items-center gap-2 text-xs font-semibold tracking-wider text-zinc-300 hover:text-white transition-colors cursor-pointer group"
-          >
-            <span className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center group-hover:-translate-x-0.5 transition-transform">
-              <span className="material-symbols-outlined text-[16px] text-zinc-300 group-hover:text-white">
-                arrow_back
-              </span>
-            </span>
-            <span className="uppercase text-[11px] sm:text-xs font-bold">Kembali ke Beranda</span>
-          </button>
+      <div className="relative z-30 w-full max-w-7xl mx-auto pt-6 px-4 sm:px-6 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-xs font-bold text-[#141416] border border-slate-200/90 shadow-sm hover:border-[#E50914] hover:text-[#E50914] hover:-translate-x-0.5 transition-all duration-200 cursor-pointer active:scale-95"
+        >
+          <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+          <span>Kembali ke Beranda</span>
+        </button>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="text-white text-xs font-extrabold tracking-tight">#SKOMDA</span>
-              <span className="bg-[#E50914] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                2026
-              </span>
-            </div>
-
-            <button
-              onClick={() => navigate('/login')}
-              className="px-4 py-1.5 bg-[#E50914] hover:bg-[#c90812] text-white text-xs font-bold rounded-full transition-all shadow-xs cursor-pointer inline-flex items-center gap-1.5"
-            >
-              <span>Masuk Portal</span>
-              <span className="material-symbols-outlined text-[14px]">login</span>
-            </button>
-          </div>
+        <div className="hidden sm:flex items-center gap-2.5">
+          <span className="text-xs font-extrabold tracking-tight text-[#141416]">#SKOMDA</span>
+          <span className="bg-[#E50914] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+            2026
+          </span>
         </div>
-      </header>
+      </div>
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          MAIN CONTENT AREA (AIRY, UNCLUTTERED, ELEGANT)
+          2. MAIN CONTENT AREA: ELEVATED HEADER & SUBTITLE TYPOGRAPHY
       ══════════════════════════════════════════════════════════════════════════ */}
       <main className="relative z-10 w-full flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 pb-16">
-        
-        {/* Hero Title & Refined Inline Stats */}
+        {/* Header Section */}
         <div className="mb-8 sm:mb-10">
-          <div className="flex items-center gap-2 mb-2.5">
+          <div className="flex items-center gap-2 mb-2">
             <span className="w-2 h-2 rounded-full bg-[#E50914]" />
             <span className="text-xs font-bold uppercase tracking-wider text-[#E50914]">
               Direktori Resmi Organisasi Tim
@@ -109,40 +110,51 @@ export const DaftarKelompokPage: React.FC = () => {
             <span className="text-xs text-slate-500 font-medium">Skomda Mengajar 2026</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#141416] tracking-tight">
             Pembagian Kelompok Mengajar
           </h1>
 
-          <p className="text-xs sm:text-sm text-slate-600 mt-2.5 max-w-2xl leading-relaxed">
-            Daftar lengkap penempatan 24 kelompok relawan siswa SMK Telkom Sidoarjo di 12 SMP mitra se-Kabupaten Sidoarjo, didampingi guru pembimbing lapangan dan jadwal kegiatan resmi.
-          </p>
+          {/* Subtitle with Sleek Crimson Red Vertical Accent Bar */}
+          <div className="border-l-[3px] border-[#E50914] pl-4 mt-3">
+            <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl font-normal">
+              Daftar lengkap penempatan <span className="font-semibold text-[#141416]">24 kelompok relawan</span> siswa SMK Telkom Sidoarjo di <span className="font-semibold text-[#141416]">12 SMP mitra</span> se-Kabupaten Sidoarjo, didampingi guru pembimbing lapangan dan jadwal kegiatan resmi.
+            </p>
+          </div>
 
-          {/* Refined Minimalist Stats Pill Strip (Replaces bulky rectangular KPI boxes) */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200/80 rounded-full text-xs font-semibold text-slate-700 shadow-2xs">
+          {/* Elevated Soft-Tinted Metadata Pills */}
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mt-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200/90 rounded-full text-xs font-semibold text-slate-700 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-[#E50914]" />
-              <span><strong>24</strong> Kelompok Relawan</span>
+              <span>
+                <strong className="text-[#141416] font-bold">24</strong> Kelompok Relawan
+              </span>
             </div>
 
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200/80 rounded-full text-xs font-semibold text-slate-700 shadow-2xs">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200/90 rounded-full text-xs font-semibold text-slate-700 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-blue-500" />
-              <span><strong>12</strong> SMP Mitra Sidoarjo</span>
+              <span>
+                <strong className="text-[#141416] font-bold">12</strong> SMP Mitra Sidoarjo
+              </span>
             </div>
 
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200/80 rounded-full text-xs font-semibold text-slate-700 shadow-2xs">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200/90 rounded-full text-xs font-semibold text-slate-700 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span><strong>{claimedCount}</strong> Ketua Terdaftar</span>
+              <span>
+                <strong className="text-[#141416] font-bold">{claimedCount}</strong> Ketua Terdaftar
+              </span>
             </div>
 
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200/80 rounded-full text-xs font-semibold text-slate-700 shadow-2xs">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200/90 rounded-full text-xs font-semibold text-slate-700 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-purple-500" />
-              <span><strong>100%</strong> Tersinkronisasi MGMP</span>
+              <span>
+                <strong className="text-[#141416] font-bold">100%</strong> Tersinkronisasi MGMP
+              </span>
             </div>
           </div>
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════════
-            SEARCH & FILTER CONTROLS (SEAMLESS & SPACIOUS, NO BOX FATIGUE)
+            SEARCH & FILTER CONTROLS (SEAMLESS & SPACIOUS)
         ══════════════════════════════════════════════════════════════════════ */}
         <div className="mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           {/* Search Input - Clean Pill */}
@@ -197,7 +209,7 @@ export const DaftarKelompokPage: React.FC = () => {
         {/* Counter and Status Strip */}
         <div className="flex items-center justify-between text-xs text-slate-500 mb-6 pb-3 border-b border-slate-200/70">
           <span className="font-medium text-slate-700">
-            Menampilkan <strong className="text-slate-900">{filteredGroups.length}</strong> dari {totalCount} kelompok
+            Menampilkan <strong className="text-[#141416] font-bold">{filteredGroups.length}</strong> dari {totalCount} kelompok
           </span>
           <span className="text-[11px] text-slate-400 hidden sm:inline">
             Sinkronisasi data sekolah &amp; kelompok resmi Skomda Mengajar 2026
@@ -205,7 +217,7 @@ export const DaftarKelompokPage: React.FC = () => {
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════════
-            GRID OF KELOMPOK CARDS (CLEAN, AIRY & SPACIOUS)
+            3. MODERN INTERACTIVE GROUP CARDS (PREMIUM TACTILE DIRECTORY)
         ══════════════════════════════════════════════════════════════════════ */}
         {filteredGroups.length === 0 ? (
           <div className="py-20 text-center text-slate-400 bg-white rounded-3xl border border-slate-200 shadow-2xs">
@@ -216,80 +228,115 @@ export const DaftarKelompokPage: React.FC = () => {
             <p className="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian atau filter wilayah.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-            {filteredGroups.map((group) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {filteredGroups.map((group, index) => {
               const num = parseInt(group.number, 10);
               const isPending = !group.hasLeader || num === 23 || num === 24 || group.leaderName.includes('Belum');
 
+              const leaderInitial = group.hasLeader && !isPending
+                ? group.leaderName
+                    .split(' ')
+                    .slice(0, 2)
+                    .map((w: string) => w[0] || '')
+                    .join('')
+                    .toUpperCase()
+                : '?';
+
               return (
                 <div
-                  key={group.id}
-                  className="bg-white rounded-2xl border border-slate-200/80 hover:border-slate-300 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col justify-between transition-all duration-300 group"
+                  key={`${group.id}-${selectedFilter}`}
+                  style={{ animationDelay: `${index * 45}ms` }}
+                  className="group relative overflow-hidden rounded-[22px] bg-white p-5 border border-slate-200/80 shadow-[0_2px_10px_rgba(15,23,42,0.03)] hover:-translate-y-1.5 hover:border-[#E50914]/40 hover:shadow-[0_18px_36px_-12px_rgba(229,9,20,0.16)] transition-all duration-300 ease-out flex flex-col justify-between animate-fade-in-up"
                 >
-                  {/* Subtle Top Indicator Accent */}
-                  <div className={`h-1 w-full ${isPending ? 'bg-amber-400' : 'bg-emerald-500'}`} />
+                  {/* Top Accent Strip: Smooth Crimson Gradient Reveal on Hover */}
+                  <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#E50914] to-rose-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                  <div className="p-5 flex flex-col gap-3 flex-1">
-                    {/* Header: Kelompok Tag & Status */}
+                  <div className="flex flex-col flex-1">
+                    {/* Header Row: Dark Pill Badge + Status Pill */}
                     <div className="flex items-center justify-between">
-                      <span className="bg-slate-100 group-hover:bg-[#E50914] text-slate-900 group-hover:text-white text-[11px] font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider font-mono transition-colors">
+                      <span className="bg-[#141416] text-white text-[11px] font-bold px-2.5 py-1 rounded-lg tracking-wider font-mono">
                         KEL. {group.number}
                       </span>
+
                       {isPending ? (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/70">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                           Belum Ada Ketua
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                           Ketua Terpilih
                         </span>
                       )}
                     </div>
 
-                    {/* School Title & District */}
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900 group-hover:text-[#E50914] transition-colors leading-snug">
+                    {/* School Title & Location */}
+                    <div className="mt-3.5">
+                      <h3 className="text-base font-extrabold text-[#141416] group-hover:text-[#E50914] transition-colors leading-snug">
                         {group.schoolName}
                       </h3>
-                      <span className="text-xs text-slate-400 font-medium flex items-center gap-1 mt-1">
-                        <span className="material-symbols-outlined text-[14px]">location_on</span>
+                      <span className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-1">
+                        <span className="material-symbols-outlined text-[15px] text-slate-400">
+                          location_on
+                        </span>
                         <span>Kec. {group.district}</span>
                       </span>
                     </div>
 
-                    {/* Metadata Details Table */}
-                    <div className="flex flex-col gap-2 text-xs text-slate-600 mt-auto pt-3.5 border-t border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-400 text-[11px]">Ketua:</span>
-                        <span className="font-semibold text-slate-800 truncate max-w-[140px]">
-                          {isPending ? 'Belum Ditentukan' : group.leaderName}
-                        </span>
+                    {/* Structured Info Block (Soft Tinted Container) */}
+                    <div className="mt-4 rounded-xl bg-slate-50/90 border border-slate-100 p-3 space-y-2.5">
+                      {/* Ketua Row */}
+                      <div className="flex items-center justify-between text-xs gap-2">
+                        <span className="text-slate-400 text-[11px] font-medium">Ketua:</span>
+                        <div className="flex items-center gap-1.5 truncate max-w-[145px]">
+                          <div className="w-5 h-5 rounded-full bg-[#E50914]/10 text-[#E50914] text-[9px] font-bold flex items-center justify-center shrink-0">
+                            {leaderInitial}
+                          </div>
+                          <span
+                            className={
+                              isPending
+                                ? 'italic text-amber-700 font-medium truncate'
+                                : 'font-semibold text-slate-800 truncate'
+                            }
+                          >
+                            {isPending ? 'Belum Ditentukan' : group.leaderName}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-400 text-[11px]">Pembimbing:</span>
-                        <span className="font-medium text-slate-700 truncate max-w-[140px]">
+
+                      {/* Pembimbing Row */}
+                      <div className="flex items-center justify-between text-xs gap-2">
+                        <span className="text-slate-400 text-[11px] font-medium">Pembimbing:</span>
+                        <span className="font-medium text-slate-700 truncate max-w-[145px]">
                           {group.mentorName.split(',')[0]}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-400 text-[11px]">Jadwal:</span>
-                        <span className="text-slate-700 font-medium">{group.targetDate}</span>
+
+                      {/* Jadwal Row */}
+                      <div className="flex items-center justify-between text-xs gap-2">
+                        <span className="text-slate-400 text-[11px] font-medium">Jadwal:</span>
+                        <span className="inline-flex items-center gap-1 font-medium text-slate-700">
+                          <span className="material-symbols-outlined text-[13px] text-slate-400">
+                            calendar_today
+                          </span>
+                          <span>{group.targetDate}</span>
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Card Bottom Action */}
-                  <div className="p-3 bg-slate-50/60 border-t border-slate-100">
-                    <button
-                      onClick={() => setSelectedRosterGroup(group)}
-                      className="w-full py-2.5 px-3 bg-white hover:bg-[#141416] text-slate-700 hover:text-white border border-slate-200 hover:border-[#141416] rounded-xl text-xs font-semibold transition-all duration-200 inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">group</span>
-                      <span>Lihat Anggota Tim</span>
-                    </button>
-                  </div>
+                  {/* Interactive Footer CTA: Full-Width Tactile Button */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRosterGroup(group)}
+                    className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white border border-slate-200/90 py-2.5 text-xs font-bold text-[#141416] group-hover:bg-[#141416] group-hover:text-white group-hover:border-[#141416] transition-all duration-200 cursor-pointer shadow-2xs active:scale-[0.98]"
+                  >
+                    <span>Lihat Anggota Tim</span>
+                    <span className="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">
+                      arrow_forward
+                    </span>
+                  </button>
                 </div>
               );
             })}
@@ -298,7 +345,7 @@ export const DaftarKelompokPage: React.FC = () => {
       </main>
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          TEAM ROSTER MODAL
+          4. READ-ONLY TEAM ROSTER MODAL
       ══════════════════════════════════════════════════════════════════════════ */}
       {selectedRosterGroup && (
         <div
@@ -313,14 +360,14 @@ export const DaftarKelompokPage: React.FC = () => {
             <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="bg-[#E50914] text-white text-[11px] font-extrabold px-2.5 py-0.5 rounded-md uppercase tracking-wider">
+                  <span className="bg-[#E50914] text-white text-[11px] font-extrabold px-2.5 py-0.5 rounded-md uppercase tracking-wider font-mono">
                     Kelompok {selectedRosterGroup.number}
                   </span>
                   <span className="text-xs font-semibold text-slate-400">
                     Kec. {selectedRosterGroup.district}
                   </span>
                 </div>
-                <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                <h3 className="text-xl font-extrabold text-[#141416] tracking-tight">
                   {selectedRosterGroup.schoolName}
                 </h3>
                 <p className="text-xs text-slate-500 mt-1">
@@ -329,6 +376,7 @@ export const DaftarKelompokPage: React.FC = () => {
               </div>
 
               <button
+                type="button"
                 onClick={() => setSelectedRosterGroup(null)}
                 className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
               >
@@ -395,6 +443,7 @@ export const DaftarKelompokPage: React.FC = () => {
                 Data resmi MGMP &amp; Skomda Mengajar 2026
               </span>
               <button
+                type="button"
                 onClick={() => setSelectedRosterGroup(null)}
                 className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-colors cursor-pointer"
               >
