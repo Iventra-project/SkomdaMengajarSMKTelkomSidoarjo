@@ -1,12 +1,12 @@
 PRAGMA foreign_keys = ON;
 
--- Users table (Admin & User)
+-- Users table (Admin, Guru Pembimbing/Mentor, & User/Kelompok)
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'mentor', 'user')),
   group_number TEXT,
   school_name TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -115,7 +115,40 @@ CREATE TABLE IF NOT EXISTS showcase_projects (
   image_url TEXT NOT NULL
 );
 
+-- Mentor <-> Group Plotting (One-to-Many / Many-to-Many)
+CREATE TABLE IF NOT EXISTS mentor_groups (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  mentor_id INTEGER NOT NULL,
+  group_id TEXT NOT NULL,
+  assigned_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (mentor_id, group_id),
+  FOREIGN KEY (mentor_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+);
+
+-- Progress Stages & ACC Status per Group (Tahap 1..6)
+CREATE TABLE IF NOT EXISTS progress_stages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  group_id TEXT NOT NULL,
+  stage_number INTEGER NOT NULL CHECK (stage_number BETWEEN 1 AND 6),
+  title TEXT NOT NULL,
+  submission_url TEXT,
+  submission_note TEXT,
+  acc_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (acc_status IN ('pending', 'submitted', 'approved', 'revision')),
+  reviewed_by INTEGER,
+  reviewer_note TEXT NOT NULL DEFAULT '',
+  reviewed_at TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (group_id, stage_number),
+  FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+  FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_members_group_id ON members(group_id);
 CREATE INDEX IF NOT EXISTS idx_sprint_tasks_group_id ON sprint_tasks(group_id);
 CREATE INDEX IF NOT EXISTS idx_activity_events_group_id ON activity_events(group_id);
+CREATE INDEX IF NOT EXISTS idx_mentor_groups_mentor_id ON mentor_groups(mentor_id);
+CREATE INDEX IF NOT EXISTS idx_mentor_groups_group_id ON mentor_groups(group_id);
+CREATE INDEX IF NOT EXISTS idx_progress_stages_group_id ON progress_stages(group_id);
 CREATE INDEX IF NOT EXISTS idx_groups_status ON groups(status);

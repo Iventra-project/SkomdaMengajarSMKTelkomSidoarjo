@@ -20,13 +20,14 @@ export type RoutePath =
   | '/admin/login'
   | '/admin'
   | '/admin/kelompok/03'
+  | '/mentor'
   | '/workspace'
   | '/dashboard/ketua'
   | '/dashboard/admin'
   | '/dashboard/admin/review'
   | (string & {});
 
-export type UserRole = 'admin' | 'user' | 'leader';
+export type UserRole = 'admin' | 'mentor' | 'user' | 'leader';
 
 const isGroupRole = (role?: UserRole) => role === 'user' || role === 'leader';
 
@@ -46,6 +47,28 @@ export interface User {
   email: string;
   groupNumber?: string;
   schoolName?: string;
+  assignedGroupIds?: string[];
+}
+
+export interface MentorAccount {
+  id: number;
+  name: string;
+  email: string;
+  password?: string;
+  assignedGroupIds: string[];
+}
+
+export type StageAccStatus = 'pending' | 'submitted' | 'approved' | 'revision';
+
+export interface ProgressStageRecord {
+  stageNumber: number;
+  title: string;
+  submissionUrl: string | null;
+  submissionNote: string;
+  accStatus: StageAccStatus;
+  reviewerName?: string;
+  reviewerNote: string;
+  reviewedAt?: string;
 }
 
 export interface RegisterPayload {
@@ -125,6 +148,15 @@ interface AppContextType {
   claimGroupLeader: (groupNumber: string, nis: string, newPassword?: string) => Promise<{ ok: boolean; error?: string; user?: User }>;
   resetGroupLeader: (groupNumber: string) => void;
   getGroupRoster: (groupNumber: string) => TeamRosterMember[];
+  mentors: MentorAccount[];
+  createMentor: (payload: { name: string; email: string; password: string; groupIds?: string[] }) => Promise<{ ok: boolean; error?: string }>;
+  updateMentor: (id: number, payload: { name: string; email: string; password?: string }) => Promise<{ ok: boolean; error?: string }>;
+  deleteMentor: (id: number) => Promise<{ ok: boolean; error?: string }>;
+  assignMentorGroups: (mentorId: number, groupIds: string[]) => Promise<{ ok: boolean; error?: string }>;
+  getGroupStages: (groupNumber: string) => ProgressStageRecord[];
+  fetchGroupStages: (groupNumber: string) => Promise<ProgressStageRecord[]>;
+  submitStageProgress: (groupNumber: string, stageNumber: number, submissionUrl: string, submissionNote?: string) => Promise<{ ok: boolean; error?: string }>;
+  reviewStageProgress: (groupNumber: string, stageNumber: number, decision: 'approved' | 'revision', reviewerNote?: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -143,6 +175,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (pathOnly === '/login') return '/login';
       if (pathOnly === '/admin/login') return '/login';
       if (pathOnly === '/admin' || pathOnly === '/dashboard/admin') return '/admin';
+      if (pathOnly === '/mentor' || pathOnly.startsWith('/mentor/')) return pathOnly as RoutePath;
       if (pathOnly === '/admin/kelompok/03' || pathOnly === '/admin-kelompok-03' || pathOnly === '/dashboard/admin/review') {
         return '/admin/kelompok/03';
       }
@@ -181,14 +214,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentUser]);
 
-  // Check saved session on mount and auto-redirect if visiting / or /login or /admin/login
+  // Check saved session on mount and auto-redirect only if visiting /login or /admin/login
   useEffect(() => {
     if (currentUser) {
       const hash = typeof window !== 'undefined' ? window.location.hash.replace('#', '') : '';
       const [pathOnly] = hash.split('?');
-      if (pathOnly === '/login' || pathOnly === '/admin/login' || pathOnly === '/' || pathOnly === '') {
+      if (pathOnly === '/login' || pathOnly === '/admin/login') {
         if (currentUser.role === 'admin') {
           navigate('/admin');
+        } else if (currentUser.role === 'mentor') {
+          navigate('/mentor');
         } else {
           navigate('/home');
         }
@@ -320,6 +355,146 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [showMemoToLeader, setShowMemoToLeader] = useState<boolean>(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'warning' } | null>(null);
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+
+  const MENTORS_STORAGE_KEY = 'skomda_rbac_mentors';
+  const STAGES_STORAGE_KEY = 'skomda_rbac_stages';
+  const STAGE_TITLES_LIST = [
+    'Bentuk Tim Relawan',
+    'Pilih & Tetapkan Ketua',
+    'Susun Modul & Materi',
+    'Siapkan Desain & Banner',
+    'Mengajar di SMP Mitra',
+    'Laporan Akhir & Evaluasi',
+  ];
+
+  const buildDefaultStagesForGroup = (grp: Group): ProgressStageRecord[] => {
+    const stepValues = [
+      grp.steps.step1,
+      grp.steps.step2,
+      grp.steps.step3,
+      grp.steps.step4,
+      grp.steps.step5,
+      grp.steps.step6,
+    ];
+    return STAGE_TITLES_LIST.map((title, idx) => {
+      const stageNumber = idx + 1;
+      const stepVal = stepValues[idx];
+      let accStatus: StageAccStatus = 'pending';
+      if (stepVal === 'done') accStatus = 'approved';
+      else if (stepVal === 'review') accStatus = 'submitted';
+      else if (stepVal === 'revisi') accStatus = 'revision';
+      return {
+        stageNumber,
+        title,
+        submissionUrl:
+          accStatus !== 'pending'
+            ? `https://drive.google.com/skomda/kel-${grp.number}/tahap-0${stageNumber}.pdf`
+            : null,
+        submissionNote:
+          accStatus === 'submitted'
+            ? `Berkas Tahap 0${stageNumber} menunggu ACC Guru Pembimbing.`
+            : accStatus === 'approved'
+              ? `Diselesaikan oleh Kelompok ${grp.number}.`
+              : '',
+        accStatus,
+        reviewerName: accStatus === 'approved' ? grp.mentorName || 'Guru Pembimbing' : undefined,
+        reviewerNote:
+          accStatus === 'approved'
+            ? 'Sesuai standar kurikulum Skomda Mengajar.'
+            : accStatus === 'revision'
+              ? 'Mohon perbaiki format sebelum dicetak.'
+              : '',
+      };
+    });
+  };
+
+  const [mentors, setMentors] = useState<MentorAccount[]>(() => {
+    const defaults: MentorAccount[] = [
+      {
+        id: 2,
+        name: 'Dra. Sri Wahyuni, M.Pd',
+        email: 'sri.wahyuni@smktelkom-sda.sch.id',
+        password: 'Skomda2026!',
+        assignedGroupIds: ['01', '02', '03', '04'],
+      },
+      {
+        id: 3,
+        name: 'Budi Hartono, S.Kom',
+        email: 'budi.hartono@smktelkom-sda.sch.id',
+        password: 'Skomda2026!',
+        assignedGroupIds: ['05', '06', '07', '08'],
+      },
+    ];
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = window.localStorage.getItem(MENTORS_STORAGE_KEY);
+        if (saved) return JSON.parse(saved) as MentorAccount[];
+      } catch {
+        // ignore
+      }
+    }
+    return defaults;
+  });
+
+  const [groupStagesMap, setGroupStagesMap] = useState<Record<string, ProgressStageRecord[]>>(() => {
+    const initial: Record<string, ProgressStageRecord[]> = {};
+    for (const grp of groupsData) {
+      initial[grp.number] = buildDefaultStagesForGroup(grp);
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = window.localStorage.getItem(STAGES_STORAGE_KEY);
+        if (saved) {
+          return { ...initial, ...(JSON.parse(saved) as Record<string, ProgressStageRecord[]>) };
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return initial;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(MENTORS_STORAGE_KEY, JSON.stringify(mentors));
+    }
+  }, [mentors]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(STAGES_STORAGE_KEY, JSON.stringify(groupStagesMap));
+    }
+  }, [groupStagesMap]);
+
+  // Sync mentors list from backend API when Admin is authenticated
+  useEffect(() => {
+    if (!authToken || currentUser?.role !== 'admin') return;
+    const syncMentors = async () => {
+      try {
+        const res = await fetch('/api/admin/mentors', {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        if (!res.ok) return;
+        const rows = (await res.json()) as Array<{
+          id: number;
+          name: string;
+          email: string;
+          assignedGroups?: Array<{ id: string }>;
+        }>;
+        setMentors(
+          rows.map((r) => ({
+            id: r.id,
+            name: r.name,
+            email: r.email,
+            assignedGroupIds: (r.assignedGroups || []).map((g) => g.id),
+          }))
+        );
+      } catch {
+        // Keep local fallback when API is offline
+      }
+    };
+    void syncMentors();
+  }, [authToken, currentUser]);
 
   const showToast = (message: string, type: 'success' | 'info' | 'warning' = 'success') => {
     setToast({ message, type });
@@ -482,9 +657,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return;
       }
 
+      const mentorGroupMatch = pathOnly.match(/^\/mentor\/kelompok\/(\d+)$/i);
+      if (mentorGroupMatch) {
+        const requestedGroup = formatGroupNumber(mentorGroupMatch[1]);
+        if (!currentUser) {
+          showToast('Silakan login sebagai Guru Pembimbing terlebih dahulu.', 'warning');
+          navigate('/login?role=admin');
+          return;
+        }
+        if (currentUser.role === 'mentor' && !currentUser.assignedGroupIds?.includes(requestedGroup)) {
+          showToast(
+            `Akses ditolak! Kelompok ${requestedGroup} bukan kelompok bimbingan Anda.`,
+            'warning'
+          );
+          navigate('/mentor');
+          return;
+        }
+        setCurrentPath(pathOnly as RoutePath);
+        return;
+      }
+
       if (pathOnly === '/home') setCurrentPath('/home');
       else if (pathOnly === '/kelompok') setCurrentPath('/kelompok');
       else if (pathOnly === '/login') setCurrentPath('/login');
+      else if (pathOnly === '/mentor') setCurrentPath('/mentor');
       else if (pathOnly === '/admin' || pathOnly === '/dashboard/admin') setCurrentPath('/admin');
       else if (pathOnly === '/admin/kelompok/03' || pathOnly === '/admin-kelompok-03' || pathOnly === '/dashboard/admin/review') {
         setCurrentPath('/admin/kelompok/03');
@@ -1088,19 +1284,78 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const validIdentities = [
       'admin',
       'admin@smktelkom-sda.sch.id',
-      'sri.wahyuni@smktelkom-sda.sch.id',
-      'sri.wahyuni',
-      'pembimbing@smktelkom-sda.sch.id',
+      'admin@telkomsda.sch.id',
       'kurikulum@smktelkom-sda.sch.id',
     ];
     const isNip = /^\d{16,18}$/.test(identity);
 
-    const identityValid =
-      validIdentities.includes(lower) || isNip || lower.includes('admin') || lower.includes('wahyuni');
+    // 2. Check Mentor (Guru Pembimbing) or Admin via real API first
+    try {
+      const apiRes = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: identity.includes('@') ? identity : `${lower}@smktelkom-sda.sch.id`,
+          password,
+        }),
+      });
+      if (apiRes.ok) {
+        const data = (await apiRes.json()) as { token: string; user: User };
+        if (data.user.role === 'admin' || data.user.role === 'mentor') {
+          window.localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+          window.localStorage.setItem(USER_SESSION_KEY, JSON.stringify(data.user));
+          setAuthToken(data.token);
+          setCurrentUser(data.user);
+          showToast(`Otorisasi Berhasil! Selamat datang, ${data.user.name}.`, 'success');
+          navigate(data.user.role === 'mentor' ? '/mentor' : '/admin');
+          return { ok: true, user: data.user };
+        }
+      }
+    } catch {
+      // Backend offline — fall through to local RBAC verification
+    }
+
+    // 3. Offline / Demo Fallback: Match Mentor account from `mentors`
+    const matchedMentor = mentors.find(
+      (m) =>
+        m.email.toLowerCase() === lower ||
+        m.email.split('@')[0].toLowerCase() === lower ||
+        m.name.toLowerCase() === lower
+    );
+
+    if (matchedMentor) {
+      const expectedPass = matchedMentor.password || 'Skomda2026!';
+      if (password !== expectedPass && password !== 'Skomda2026!' && password !== 'mentor123') {
+        return {
+          ok: false,
+          error: 'Kata sandi Guru Pembimbing tidak sesuai.',
+        };
+      }
+      const mentorUser: User = {
+        id: matchedMentor.id,
+        name: matchedMentor.name,
+        role: 'mentor',
+        email: matchedMentor.email,
+        assignedGroupIds: matchedMentor.assignedGroupIds,
+      };
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(USER_SESSION_KEY, JSON.stringify(mentorUser));
+      }
+      setCurrentUser(mentorUser);
+      showToast(
+        `Selamat datang, ${matchedMentor.name}! (${matchedMentor.assignedGroupIds.length} kelompok bimbingan)`,
+        'success'
+      );
+      navigate('/mentor');
+      return { ok: true, user: mentorUser };
+    }
+
+    // 4. Offline / Demo Fallback: Match Admin account
+    const identityValid = validIdentities.includes(lower) || isNip || lower.includes('admin');
     if (!identityValid) {
       return {
         ok: false,
-        error: 'Email Institusi atau NIP Pembimbing tidak terdaftar dalam sistem kurikulum.',
+        error: 'Email Institusi atau NIP Pembimbing/Admin tidak terdaftar dalam sistem.',
       };
     }
 
@@ -1111,32 +1366,334 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     ) {
       return {
         ok: false,
-        error: 'Kata sandi akun pembimbing tidak sesuai.',
+        error: 'Kata sandi akun pembimbing/admin tidak sesuai.',
       };
     }
 
-    const adminName = lower.includes('wahyuni')
-      ? 'Dra. Sri Wahyuni, M.Pd'
-      : 'Admin Kurikulum';
-    const adminEmail = identity.includes('@') ? identity : 'admin@smktelkom-sda.sch.id';
-
     const adminUser: User = {
-      name: adminName,
+      name: 'Admin Kurikulum',
       role: 'admin',
-      email: adminEmail,
+      email: identity.includes('@') ? identity : 'admin@smktelkom-sda.sch.id',
     };
 
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(USER_SESSION_KEY, JSON.stringify(adminUser));
     }
     setCurrentUser(adminUser);
-    showToast(`Otorisasi Berhasil! Selamat datang, ${adminName}.`, 'success');
+    showToast(`Otorisasi Berhasil! Selamat datang, ${adminUser.name}.`, 'success');
     navigate('/admin');
     return { ok: true, user: adminUser };
   };
 
+  // ========================
+  // RBAC CRUD: Admin Manajemen Guru Pembimbing & Plotting Kelompok
+  // ========================
+  const createMentor = async (payload: {
+    name: string;
+    email: string;
+    password: string;
+    groupIds?: string[];
+  }): Promise<{ ok: boolean; error?: string }> => {
+    const cleanEmail = payload.email.trim().toLowerCase();
+    if (!payload.name.trim() || !cleanEmail || payload.password.length < 6) {
+      return { ok: false, error: 'Nama, email, dan password minimal 6 karakter wajib diisi.' };
+    }
+    if (mentors.some((m) => m.email.toLowerCase() === cleanEmail)) {
+      return { ok: false, error: 'Email Guru Pembimbing sudah terdaftar.' };
+    }
+
+    let createdId = Date.now();
+    if (authToken && currentUser?.role === 'admin') {
+      try {
+        const res = await fetch('/api/admin/mentors', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = (await res.json()) as { id?: number; error?: string };
+        if (!res.ok) {
+          return { ok: false, error: data.error || 'Gagal membuat akun pembimbing.' };
+        }
+        if (data.id) createdId = data.id;
+      } catch {
+        // Offline mode continues below
+      }
+    }
+
+    const normalizedGroups = (payload.groupIds || []).map((g) => formatGroupNumber(g));
+    setMentors((prev) => [
+      ...prev,
+      {
+        id: createdId,
+        name: payload.name.trim(),
+        email: cleanEmail,
+        password: payload.password,
+        assignedGroupIds: normalizedGroups,
+      },
+    ]);
+    showToast(`Akun Guru Pembimbing "${payload.name.trim()}" berhasil dibuat!`, 'success');
+    return { ok: true };
+  };
+
+  const updateMentor = async (
+    id: number,
+    payload: { name: string; email: string; password?: string }
+  ): Promise<{ ok: boolean; error?: string }> => {
+    const cleanEmail = payload.email.trim().toLowerCase();
+    if (!payload.name.trim() || !cleanEmail) {
+      return { ok: false, error: 'Nama dan email wajib diisi.' };
+    }
+    if (payload.password && payload.password.length < 6) {
+      return { ok: false, error: 'Password baru minimal 6 karakter.' };
+    }
+
+    if (authToken && currentUser?.role === 'admin') {
+      try {
+        const res = await fetch(`/api/admin/mentors/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const data = (await res.json()) as { error?: string };
+          return { ok: false, error: data.error || 'Gagal memperbarui akun pembimbing.' };
+        }
+      } catch {
+        // Offline fallback
+      }
+    }
+
+    setMentors((prev) =>
+      prev.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              name: payload.name.trim(),
+              email: cleanEmail,
+              password: payload.password ? payload.password : m.password,
+            }
+          : m
+      )
+    );
+    showToast(`Data Guru Pembimbing "${payload.name.trim()}" diperbarui.`, 'success');
+    return { ok: true };
+  };
+
+  const deleteMentor = async (id: number): Promise<{ ok: boolean; error?: string }> => {
+    if (authToken && currentUser?.role === 'admin') {
+      try {
+        const res = await fetch(`/api/admin/mentors/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        if (!res.ok) {
+          const data = (await res.json()) as { error?: string };
+          return { ok: false, error: data.error || 'Gagal menghapus akun pembimbing.' };
+        }
+      } catch {
+        // Offline fallback
+      }
+    }
+
+    setMentors((prev) => prev.filter((m) => m.id !== id));
+    showToast('Akun Guru Pembimbing telah dihapus.', 'info');
+    return { ok: true };
+  };
+
+  const assignMentorGroups = async (
+    mentorId: number,
+    groupIds: string[]
+  ): Promise<{ ok: boolean; error?: string }> => {
+    const normalizedIds = Array.from(new Set(groupIds.map((g) => formatGroupNumber(g)))).sort();
+    const targetMentor = mentors.find((m) => m.id === mentorId);
+
+    if (authToken && currentUser?.role === 'admin') {
+      try {
+        const res = await fetch(`/api/admin/mentors/${mentorId}/groups`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ groupIds: normalizedIds }),
+        });
+        if (!res.ok) {
+          const data = (await res.json()) as { error?: string };
+          return { ok: false, error: data.error || 'Gagal menyimpan plotting kelompok.' };
+        }
+      } catch {
+        // Offline fallback
+      }
+    }
+
+    setMentors((prev) =>
+      prev.map((m) => (m.id === mentorId ? { ...m, assignedGroupIds: normalizedIds } : m))
+    );
+    if (targetMentor) {
+      setGroups((prev) =>
+        prev.map((g) =>
+          normalizedIds.includes(g.number) ? { ...g, mentorName: targetMentor.name } : g
+        )
+      );
+    }
+    showToast(
+      `Plotting kelompok berhasil disimpan (${normalizedIds.length} kelompok ditetapkan).`,
+      'success'
+    );
+    return { ok: true };
+  };
+
+  // ========================
+  // RBAC: Tahapan Progres & ACC Guru Pembimbing
+  // ========================
+  const getGroupStages = (groupNumber: string): ProgressStageRecord[] => {
+    const formatted = formatGroupNumber(groupNumber);
+    if (groupStagesMap[formatted]) return groupStagesMap[formatted];
+    const grp = groups.find((g) => g.number === formatted) || groups[0];
+    return buildDefaultStagesForGroup(grp);
+  };
+
+  const fetchGroupStages = async (groupNumber: string): Promise<ProgressStageRecord[]> => {
+    const formatted = formatGroupNumber(groupNumber);
+    if (authToken) {
+      try {
+        const res = await fetch(`/api/groups/${formatted}/stages`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        if (res.ok) {
+          const data = (await res.json()) as ProgressStageRecord[];
+          setGroupStagesMap((prev) => ({ ...prev, [formatted]: data }));
+          return data;
+        }
+      } catch {
+        // Fallback to local state
+      }
+    }
+    return getGroupStages(formatted);
+  };
+
+  const submitStageProgress = async (
+    groupNumber: string,
+    stageNumber: number,
+    submissionUrl: string,
+    submissionNote = ''
+  ): Promise<{ ok: boolean; error?: string }> => {
+    const formatted = formatGroupNumber(groupNumber);
+    if (currentUser && isGroupRole(currentUser.role) && userGroupNumber !== formatted) {
+      return { ok: false, error: 'Akses ditolak: Anda tidak boleh mengubah progres kelompok lain.' };
+    }
+
+    if (authToken) {
+      try {
+        const res = await fetch(`/api/groups/${formatted}/stages/${stageNumber}/submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ submissionUrl, submissionNote }),
+        });
+        if (!res.ok) {
+          const err = (await res.json()) as { error?: string };
+          return { ok: false, error: err.error || 'Gagal mengunggah progres tahapan.' };
+        }
+      } catch {
+        // Offline fallback
+      }
+    }
+
+    setGroupStagesMap((prev) => {
+      const current = prev[formatted] || getGroupStages(formatted);
+      return {
+        ...prev,
+        [formatted]: current.map((s) =>
+          s.stageNumber === stageNumber
+            ? {
+                ...s,
+                submissionUrl,
+                submissionNote,
+                accStatus: 'submitted',
+              }
+            : s
+        ),
+      };
+    });
+    showToast(`Progres Tahap 0${stageNumber} dikirim! Menunggu ACC Guru Pembimbing.`, 'success');
+    return { ok: true };
+  };
+
+  const reviewStageProgress = async (
+    groupNumber: string,
+    stageNumber: number,
+    decision: 'approved' | 'revision',
+    reviewerNote = ''
+  ): Promise<{ ok: boolean; error?: string }> => {
+    const formatted = formatGroupNumber(groupNumber);
+
+    // RBAC guard: Guru Pembimbing can ONLY approve/revise their plotted groups
+    if (
+      currentUser?.role === 'mentor' &&
+      !currentUser.assignedGroupIds?.includes(formatted)
+    ) {
+      return {
+        ok: false,
+        error: `Akses ditolak: Kelompok ${formatted} bukan kelompok bimbingan Anda.`,
+      };
+    }
+
+    if (authToken) {
+      try {
+        const res = await fetch(`/api/groups/${formatted}/stages/${stageNumber}/review`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ decision, reviewerNote }),
+        });
+        if (!res.ok) {
+          const err = (await res.json()) as { error?: string };
+          return { ok: false, error: err.error || 'Gagal menyimpan review tahapan.' };
+        }
+      } catch {
+        // Offline fallback
+      }
+    }
+
+    setGroupStagesMap((prev) => {
+      const current = prev[formatted] || getGroupStages(formatted);
+      return {
+        ...prev,
+        [formatted]: current.map((s) =>
+          s.stageNumber === stageNumber
+            ? {
+                ...s,
+                accStatus: decision,
+                reviewerNote,
+                reviewerName: currentUser?.name || 'Guru Pembimbing',
+                reviewedAt: new Date().toLocaleDateString('id-ID'),
+              }
+            : s
+        ),
+      };
+    });
+
+    if (decision === 'approved') {
+      showToast(`Tahap 0${stageNumber} Kelompok ${formatted} resmi DI-ACC!`, 'success');
+    } else {
+      showToast(`Permintaan revisi Tahap 0${stageNumber} dikirim ke Kelompok ${formatted}.`, 'warning');
+    }
+    return { ok: true };
+  };
+
   const logout = async (redirectTo?: RoutePath) => {
-    const wasAdmin = currentUser?.role === 'admin';
+    const wasPrivileged = currentUser?.role === 'admin' || currentUser?.role === 'mentor';
     if (authToken) {
       try {
         await fetch('/api/auth/logout', {
@@ -1154,7 +1711,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAuthToken(null);
     setCurrentUser(null);
     showToast('Anda telah keluar dari sesi.', 'info');
-    const target = redirectTo || (wasAdmin ? '/login?role=admin' : '/login');
+    const target = redirectTo || (wasPrivileged ? '/login?role=admin' : '/login');
     navigate(target);
   };
 
@@ -1201,6 +1758,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         claimGroupLeader,
         resetGroupLeader,
         getGroupRoster,
+        mentors,
+        createMentor,
+        updateMentor,
+        deleteMentor,
+        assignMentorGroups,
+        getGroupStages,
+        fetchGroupStages,
+        submitStageProgress,
+        reviewStageProgress,
       }}
     >
       {children}

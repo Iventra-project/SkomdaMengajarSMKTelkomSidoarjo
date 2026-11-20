@@ -14,6 +14,9 @@ import {
   Home,
   LayoutDashboard,
   Users,
+  UserCheck,
+  Pencil,
+  Trash2,
   MessageSquare,
   Calendar,
   LogOut,
@@ -21,6 +24,7 @@ import {
 } from 'lucide-react';
 
 import { BrandLogo } from '../../components/BrandLogo';
+import type { MentorAccount } from '../../context/AppContext';
 import {
   ActionRowItem,
   GroupProgressRow,
@@ -34,11 +38,32 @@ export type { ActionRowItem, GroupProgressRow };
 export { SIX_STAGES };
 
 export const AdminMonitoringPage: React.FC = () => {
-  const { navigate, showToast, submitBannerDecision, updateGroupLeader, resetGroupLeader, logoutAdmin, currentUser } = useApp();
+  const {
+    navigate,
+    showToast,
+    submitBannerDecision,
+    updateGroupLeader,
+    resetGroupLeader,
+    logoutAdmin,
+    currentUser,
+    mentors,
+    createMentor,
+    updateMentor,
+    deleteMentor,
+    assignMentorGroups,
+  } = useApp();
 
-  // Navigation: 'beranda' | 'kelompok' | 'feedback' | 'pengaturan'
-  const [activeScreen, setActiveScreen] = useState<'beranda' | 'kelompok' | 'feedback' | 'pengaturan'>('beranda');
+  // Navigation: 'beranda' | 'kelompok' | 'pembimbing' | 'feedback' | 'pengaturan'
+  const [activeScreen, setActiveScreen] = useState<'beranda' | 'kelompok' | 'pembimbing' | 'feedback' | 'pengaturan'>('beranda');
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+
+  // Screen: Guru Pembimbing CRUD & Plotting State
+  const [editingMentor, setEditingMentor] = useState<MentorAccount | null>(null);
+  const [mentorFormName, setMentorFormName] = useState('');
+  const [mentorFormEmail, setMentorFormEmail] = useState('');
+  const [mentorFormPassword, setMentorFormPassword] = useState('');
+  const [plottingMentor, setPlottingMentor] = useState<MentorAccount | null>(null);
+  const [plottingGroupIds, setPlottingGroupIds] = useState<string[]>([]);
 
   // Groups and Action Data State
   const [groupsList, setGroupsList] = useState<GroupProgressRow[]>(INITIAL_GROUPS);
@@ -467,6 +492,29 @@ export const AdminMonitoringPage: React.FC = () => {
                   {noLeaderCount}
                 </span>
               )}
+            </button>
+
+            <button
+              onClick={() => setActiveScreen('pembimbing')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                activeScreen === 'pembimbing'
+                  ? 'bg-[#E50914] text-white shadow-md shadow-red-500/20'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-[#F0F2F5]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <UserCheck className="w-4 h-4 shrink-0" />
+                <span>Pembimbing & Plotting</span>
+              </div>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[11px] font-extrabold ${
+                  activeScreen === 'pembimbing'
+                    ? 'bg-white text-[#E50914]'
+                    : 'bg-slate-100 text-slate-700'
+                }`}
+              >
+                {mentors.length}
+              </span>
             </button>
 
             <button
@@ -1395,6 +1443,266 @@ export const AdminMonitoringPage: React.FC = () => {
                 </p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ────────────────────────────────────────────────────────────────────
+            PEMBIMBING & PLOTTING TAB (ADMIN CRUD GURU PEMBIMBING)
+        ──────────────────────────────────────────────────────────────────── */}
+        {activeScreen === 'pembimbing' && (
+          <div className="space-y-6">
+            <div className="pb-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  Manajemen Guru Pembimbing & Plotting Kelompok
+                </h1>
+                <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">
+                  Buat, edit, hapus akun Guru Pembimbing serta tetapkan kelompok bimbingan masing-masing guru.
+                </p>
+              </div>
+              <span className="px-3.5 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold shrink-0">
+                Total Pembimbing: {mentors.length} Akun
+              </span>
+            </div>
+
+            {/* Form Tambah / Edit Akun Guru Pembimbing */}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (editingMentor) {
+                  const res = await updateMentor(editingMentor.id, {
+                    name: mentorFormName,
+                    email: mentorFormEmail,
+                    password: mentorFormPassword || undefined,
+                  });
+                  if (!res.ok) {
+                    showToast(res.error || 'Gagal memperbarui pembimbing.', 'warning');
+                    return;
+                  }
+                  setEditingMentor(null);
+                  setMentorFormName('');
+                  setMentorFormEmail('');
+                  setMentorFormPassword('');
+                } else {
+                  const res = await createMentor({
+                    name: mentorFormName,
+                    email: mentorFormEmail,
+                    password: mentorFormPassword,
+                  });
+                  if (!res.ok) {
+                    showToast(res.error || 'Gagal menambah pembimbing.', 'warning');
+                    return;
+                  }
+                  setMentorFormName('');
+                  setMentorFormEmail('');
+                  setMentorFormPassword('');
+                }
+              }}
+              className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-extrabold text-slate-900">
+                  {editingMentor ? `Edit Akun: ${editingMentor.name}` : 'Tambah Akun Guru Pembimbing Baru'}
+                </h2>
+                {editingMentor && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingMentor(null);
+                      setMentorFormName('');
+                      setMentorFormEmail('');
+                      setMentorFormPassword('');
+                    }}
+                    className="text-xs font-bold text-slate-500 hover:text-slate-900 underline cursor-pointer"
+                  >
+                    Batal Edit
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                <input
+                  type="text"
+                  value={mentorFormName}
+                  onChange={(e) => setMentorFormName(e.target.value)}
+                  placeholder="Nama Lengkap & Gelar (mis. Agus Setiawan, S.T)"
+                  className="md:col-span-4 px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-slate-900"
+                  required
+                />
+                <input
+                  type="email"
+                  value={mentorFormEmail}
+                  onChange={(e) => setMentorFormEmail(e.target.value)}
+                  placeholder="Email Login (mis. agus@smktelkom-sda.sch.id)"
+                  className="md:col-span-4 px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-slate-900"
+                  required
+                />
+                <input
+                  type="password"
+                  value={mentorFormPassword}
+                  onChange={(e) => setMentorFormPassword(e.target.value)}
+                  placeholder={editingMentor ? 'Password baru (opsional)' : 'Password minimal 6 karakter'}
+                  className="md:col-span-2 px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-slate-900"
+                  required={!editingMentor}
+                />
+                <button
+                  type="submit"
+                  className="md:col-span-2 px-4 py-2.5 rounded-xl bg-[#E20113] hover:bg-[#b4000c] text-white text-sm font-bold transition-colors cursor-pointer"
+                >
+                  {editingMentor ? 'Simpan' : '+ Tambah'}
+                </button>
+              </div>
+            </form>
+
+            {/* Daftar Akun Guru Pembimbing */}
+            <div className="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-200 shadow-2xs overflow-hidden">
+              {mentors.map((mentor) => (
+                <div
+                  key={mentor.id}
+                  className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-extrabold text-slate-900 text-base">{mentor.name}</span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-[11px] font-bold">
+                        Role: Guru Pembimbing
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 font-medium">{mentor.email}</p>
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-xs font-bold text-slate-700 mr-1">Kelompok Bimbingan:</span>
+                      {mentor.assignedGroupIds.length === 0 ? (
+                        <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-md font-semibold">
+                          Belum ada kelompok yang di-plotting
+                        </span>
+                      ) : (
+                        mentor.assignedGroupIds.map((gid) => (
+                          <span
+                            key={gid}
+                            className="px-2.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-800 text-xs font-extrabold"
+                          >
+                            KEL-{gid}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => {
+                        setPlottingMentor(mentor);
+                        setPlottingGroupIds(mentor.assignedGroupIds);
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-[#E20113] text-white text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      Plotting Kelompok ({mentor.assignedGroupIds.length})
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingMentor(mentor);
+                        setMentorFormName(mentor.name);
+                        setMentorFormEmail(mentor.email);
+                        setMentorFormPassword('');
+                      }}
+                      className="p-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer"
+                      title="Edit akun pembimbing"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => void deleteMentor(mentor.id)}
+                      className="p-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 cursor-pointer"
+                      title="Hapus akun pembimbing"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Modal Plotting Kelompok untuk Guru Pembimbing */}
+            {plottingMentor && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+                <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+                  <div className="flex items-start justify-between pb-3 border-b border-slate-200">
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900">
+                        Plotting Kelompok Bimbingan
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Pembimbing: <strong className="text-slate-800">{plottingMentor.name}</strong>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setPlottingMentor(null)}
+                      className="text-slate-400 hover:text-slate-900 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="max-h-72 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 pr-1">
+                    {groupsList
+                      .slice()
+                      .sort((a, b) => Number(a.number) - Number(b.number))
+                      .map((grp) => {
+                        const isChecked = plottingGroupIds.includes(grp.number);
+                        return (
+                          <label
+                            key={grp.number}
+                            className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition-colors ${
+                              isChecked
+                                ? 'bg-red-50/60 border-[#E20113] text-slate-900 font-bold'
+                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() =>
+                                setPlottingGroupIds((prev) =>
+                                  isChecked
+                                    ? prev.filter((id) => id !== grp.number)
+                                    : [...prev, grp.number]
+                                )
+                              }
+                              className="accent-[#E20113]"
+                            />
+                            <span className="truncate">
+                              KEL-{grp.number} — {grp.schoolName}
+                            </span>
+                          </label>
+                        );
+                      })}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+                    <span className="text-xs font-semibold text-slate-600">
+                      {plottingGroupIds.length} kelompok dipilih
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setPlottingMentor(null)}
+                        className="px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 cursor-pointer"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await assignMentorGroups(plottingMentor.id, plottingGroupIds);
+                          setPlottingMentor(null);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-[#E20113] hover:bg-[#b4000c] text-white text-xs font-bold cursor-pointer"
+                      >
+                        Simpan Plotting
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

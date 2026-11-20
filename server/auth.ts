@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 import { getDb } from './db/index.ts';
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'mentor' | 'user';
 
 export interface AuthUser {
   id: number;
@@ -11,6 +11,7 @@ export interface AuthUser {
   role: UserRole;
   groupNumber?: string;
   schoolName?: string;
+  assignedGroupIds?: string[];
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -85,6 +86,14 @@ export function getUserByToken(token: string): AuthUser | null {
 
   if (!row) return null;
 
+  let assignedGroupIds: string[] | undefined;
+  if (row.role === 'mentor') {
+    const plotRows = db
+      .prepare('SELECT group_id FROM mentor_groups WHERE mentor_id = ? ORDER BY group_id ASC')
+      .all(row.id) as Array<{ group_id: string }>;
+    assignedGroupIds = plotRows.map((r) => r.group_id);
+  }
+
   return {
     id: row.id,
     name: row.name,
@@ -92,6 +101,7 @@ export function getUserByToken(token: string): AuthUser | null {
     role: row.role,
     groupNumber: row.group_number ?? undefined,
     schoolName: row.school_name ?? undefined,
+    assignedGroupIds,
   };
 }
 
@@ -158,8 +168,10 @@ export function requireRole(...roles: UserRole[]) {
 }
 
 /**
- * Ensures a 'user' role can only access resources belonging to their own groupNumber.
- * Admins can access any group.
+ * Ensures:
+ * - 'admin' can access any group
+ * - 'mentor' can ONLY access groups plotted to them in mentor_groups
+ * - 'user' can ONLY access resources belonging to their own groupNumber
  */
 export function requireGroupAccess(paramName = 'groupId') {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
@@ -171,7 +183,24 @@ export function requireGroupAccess(paramName = 'groupId') {
       next();
       return;
     }
+
     const requestedGroup = normalizeGroupNumber(req.params[paramName]);
+
+    if (req.user.role === 'mentor') {
+      const db = getDb();
+      const plotted = db
+        .prepare('SELECT 1 FROM mentor_groups WHERE mentor_id = ? AND group_id = ?')
+        .get(req.user.id, requestedGroup);
+      if (!plotted) {
+        res.status(403).json({
+          error: `Akses ditolak: Kelompok ${requestedGroup} bukan kelompok bimbingan Anda.`,
+        });
+        return;
+      }
+      next();
+      return;
+    }
+
     const userGroup = normalizeGroupNumber(req.user.groupNumber);
     if (requestedGroup !== userGroup) {
       res.status(403).json({

@@ -776,11 +776,17 @@ export const LoginPage: React.FC = () => {
                       </div>
 
                       {/* Information Note */}
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 text-[11px] text-slate-500 flex items-start gap-2">
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 text-[11px] text-slate-600 flex items-start gap-2">
                         <span className="material-symbols-outlined text-[16px] text-slate-400 shrink-0 mt-0.5">info</span>
-                        <span>
-                          Portal khusus Guru Pembimbing Lapangan dan Direktorat Kurikulum SMK Telkom Sidoarjo.
-                        </span>
+                        <div className="space-y-1">
+                          <span className="block">
+                            Portal khusus <strong>Admin Kurikulum</strong> &amp; <strong>Guru Pembimbing</strong> SMK Telkom Sidoarjo.
+                          </span>
+                          <span className="block text-[10px] text-slate-500">
+                            • Admin: <code>admin@smktelkom-sda.sch.id</code><br />
+                            • Pembimbing: <code>sri.wahyuni@smktelkom-sda.sch.id</code> / <code>budi.hartono@smktelkom-sda.sch.id</code> (<code>Skomda2026!</code>)
+                          </span>
+                        </div>
                       </div>
 
                       {/* Submit Admin Button */}

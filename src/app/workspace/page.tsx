@@ -46,6 +46,9 @@ export const WorkspacePage: React.FC = () => {
     bannerStatus,
     bannerFeedback,
     submitGroupFile,
+    getGroupStages,
+    fetchGroupStages,
+    submitStageProgress,
     supervisorMemo,
     showToast,
     logout,
@@ -55,6 +58,12 @@ export const WorkspacePage: React.FC = () => {
   const currentGroup = activeGroup;
   const activeStageNumber = currentGroup.currentStep || 4;
   const groupNumberStr = currentGroup.number || '03';
+
+  React.useEffect(() => {
+    void fetchGroupStages(groupNumberStr);
+  }, [groupNumberStr]);
+
+  const syncedStages = getGroupStages(groupNumberStr);
 
   // 8 Members of this group roster
   const groupMembers = useMemo(() => {
@@ -86,80 +95,94 @@ export const WorkspacePage: React.FC = () => {
   const [uploadNotes, setUploadNotes] = useState('');
   const [isSubmittingFile, setIsSubmittingFile] = useState(false);
 
-  // Stages Definition
-  const stages: StageCardData[] = useMemo(() => [
-    {
-      number: 1,
-      code: `KEL-${groupNumberStr} • TAHAP 01`,
-      title: 'Bentuk Tim Relawan',
-      fullName: 'Tahap 01: Pembentukan Tim & Pemetaan Roster',
-      progress: 100,
-      metric: '8/8 Anggota Lengkap',
-      status: 'completed',
-      locked: false,
-      deliverables: ['Struktur Organisasi Tim', 'Daftar Kontak & Roster Siswa', 'Kesepakatan Jadwal Koordinasi'],
-    },
-    {
-      number: 2,
-      code: `KEL-${groupNumberStr} • TAHAP 02`,
-      title: 'Pilih & Tetapkan Ketua',
-      fullName: 'Tahap 02: Penetapan & Verifikasi Ketua Regu',
-      progress: 100,
-      metric: 'Akun Terverifikasi',
-      status: 'completed',
-      locked: false,
-      deliverables: ['Berita Acara Pemilihan Ketua', 'Aktivasi Kredensial Tunggal', 'Sinkronisasi Surat Mandat'],
-    },
-    {
-      number: 3,
-      code: `KEL-${groupNumberStr} • TAHAP 03`,
-      title: 'Susun Modul & Materi',
-      fullName: 'Tahap 03: Penyusunan Modul Praktikum Lab',
-      progress: 100,
-      metric: 'Disetujui Kurikulum',
-      status: 'completed',
-      locked: false,
-      deliverables: ['Silabus Praktikum 6 JP', 'Modul Canva & Literasi AI', 'Lembar Kerja Siswa SMP'],
-    },
-    {
-      number: 4,
-      code: `KEL-${groupNumberStr} • TAHAP 04`,
-      title: 'Siapkan Desain & Banner',
-      fullName: 'Tahap 04: Finalisasi Slide & Cetak X-Banner',
-      progress: bannerStatus === 'approved' ? 100 : 67,
-      metric: bannerStatus === 'approved' ? 'Disetujui' : bannerStatus === 'pending' ? 'Review Kurikulum' : '4/6 Tugas Selesai',
-      status: 'active',
-      locked: false,
-      deliverables: [
-        'Desain X-Banner 60×160 cm Resmi',
-        'Slide Presentasi Interaktif Canva',
-        'Layout Feed Instagram Publikasi',
-        'Simulasi Uji Presentasi Tim',
-      ],
-    },
-    {
-      number: 5,
-      code: `KEL-${groupNumberStr} • TAHAP 05`,
-      title: 'Mengajar di SMP Mitra',
-      fullName: 'Tahap 05: Pelaksanaan Praktikum Lapangan SMP',
-      progress: 0,
-      metric: 'Tenggat 22 Feb',
-      status: 'locked',
-      locked: true,
-      deliverables: ['Presensi Kehadiran Siswa SMP', 'Foto & Video Dokumentasi Praktikum', 'Berita Acara Tatap Muka'],
-    },
-    {
-      number: 6,
-      code: `KEL-${groupNumberStr} • TAHAP 06`,
-      title: 'Laporan Akhir & Evaluasi',
-      fullName: 'Tahap 06: Penilaian Akhir & Laporan Pertanggungjawaban',
-      progress: 0,
-      metric: 'Tenggat 28 Feb',
-      status: 'locked',
-      locked: true,
-      deliverables: ['Laporan Akhir Pelaksanaan', 'Kumpulan Karya Digital Siswa', 'Penilaian Mandiri Tim'],
-    },
-  ], [groupNumberStr, bannerStatus]);
+  // Stages Definition (synced with RBAC ACC status from Guru Pembimbing)
+  const stages: StageCardData[] = useMemo(() => {
+    const stageTemplates: Array<{
+      number: number;
+      title: string;
+      fullName: string;
+      defaultMetric: string;
+      deliverables: string[];
+    }> = [
+      {
+        number: 1,
+        title: 'Bentuk Tim Relawan',
+        fullName: 'Tahap 01: Pembentukan Tim & Pemetaan Roster',
+        defaultMetric: '8/8 Anggota Lengkap',
+        deliverables: ['Struktur Organisasi Tim', 'Daftar Kontak & Roster Siswa', 'Kesepakatan Jadwal Koordinasi'],
+      },
+      {
+        number: 2,
+        title: 'Pilih & Tetapkan Ketua',
+        fullName: 'Tahap 02: Penetapan & Verifikasi Ketua Regu',
+        defaultMetric: 'Akun Terverifikasi',
+        deliverables: ['Berita Acara Pemilihan Ketua', 'Aktivasi Kredensial Tunggal', 'Sinkronisasi Surat Mandat'],
+      },
+      {
+        number: 3,
+        title: 'Susun Modul & Materi',
+        fullName: 'Tahap 03: Penyusunan Modul Praktikum Lab',
+        defaultMetric: 'Disetujui Kurikulum',
+        deliverables: ['Silabus Praktikum 6 JP', 'Modul Canva & Literasi AI', 'Lembar Kerja Siswa SMP'],
+      },
+      {
+        number: 4,
+        title: 'Siapkan Desain & Banner',
+        fullName: 'Tahap 04: Finalisasi Slide & Cetak X-Banner',
+        defaultMetric: '4/6 Tugas Selesai',
+        deliverables: [
+          'Desain X-Banner 60×160 cm Resmi',
+          'Slide Presentasi Interaktif Canva',
+          'Layout Feed Instagram Publikasi',
+          'Simulasi Uji Presentasi Tim',
+        ],
+      },
+      {
+        number: 5,
+        title: 'Mengajar di SMP Mitra',
+        fullName: 'Tahap 05: Pelaksanaan Praktikum Lapangan SMP',
+        defaultMetric: 'Tenggat 22 Feb',
+        deliverables: ['Presensi Kehadiran Siswa SMP', 'Foto & Video Dokumentasi Praktikum', 'Berita Acara Tatap Muka'],
+      },
+      {
+        number: 6,
+        title: 'Laporan Akhir & Evaluasi',
+        fullName: 'Tahap 06: Penilaian Akhir & Laporan Pertanggungjawaban',
+        defaultMetric: 'Tenggat 28 Feb',
+        deliverables: ['Laporan Akhir Pelaksanaan', 'Kumpulan Karya Digital Siswa', 'Penilaian Mandiri Tim'],
+      },
+    ];
+
+    return stageTemplates.map((tpl) => {
+      const rec = syncedStages.find((s) => s.stageNumber === tpl.number);
+      const acc = rec?.accStatus || 'pending';
+      const isApproved = acc === 'approved';
+      const isSubmitted = acc === 'submitted';
+      const isRevision = acc === 'revision';
+      const isCurrentActive = tpl.number === activeStageNumber || isSubmitted || isRevision;
+
+      let status: 'completed' | 'active' | 'locked' = 'locked';
+      if (isApproved || tpl.number < activeStageNumber) status = 'completed';
+      else if (isCurrentActive) status = 'active';
+
+      let metric = tpl.defaultMetric;
+      if (isApproved) metric = 'Sudah Di-ACC Pembimbing ✓';
+      else if (isSubmitted) metric = 'Menunggu ACC Guru Pembimbing';
+      else if (isRevision) metric = `Perlu Revisi${rec?.reviewerNote ? `: ${rec.reviewerNote}` : ''}`;
+
+      return {
+        number: tpl.number,
+        code: `KEL-${groupNumberStr} • TAHAP 0${tpl.number}`,
+        title: tpl.title,
+        fullName: tpl.fullName,
+        progress: isApproved ? 100 : isSubmitted ? 85 : isRevision ? 50 : status === 'active' ? 67 : 0,
+        metric,
+        status,
+        locked: status === 'locked',
+        deliverables: tpl.deliverables,
+      };
+    });
+  }, [groupNumberStr, syncedStages, activeStageNumber]);
 
   // Filtered Stages
   const filteredStages = useMemo(() => {
@@ -323,6 +346,7 @@ export const WorkspacePage: React.FC = () => {
     const fileReference = uploadMode === 'device' && selectedFile ? selectedFile.name : uploadFileUrl.trim();
     setTimeout(() => {
       submitGroupFile(groupNumberStr, fileReference, uploadNotes.trim() || undefined);
+      void submitStageProgress(groupNumberStr, activeStageNumber, fileReference, uploadNotes.trim());
       setIsSubmittingFile(false);
       setShowUploadModal(false);
       setSelectedFile(null);

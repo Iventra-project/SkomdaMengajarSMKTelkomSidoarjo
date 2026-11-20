@@ -20,6 +20,44 @@ export function getDatabasePath(): string {
 }
 
 /**
+ * Migrates legacy `users` table if its CHECK constraint lacks `'mentor'`.
+ */
+function ensureRbacMigration(db: DatabaseSync): void {
+  const tableInfo = db
+    .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'`)
+    .get() as { sql?: string } | undefined;
+
+  if (tableInfo?.sql && !tableInfo.sql.includes("'mentor'")) {
+    db.exec('PRAGMA foreign_keys = OFF;');
+    db.exec('BEGIN;');
+    try {
+      db.exec(`
+        CREATE TABLE users_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL UNIQUE,
+          password_hash TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'mentor', 'user')),
+          group_number TEXT,
+          school_name TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT INTO users_new (id, name, email, password_hash, role, group_number, school_name, created_at)
+        SELECT id, name, email, password_hash, role, group_number, school_name, created_at FROM users;
+        DROP TABLE users;
+        ALTER TABLE users_new RENAME TO users;
+      `);
+      db.exec('COMMIT;');
+    } catch (err) {
+      db.exec('ROLLBACK;');
+      throw err;
+    } finally {
+      db.exec('PRAGMA foreign_keys = ON;');
+    }
+  }
+}
+
+/**
  * Opens (or returns the cached) SQLite connection and ensures schema is applied.
  */
 export function getDb(): DatabaseSync {
@@ -33,6 +71,8 @@ export function getDb(): DatabaseSync {
   const db = new DatabaseSync(dbPath);
   db.exec('PRAGMA journal_mode = WAL;');
   db.exec('PRAGMA foreign_keys = ON;');
+
+  ensureRbacMigration(db);
 
   const schemaPath = path.join(__dirname, 'schema.sql');
   const schemaSql = fs.readFileSync(schemaPath, 'utf8');

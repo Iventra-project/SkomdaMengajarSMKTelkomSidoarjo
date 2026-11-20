@@ -199,6 +199,14 @@ app.post('/api/auth/login', (req, res) => {
   }
 
   const token = createSession(user.id);
+  let assignedGroupIds: string[] | undefined;
+  if (user.role === 'mentor') {
+    const plotRows = db
+      .prepare('SELECT group_id FROM mentor_groups WHERE mentor_id = ? ORDER BY group_id ASC')
+      .all(user.id) as Array<{ group_id: string }>;
+    assignedGroupIds = plotRows.map((r) => r.group_id);
+  }
+
   res.json({
     token,
     user: {
@@ -208,6 +216,7 @@ app.post('/api/auth/login', (req, res) => {
       role: user.role,
       groupNumber: user.group_number ?? undefined,
       schoolName: user.school_name ?? undefined,
+      assignedGroupIds,
     },
   });
 });
@@ -365,45 +374,360 @@ app.delete('/api/groups/:id', requireAuth, requireRole('admin'), (req, res) => {
   res.json({ ok: true, id: groupId });
 });
 
-app.patch('/api/groups/:id/banner-decision', requireAuth, requireRole('admin'), (req, res) => {
+app.patch('/api/groups/:id/banner-decision', requireAuth, requireRole('admin', 'mentor'), requireGroupAccess('id'), (req, res) => {
   const { decision, notes } = req.body as { decision?: 'approved' | 'revision'; notes?: string };
   if (decision !== 'approved' && decision !== 'revision') {
     res.status(400).json({ error: 'Invalid decision. Must be "approved" or "revision".' });
     return;
   }
   const db = getDb();
+  const groupId = normalizeGroupNumber(req.params.id);
   const result = db
     .prepare(
       `UPDATE groups
        SET banner_status = ?, banner_feedback = ?, updated_at = datetime('now')
        WHERE id = ?`
     )
-    .run(decision, notes ?? '', req.params.id);
+    .run(decision, notes ?? '', groupId);
 
   if (result.changes === 0) {
     res.status(404).json({ error: 'Group not found' });
     return;
   }
-  res.json({ id: req.params.id, bannerStatus: decision, bannerFeedback: notes ?? '' });
+  res.json({ id: groupId, bannerStatus: decision, bannerFeedback: notes ?? '' });
 });
 
-app.patch('/api/groups/:id/memo', requireAuth, requireRole('admin'), (req, res) => {
+app.patch('/api/groups/:id/memo', requireAuth, requireRole('admin', 'mentor'), requireGroupAccess('id'), (req, res) => {
   const { memo, shareWithLeader } = req.body as { memo?: string; shareWithLeader?: boolean };
   const db = getDb();
+  const groupId = normalizeGroupNumber(req.params.id);
   const result = db
     .prepare(
       `UPDATE groups
        SET supervisor_memo = ?, show_memo_to_leader = ?, updated_at = datetime('now')
        WHERE id = ?`
     )
-    .run(memo ?? '', shareWithLeader ? 1 : 0, req.params.id);
+    .run(memo ?? '', shareWithLeader ? 1 : 0, groupId);
 
   if (result.changes === 0) {
     res.status(404).json({ error: 'Group not found' });
     return;
   }
-  res.json({ id: req.params.id, supervisorMemo: memo ?? '', showMemoToLeader: Boolean(shareWithLeader) });
+  res.json({ id: groupId, supervisorMemo: memo ?? '', showMemoToLeader: Boolean(shareWithLeader) });
 });
+
+// ========================
+// RBAC: Admin CRUD Akun Guru Pembimbing & Plotting Kelompok
+// ========================
+app.get('/api/admin/mentors', requireAuth, requireRole('admin'), (_req, res) => {
+  const db = getDb();
+  const mentors = db
+    .prepare(
+      `SELECT id, name, email, role, school_name as schoolName, created_at as createdAt
+       FROM users
+       WHERE role = 'mentor'
+       ORDER BY id ASC`
+    )
+    .all() as Array<{
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    schoolName: string | null;
+    createdAt: string;
+  }>;
+
+  const getGroups = db.prepare(`
+    SELECT g.id, g.number, g.school_name as schoolName
+    FROM mentor_groups mg
+    JOIN groups g ON g.id = mg.group_id
+    WHERE mg.mentor_id = ?
+    ORDER BY g.number ASC
+  `);
+
+  res.json(
+    mentors.map((m) => ({
+      ...m,
+      assignedGroups: getGroups.all(m.id),
+    }))
+  );
+});
+
+app.post('/api/admin/mentors', requireAuth, requireRole('admin'), (req, res) => {
+  const { name, email, password, groupIds = [] } = req.body as {
+    name?: string;
+    email?: string;
+    password?: string;
+    groupIds?: string[];
+  };
+
+  if (!name?.trim() || !email?.trim() || !password || password.length < 6) {
+    res.status(400).json({ error: 'Nama, email, dan kata sandi (minimal 6 karakter) wajib diisi.' });
+    return;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const db = getDb();
+  const existing = db.prepare('SELECT id FROM users WHERE lower(email) = ?').get(normalizedEmail);
+  if (existing) {
+    res.status(409).json({ error: 'Email tersebut sudah digunakan oleh akun lain.' });
+    return;
+  }
+
+  const info = db
+    .prepare(
+      `INSERT INTO users (name, email, password_hash, role, group_number, school_name)
+       VALUES (?, ?, ?, 'mentor', NULL, 'SMK Telkom Sidoarjo')`
+    )
+    .run(name.trim(), normalizedEmail, hashPassword(password));
+
+  const mentorId = Number(info.lastInsertRowid);
+  const validGroupIds = Array.isArray(groupIds) ? groupIds.map((g) => normalizeGroupNumber(String(g))) : [];
+
+  if (validGroupIds.length > 0) {
+    const plotStmt = db.prepare('INSERT OR IGNORE INTO mentor_groups (mentor_id, group_id) VALUES (?, ?)');
+    for (const gid of validGroupIds) {
+      plotStmt.run(mentorId, gid);
+    }
+  }
+
+  res.status(201).json({
+    id: mentorId,
+    name: name.trim(),
+    email: normalizedEmail,
+    role: 'mentor',
+    assignedGroups: validGroupIds.map((gid) => ({ id: gid, number: gid, schoolName: '' })),
+  });
+});
+
+app.put('/api/admin/mentors/:id', requireAuth, requireRole('admin'), (req, res) => {
+  const mentorId = Number(req.params.id);
+  const { name, email, password } = req.body as { name?: string; email?: string; password?: string };
+
+  if (!name?.trim() || !email?.trim()) {
+    res.status(400).json({ error: 'Nama dan email wajib diisi.' });
+    return;
+  }
+  if (password && password.length < 6) {
+    res.status(400).json({ error: 'Kata sandi baru minimal 6 karakter.' });
+    return;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const db = getDb();
+  const existing = db
+    .prepare(`SELECT id FROM users WHERE id = ? AND role = 'mentor'`)
+    .get(mentorId) as { id: number } | undefined;
+  if (!existing) {
+    res.status(404).json({ error: 'Akun Guru Pembimbing tidak ditemukan.' });
+    return;
+  }
+
+  const dupEmail = db
+    .prepare('SELECT id FROM users WHERE lower(email) = ? AND id != ?')
+    .get(normalizedEmail, mentorId);
+  if (dupEmail) {
+    res.status(409).json({ error: 'Email sudah digunakan akun lain.' });
+    return;
+  }
+
+  if (password) {
+    db.prepare(`UPDATE users SET name = ?, email = ?, password_hash = ? WHERE id = ?`).run(
+      name.trim(),
+      normalizedEmail,
+      hashPassword(password),
+      mentorId
+    );
+  } else {
+    db.prepare(`UPDATE users SET name = ?, email = ? WHERE id = ?`).run(
+      name.trim(),
+      normalizedEmail,
+      mentorId
+    );
+  }
+
+  res.json({ id: mentorId, name: name.trim(), email: normalizedEmail, role: 'mentor' });
+});
+
+app.delete('/api/admin/mentors/:id', requireAuth, requireRole('admin'), (req, res) => {
+  const mentorId = Number(req.params.id);
+  const db = getDb();
+  const result = db.prepare(`DELETE FROM users WHERE id = ? AND role = 'mentor'`).run(mentorId);
+  if (result.changes === 0) {
+    res.status(404).json({ error: 'Akun Guru Pembimbing tidak ditemukan.' });
+    return;
+  }
+  res.json({ ok: true, id: mentorId });
+});
+
+app.put('/api/admin/mentors/:id/groups', requireAuth, requireRole('admin'), (req, res) => {
+  const mentorId = Number(req.params.id);
+  const { groupIds } = req.body as { groupIds?: string[] };
+  if (!Array.isArray(groupIds)) {
+    res.status(400).json({ error: 'groupIds harus berupa array.' });
+    return;
+  }
+
+  const db = getDb();
+  const mentor = db
+    .prepare(`SELECT id, name FROM users WHERE id = ? AND role = 'mentor'`)
+    .get(mentorId) as { id: number; name: string } | undefined;
+  if (!mentor) {
+    res.status(404).json({ error: 'Akun Guru Pembimbing tidak ditemukan.' });
+    return;
+  }
+
+  const normalizedIds = Array.from(new Set(groupIds.map((g) => normalizeGroupNumber(String(g)))));
+  db.exec('BEGIN');
+  try {
+    db.prepare('DELETE FROM mentor_groups WHERE mentor_id = ?').run(mentorId);
+    const insertPlot = db.prepare('INSERT OR IGNORE INTO mentor_groups (mentor_id, group_id) VALUES (?, ?)');
+    const updateMentorName = db.prepare('UPDATE groups SET mentor_name = ? WHERE id = ?');
+    for (const gid of normalizedIds) {
+      insertPlot.run(mentorId, gid);
+      updateMentorName.run(mentor.name, gid);
+    }
+    db.exec('COMMIT');
+    res.json({ ok: true, mentorId, groupIds: normalizedIds });
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+});
+
+// ========================
+// RBAC: Guru Pembimbing Filtered Groups & Progress Stages ACC
+// ========================
+app.get('/api/mentor/groups', requireAuth, requireRole('admin', 'mentor'), (req: AuthenticatedRequest, res) => {
+  const db = getDb();
+  if (req.user?.role === 'admin') {
+    const rows = db.prepare('SELECT * FROM groups ORDER BY number ASC').all() as unknown as GroupRow[];
+    res.json(rows.map(mapGroupRow));
+    return;
+  }
+
+  const rows = db
+    .prepare(
+      `SELECT g.*
+       FROM mentor_groups mg
+       JOIN groups g ON g.id = mg.group_id
+       WHERE mg.mentor_id = ?
+       ORDER BY g.number ASC`
+    )
+    .all(req.user!.id) as unknown as GroupRow[];
+
+  res.json(rows.map(mapGroupRow));
+});
+
+app.get('/api/groups/:groupId/stages', requireAuth, requireGroupAccess('groupId'), (req, res) => {
+  const db = getDb();
+  const groupId = normalizeGroupNumber(req.params.groupId);
+  const rows = db
+    .prepare(
+      `SELECT ps.id, ps.group_id as groupId, ps.stage_number as stageNumber, ps.title,
+              ps.submission_url as submissionUrl, ps.submission_note as submissionNote,
+              ps.acc_status as accStatus, ps.reviewed_by as reviewedBy,
+              u.name as reviewerName, ps.reviewer_note as reviewerNote,
+              ps.reviewed_at as reviewedAt, ps.updated_at as updatedAt
+       FROM progress_stages ps
+       LEFT JOIN users u ON u.id = ps.reviewed_by
+       WHERE ps.group_id = ?
+       ORDER BY ps.stage_number ASC`
+    )
+    .all(groupId);
+  res.json(rows);
+});
+
+app.post(
+  '/api/groups/:groupId/stages/:stageNumber/submit',
+  requireAuth,
+  requireRole('user'),
+  requireGroupAccess('groupId'),
+  (req, res) => {
+    const groupId = normalizeGroupNumber(req.params.groupId);
+    const stageNumber = Number(req.params.stageNumber);
+    const { submissionUrl, submissionNote = '' } = req.body as {
+      submissionUrl?: string;
+      submissionNote?: string;
+    };
+
+    if (!Number.isInteger(stageNumber) || stageNumber < 1 || stageNumber > 6) {
+      res.status(400).json({ error: 'Nomor tahapan tidak valid (1–6).' });
+      return;
+    }
+    if (!submissionUrl?.trim()) {
+      res.status(400).json({ error: 'Tautan / berkas progres wajib diisi.' });
+      return;
+    }
+
+    const db = getDb();
+    db.prepare(
+      `UPDATE progress_stages
+       SET submission_url = ?, submission_note = ?, acc_status = 'submitted', updated_at = datetime('now')
+       WHERE group_id = ? AND stage_number = ?`
+    ).run(submissionUrl.trim(), submissionNote.trim(), groupId, stageNumber);
+
+    res.json({ groupId, stageNumber, accStatus: 'submitted', submissionUrl: submissionUrl.trim() });
+  }
+);
+
+app.patch(
+  '/api/groups/:groupId/stages/:stageNumber/review',
+  requireAuth,
+  requireRole('admin', 'mentor'),
+  requireGroupAccess('groupId'),
+  (req: AuthenticatedRequest, res) => {
+    const groupId = normalizeGroupNumber(req.params.groupId);
+    const stageNumber = Number(req.params.stageNumber);
+    const { decision, reviewerNote = '' } = req.body as {
+      decision?: 'approved' | 'revision';
+      reviewerNote?: string;
+    };
+
+    if (!Number.isInteger(stageNumber) || stageNumber < 1 || stageNumber > 6) {
+      res.status(400).json({ error: 'Nomor tahapan tidak valid (1–6).' });
+      return;
+    }
+    if (decision !== 'approved' && decision !== 'revision') {
+      res.status(400).json({ error: 'Keputusan harus "approved" atau "revision".' });
+      return;
+    }
+
+    const db = getDb();
+    const result = db
+      .prepare(
+        `UPDATE progress_stages
+         SET acc_status = ?, reviewer_note = ?, reviewed_by = ?, reviewed_at = datetime('now'), updated_at = datetime('now')
+         WHERE group_id = ? AND stage_number = ?`
+      )
+      .run(decision, reviewerNote.trim(), req.user!.id, groupId, stageNumber);
+
+    if (result.changes === 0) {
+      res.status(404).json({ error: 'Tahapan kelompok tidak ditemukan.' });
+      return;
+    }
+
+    // Sync group step & progress percentage
+    const stepCol = `step${stageNumber}`;
+    const stepVal = decision === 'approved' ? 'done' : 'revision';
+    db.prepare(`UPDATE groups SET ${stepCol} = ?, updated_at = datetime('now') WHERE id = ?`).run(stepVal, groupId);
+
+    const approvedRow = db
+      .prepare(`SELECT COUNT(*) as cnt FROM progress_stages WHERE group_id = ? AND acc_status = 'approved'`)
+      .get(groupId) as { cnt: number };
+    const pct = Math.round((approvedRow.cnt / 6) * 100);
+    db.prepare('UPDATE groups SET progress_percent = ? WHERE id = ?').run(pct, groupId);
+
+    res.json({
+      groupId,
+      stageNumber,
+      accStatus: decision,
+      reviewerNote: reviewerNote.trim(),
+      reviewerName: req.user!.name,
+      progressPercent: pct,
+    });
+  }
+);
 
 app.get('/api/groups/:groupId/members', requireAuth, requireGroupAccess('groupId'), (req, res) => {
   const db = getDb();
@@ -520,6 +844,17 @@ app.patch('/api/tasks/:taskId/move', requireAuth, (req: AuthenticatedRequest, re
       error: `Akses ditolak: Tugas ini milik Kelompok ${task.group_id}.`,
     });
     return;
+  }
+  if (req.user?.role === 'mentor') {
+    const plotted = db
+      .prepare('SELECT 1 FROM mentor_groups WHERE mentor_id = ? AND group_id = ?')
+      .get(req.user.id, task.group_id);
+    if (!plotted) {
+      res.status(403).json({
+        error: `Akses ditolak: Kelompok ${task.group_id} bukan kelompok bimbingan Anda.`,
+      });
+      return;
+    }
   }
 
   db.prepare('UPDATE sprint_tasks SET column_name = ? WHERE id = ?').run(column, req.params.taskId);

@@ -9,6 +9,105 @@ import {
 import { hashPassword } from '../auth.ts';
 import { getDatabasePath, getDb } from './index.ts';
 
+const STAGE_TITLES = [
+  'Bentuk Tim Relawan',
+  'Pilih & Tetapkan Ketua',
+  'Susun Modul & Materi',
+  'Siapkan Desain & Banner',
+  'Mengajar di SMP Mitra',
+  'Laporan Akhir & Evaluasi',
+];
+
+function mapStepToAccStatus(stepVal: string): 'pending' | 'submitted' | 'approved' | 'revision' {
+  if (stepVal === 'done') return 'approved';
+  if (stepVal === 'review') return 'submitted';
+  if (stepVal === 'revisi' || stepVal === 'revision') return 'revision';
+  return 'pending';
+}
+
+/**
+ * Ensures initial RBAC mentor accounts, mentor_groups plotting, and progress_stages exist.
+ */
+export function ensureRbacSeedData(): void {
+  const db = getDb();
+
+  const mentorInsert = db.prepare(`
+    INSERT OR IGNORE INTO users (name, email, password_hash, role, group_number, school_name)
+    VALUES (?, ?, ?, 'mentor', NULL, 'SMK Telkom Sidoarjo')
+  `);
+  mentorInsert.run('Dra. Sri Wahyuni, M.Pd', 'sri.wahyuni@smktelkom-sda.sch.id', hashPassword('Skomda2026!'));
+  mentorInsert.run('Budi Hartono, S.Kom', 'budi.hartono@smktelkom-sda.sch.id', hashPassword('Skomda2026!'));
+
+  // Ensure canonical admin email also exists
+  db.prepare(`
+    INSERT OR IGNORE INTO users (name, email, password_hash, role, group_number, school_name)
+    VALUES ('Admin Kurikulum', 'admin@smktelkom-sda.sch.id', ?, 'admin', NULL, 'SMK Telkom Sidoarjo')
+  `).run(hashPassword('Skomda2026!'));
+
+  const mentorGroupCount = db.prepare('SELECT COUNT(*) as count FROM mentor_groups').get() as { count: number };
+  if (mentorGroupCount.count === 0) {
+    const sri = db
+      .prepare(`SELECT id FROM users WHERE lower(email) = 'sri.wahyuni@smktelkom-sda.sch.id' AND role = 'mentor'`)
+      .get() as { id: number } | undefined;
+    const budi = db
+      .prepare(`SELECT id FROM users WHERE lower(email) = 'budi.hartono@smktelkom-sda.sch.id' AND role = 'mentor'`)
+      .get() as { id: number } | undefined;
+
+    const plotStmt = db.prepare('INSERT OR IGNORE INTO mentor_groups (mentor_id, group_id) VALUES (?, ?)');
+    if (sri) {
+      for (const gid of ['01', '02', '03', '04']) {
+        plotStmt.run(sri.id, gid);
+      }
+    }
+    if (budi) {
+      for (const gid of ['05', '06', '07', '08']) {
+        plotStmt.run(budi.id, gid);
+      }
+    }
+  }
+
+  const stagesCount = db.prepare('SELECT COUNT(*) as count FROM progress_stages').get() as { count: number };
+  if (stagesCount.count === 0) {
+    const insertStage = db.prepare(`
+      INSERT OR IGNORE INTO progress_stages (
+        group_id, stage_number, title, submission_url, submission_note, acc_status, reviewer_note
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const group of groupsData) {
+      const stepsArr = [
+        group.steps.step1,
+        group.steps.step2,
+        group.steps.step3,
+        group.steps.step4,
+        group.steps.step5,
+        group.steps.step6,
+      ];
+      for (let i = 0; i < 6; i++) {
+        const stgNum = i + 1;
+        const accStatus = mapStepToAccStatus(stepsArr[i]);
+        const subUrl =
+          accStatus === 'approved' || accStatus === 'submitted' || accStatus === 'revision'
+            ? `https://drive.google.com/skomda/kel-${group.number}/tahap-0${stgNum}.pdf`
+            : null;
+        const subNote =
+          accStatus === 'submitted'
+            ? `Berkas Tahap 0${stgNum} siap ditinjau oleh Guru Pembimbing.`
+            : accStatus === 'approved'
+              ? `Diselesaikan oleh Kelompok ${group.number}.`
+              : '';
+        const revNote =
+          accStatus === 'approved'
+            ? 'Sesuai standar kurikulum Skomda Mengajar.'
+            : accStatus === 'revision'
+              ? 'Mohon perbaiki format layout sebelum dicetak.'
+              : '';
+        insertStage.run(group.id, stgNum, STAGE_TITLES[i], subUrl, subNote, accStatus, revNote);
+      }
+    }
+  }
+}
+
 /**
  * Seeds the SQLite database with initial project data from src/data/mockData.ts.
  * Skips seeding if data already exists unless `force` is true.
@@ -19,6 +118,7 @@ export function seedDatabase(force = false): { seeded: boolean; dbPath: string }
 
   const existingCount = db.prepare('SELECT COUNT(*) as count FROM groups').get() as { count: number };
   if (existingCount.count > 0 && !force) {
+    ensureRbacSeedData();
     return { seeded: false, dbPath };
   }
 
@@ -27,6 +127,8 @@ export function seedDatabase(force = false): { seeded: boolean; dbPath: string }
     if (force) {
       db.exec(`
         DELETE FROM sessions;
+        DELETE FROM progress_stages;
+        DELETE FROM mentor_groups;
         DELETE FROM activity_events;
         DELETE FROM urgent_alerts;
         DELETE FROM sprint_tasks;
@@ -252,6 +354,7 @@ export function seedDatabase(force = false): { seeded: boolean; dbPath: string }
     }
 
     db.exec('COMMIT');
+    ensureRbacSeedData();
     return { seeded: true, dbPath };
   } catch (error) {
     db.exec('ROLLBACK');

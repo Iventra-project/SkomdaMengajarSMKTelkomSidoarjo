@@ -92,16 +92,12 @@ export const HomePage: React.FC = () => {
   const { navigate, showToast, currentUser, logout, groups } = useApp();
   const isLoggedIn = !!currentUser;
 
-  // Auto-redirect if already logged in
-  useEffect(() => {
-    if (currentUser) {
-      if (currentUser.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/home');
-      }
-    }
-  }, [currentUser, navigate]);
+  const dashboardTarget =
+    currentUser?.role === 'admin'
+      ? '/admin'
+      : currentUser?.role === 'mentor'
+        ? '/mentor'
+        : '/workspace';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'sidoarjo-candi' | 'buduran-sedati' | 'waru-taman' | 'has-leader' | 'pending-leader'>('all');
@@ -246,10 +242,16 @@ export const HomePage: React.FC = () => {
                   ) : (
                     <>
                       <button
-                        onClick={() => navigate('/home')}
+                        onClick={() => navigate(dashboardTarget)}
                         className="inline-flex items-center gap-2.5 px-6 h-12 bg-[#e20113] hover:bg-[#b4000c] text-white font-bold text-xs uppercase tracking-wider rounded-full transition-all shadow-md hover:shadow-lg cursor-pointer group"
                       >
-                        <span>Buka Dashboard Ketua</span>
+                        <span>
+                          {currentUser?.role === 'admin'
+                            ? 'Buka Dashboard Admin'
+                            : currentUser?.role === 'mentor'
+                              ? 'Buka Portal Pembimbing'
+                              : 'Buka Workspace Kelompok'}
+                        </span>
                         <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center group-hover:translate-x-0.5 transition-transform">
                           <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                         </span>
