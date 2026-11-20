@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { BrandLogo } from '../../components/BrandLogo';
 import { groupsData } from '../../data/mockData';
 import {
   Users,
@@ -176,13 +177,8 @@ export const PostLoginHomePage: React.FC = () => {
         <div className="h-16 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           {/* Left Brand */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <span className="text-lg font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic">
-                #SKOMDA
-              </span>
-              <span className="bg-[#e20113] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full transform -rotate-3 origin-center inline-block tracking-wider select-none">
-                MENGAJAR
-              </span>
+            <div className="flex items-center cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              <BrandLogo size="md" />
             </div>
             <div className="hidden sm:flex items-center gap-2 border-l border-slate-200 pl-3 text-[11px] font-semibold text-slate-400">
               <span className="text-red-600 font-bold">#Impact2026</span>

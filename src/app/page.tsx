@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { BrandLogo } from '../components/BrandLogo';
 import {
   groupsData,
   showcaseProjects,
@@ -151,14 +152,9 @@ export const HomePage: React.FC = () => {
           {/* Brand Identity */}
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-1.5 cursor-pointer group shrink-0 text-left"
+            className="flex items-center cursor-pointer group shrink-0 text-left"
           >
-            <span className="text-lg font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic">
-              #SKOMDA
-            </span>
-            <span className="bg-[#e20113] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full transform -rotate-3 origin-center inline-block tracking-wider select-none">
-              MENGAJAR
-            </span>
+            <BrandLogo size="md" />
           </button>
 
           {/* Desktop Nav Links */}
@@ -1492,13 +1488,8 @@ export const HomePage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-12 border-b border-[#E8ECF2]">
             {/* Col 1: Identity */}
             <div className="md:col-span-5 space-y-3">
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic">
-                  #SKOMDA
-                </span>
-                <span className="bg-[#e20113] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full transform -rotate-3 origin-center inline-block tracking-wider select-none">
-                  MENGAJAR
-                </span>
+              <div>
+                <BrandLogo size="md" />
               </div>
               <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
                 Inisiatif vokasi dan pengabdian masyarakat untuk mendampingi literasi digital, komputasi kreatif, dan teknologi tepat guna di 12 SMP Kabupaten Sidoarjo.

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useApp } from '../../../../context/AppContext';
+import { BrandLogo } from '../../../../components/BrandLogo';
 
 export const AdminKelompokDetailPage: React.FC = () => {
   const {
@@ -44,13 +45,8 @@ export const AdminKelompokDetailPage: React.FC = () => {
         <div className="flex flex-col space-y-5">
           {/* Top Brand */}
           <div className="flex flex-col gap-1 pb-4 border-b border-slate-100">
-            <button onClick={() => navigate('/')} className="flex items-center gap-1.5 cursor-pointer text-left">
-              <span className="text-lg font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic">
-                #SKOMDA
-              </span>
-              <span className="bg-[#e20113] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full transform -rotate-3 origin-center inline-block tracking-wider select-none">
-                MENGAJAR
-              </span>
+            <button onClick={() => navigate('/')} className="flex items-center cursor-pointer text-left">
+              <BrandLogo size="md" />
             </button>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               #IMPACT2026 / SMK TELKOM SIDOARJO

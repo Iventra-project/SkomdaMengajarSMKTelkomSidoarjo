@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { BrandLogo } from '../../components/BrandLogo';
 
 export const LoginPage: React.FC = () => {
   const { navigate, setCurrentUser, showToast } = useApp();
@@ -69,13 +70,8 @@ export const LoginPage: React.FC = () => {
       <header className="w-full border-b border-slate-200 bg-white">
         <div className="h-16 max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button onClick={() => navigate('/')} className="flex items-center gap-1.5 cursor-pointer">
-              <span className="text-lg font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic">
-                #SKOMDA
-              </span>
-              <span className="bg-[#e20113] text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded-full transform -rotate-3 origin-center">
-                MENGAJAR
-              </span>
+            <button onClick={() => navigate('/')} className="flex items-center cursor-pointer">
+              <BrandLogo size="md" />
             </button>
             <span className="text-xs text-slate-400 font-medium ml-2 hidden sm:inline">
               / Portal Akses Siswa & Mentor
@@ -109,14 +105,7 @@ export const LoginPage: React.FC = () => {
                 </div>
 
                 <div className="pt-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-3xl font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic">
-                      #SKOMDA
-                    </span>
-                    <span className="bg-[#e20113] text-white text-base uppercase px-3.5 py-1 rounded-full transform -rotate-3 origin-center font-extrabold shadow-xs tracking-wider select-none">
-                      MENGAJAR
-                    </span>
-                  </div>
+                  <BrandLogo size="lg" />
                   <p className="text-sm text-slate-600 mt-3 max-w-md leading-relaxed">
                     Ruang koordinasi resmi bagi ketua kelompok Skomda Mengajar angkatan 2026 dan guru pembimbing lapangan.
                   </p>

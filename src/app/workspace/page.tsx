@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { BrandLogo } from '../../components/BrandLogo';
 import {
   Home,
   LayoutDashboard,
@@ -254,14 +255,9 @@ export const WorkspacePage: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/')}
-              className="flex items-center gap-1.5 cursor-pointer text-left"
+              className="flex items-center cursor-pointer text-left"
             >
-              <span className="text-lg font-extrabold text-slate-900 tracking-tight transform -rotate-3 origin-bottom-left select-none italic">
-                #SKOMDA
-              </span>
-              <span className="bg-[#e20113] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full transform -rotate-3 origin-center inline-block tracking-wider select-none">
-                MENGAJAR
-              </span>
+              <BrandLogo size="md" />
             </button>
             <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
               Kelompok {currentGroup.groupNumber}
